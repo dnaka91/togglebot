@@ -18,7 +18,11 @@ pub struct Discord {
 }
 
 pub async fn load_config() -> Result<Config> {
-    let config = fs::read("config.toml").await?;
+    let config = fs::read("/app/config.toml").await;
+    let config = match config {
+        Ok(c) => c,
+        Err(_) => fs::read("config.toml").await?,
+    };
 
     toml::from_slice(&config).map_err(Into::into)
 }
