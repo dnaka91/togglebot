@@ -20,7 +20,7 @@ use twilight_model::channel::Message;
 
 type AsyncState = Arc<RwLock<State>>;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "warn,togglebot=trace");
     env_logger::init();
