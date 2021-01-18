@@ -6,15 +6,22 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.38"
-dotenv = "0.15.0"
+chrono = { version = "0.4.19", features = ["serde"] }
 env_logger = { version = "0.8.2", default-features = false, features = ["atty", "termcolor"] }
 futures-util = "0.3.12"
 log = { version = "0.4.13", features = ["release_max_level_info"] }
-tokio = { version = "1.0.2", features = ["macros", "rt", "signal"] }
+serde = { version = "1.0.119", features = ["derive"] }
+serde_json = "1.0.61"
+tokio = { version = "1.0.2", features = ["fs", "macros", "rt", "signal"] }
+toml = "0.5.8"
 twilight-embed-builder = "0.3.0"
 twilight-gateway = "0.3.1"
-twilight-http = "0.3.1"
+twilight-http = "0.3.2"
 twilight-model = "0.3.1"
+
+[dev-dependencies]
+maplit = "1.0.2"
+pretty_assertions = "0.6.1"
 
 [profile.release]
 lto = true
