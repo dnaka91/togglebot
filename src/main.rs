@@ -6,17 +6,13 @@ use std::{str::FromStr, sync::Arc};
 
 use anyhow::{anyhow, bail, Result};
 use chrono::prelude::*;
-use futures_util::StreamExt;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use togglebot::{
-    emojis,
+    discord,
     settings::{self, State},
+    AdminResponse, Response, UserResponse,
 };
-use tokio::sync::RwLock;
-use twilight_embed_builder::{EmbedBuilder, EmbedFieldBuilder};
-use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
-use twilight_http::Client;
-use twilight_model::channel::Message;
+use tokio::sync::{broadcast, mpsc, RwLock};
 
 type AsyncState = Arc<RwLock<State>>;
 
@@ -27,249 +23,146 @@ async fn main() -> Result<()> {
 
     let config = settings::load_config().await?;
     let state = settings::load_state().await?;
+    let state = Arc::new(RwLock::new(state));
 
-    let http = Client::new(&config.discord.token);
-
-    let mut shard = Shard::builder(
-        &config.discord.token,
-        Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
-    )
-    .http_client(http.clone())
-    .build();
-
-    shard.start().await?;
-
-    let shard_spawn = shard.clone();
+    let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
 
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.ok();
 
         info!("bot shutting down");
-        shard_spawn.shutdown();
+        shutdown_tx.send(()).ok();
     });
 
-    let mut events = shard.some_events(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE);
-    let state = Arc::new(RwLock::new(state));
+    let (queue_tx, mut queue_rx) = mpsc::channel(100);
 
-    while let Some(event) = events.next().await {
-        let state = state.clone();
-        let http = http.clone();
+    discord::start(&config.discord, queue_tx, shutdown_rx).await?;
 
-        tokio::spawn(async move {
-            if let Err(e) = handle_event(state, event, http.clone()).await {
+    while let Some((message, reply)) = queue_rx.recv().await {
+        let res = if message.admin {
+            handle_admin_message(state.clone(), message.content)
+                .await
+                .map(Response::Admin)
+        } else {
+            handle_user_message(state.clone(), message.content)
+                .await
+                .map(Response::User)
+        };
+
+        match res {
+            Ok(resp) => {
+                reply.send(resp).ok();
+            }
+            Err(e) => {
                 error!("error during event handling: {}", e);
             }
-        });
+        }
     }
 
     Ok(())
 }
 
-async fn handle_event(state: AsyncState, event: Event, http: Client) -> Result<()> {
-    match event {
-        Event::MessageCreate(msg) => handle_message(state, &*msg, http).await?,
-        Event::Ready(_) => info!("bot started, listening for events"),
-        _ => {}
-    }
-
-    Ok(())
-}
-
-async fn handle_message(state: AsyncState, msg: &Message, http: Client) -> Result<()> {
-    if msg.author.bot {
-        // Ignore bots and our own messages.
-        return Ok(());
-    }
-
-    if msg.guild_id.is_some() {
-        handle_guild_message(state, msg, http).await
-    } else {
-        handle_direct_message(state, msg, http).await
-    }
-}
-
-async fn handle_guild_message(state: AsyncState, msg: &Message, http: Client) -> Result<()> {
-    match msg.content.as_ref() {
+async fn handle_user_message(state: AsyncState, content: String) -> Result<UserResponse> {
+    Ok(match content.as_ref() {
         "!help" => {
-            info!("guild: received `help` command");
-
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content(
-                    "Thanks for asking, I'm a bot to help answer some typical questions.\n\
-                    Currently I know the following commands:\n\
-                    `!links` gives you a list of links to sites where **togglebit** is present.\n\
-                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.",
-                )?
-                .await?;
+            info!("user: received `help` command");
+            UserResponse::Help
         }
         "!links" => {
-            info!("guild: received `links` command");
-
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content(
-                    "Website: <https://togglebit.io>\n\
-                    GitHub: <https://github.com/togglebyte>\n\
-                    Twitch: <https://twitch.tv/togglebit>\n\
-                    Discord: <https://discord.gg/qtyDMat>",
-                )?
-                .await?;
+            info!("user: received `links` command");
+            UserResponse::Links(&[
+                ("Website", "https://togglebit.io"),
+                ("GitHub", "https://github.com/togglebyte"),
+                ("Twitch", "https://twitch.tv/togglebit"),
+                ("Discord", "https://discord.gg/qtyDMat"),
+            ])
         }
         "!schedule" => {
-            info!("guild: received `schedule` command");
+            info!("user: received `schedule` command");
 
-            let (days, time) = async {
-                let state = state.read().await;
-                let last_off_day = state.off_days.len() - 1;
+            let state = state.read().await;
 
-                (
-                    format!(
-                        "Every day, except {}",
-                        state.off_days.iter().enumerate().fold(
-                            String::new(),
-                            |mut days, (i, day)| {
-                                if i == last_off_day {
-                                    days.push_str(" and ")
-                                } else if i > 0 {
-                                    days.push_str(", ")
-                                }
-
-                                days.push_str("**");
-                                days.push_str(match day {
-                                    Weekday::Mon => "Monday",
-                                    Weekday::Tue => "Tuesday",
-                                    Weekday::Wed => "Wednesday",
-                                    Weekday::Thu => "Thursday",
-                                    Weekday::Fri => "Friday",
-                                    Weekday::Sat => "Saturday",
-                                    Weekday::Sun => "Sunday",
-                                });
-                                days.push_str("**");
-                                days
-                            }
-                        )
-                    ),
-                    state.schedule.format(),
-                )
+            UserResponse::Schedule {
+                start: state.schedule.format_start(),
+                finish: state.schedule.format_finish(),
+                off_days: state
+                    .off_days
+                    .iter()
+                    .map(|weekday| {
+                        match weekday {
+                            Weekday::Mon => "Monday",
+                            Weekday::Tue => "Tuesday",
+                            Weekday::Wed => "Wednesday",
+                            Weekday::Thu => "Thursday",
+                            Weekday::Fri => "Friday",
+                            Weekday::Sat => "Saturday",
+                            Weekday::Sun => "Sunday",
+                        }
+                        .to_owned()
+                    })
+                    .collect(),
             }
-            .await;
-
-            let embed = EmbedBuilder::new()
-                .field(EmbedFieldBuilder::new("Days", days)?)
-                .field(EmbedFieldBuilder::new("Time", time)?)
-                .field(EmbedFieldBuilder::new("Timezone", "CET")?)
-                .build()?;
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content("Here is togglebit's stream schedule:")?
-                .embed(embed)?
-                .await?;
         }
-        _ => debug!("guild: message: {}", msg.content),
-    }
-
-    Ok(())
+        _ => UserResponse::Unknown,
+    })
 }
 
-/// List of admins that are allowed to customize the bot. Currently static and will be added to the
-/// settings in the future.
-const ADMINS: &[(&str, &str)] = &[("dnaka91", "1754"), ("ToggleBit", "0090")];
-
-async fn handle_direct_message(state: AsyncState, msg: &Message, http: Client) -> Result<()> {
-    if !ADMINS.contains(&(&msg.author.name, &msg.author.discriminator)) {
-        // Ignore commands from any unauthorized users.
-        return Ok(());
-    }
-
-    let mut parts = msg.content.split_whitespace();
+async fn handle_admin_message(state: AsyncState, content: String) -> Result<AdminResponse> {
+    let mut parts = content.split_whitespace();
     let command = if let Some(cmd) = parts.next() {
         cmd
     } else {
-        warn!("direct: got message without content");
-        return Ok(());
+        bail!("got message without content")
     };
 
-    match (
-        command,
-        parts.next(),
-        parts.next(),
-        parts.next(),
-        parts.next(),
-    ) {
-        ("!help", None, None, None, None) => {
-            info!("direct: received `help` command");
+    Ok(
+        match (
+            command,
+            parts.next(),
+            parts.next(),
+            parts.next(),
+            parts.next(),
+        ) {
+            ("!help", None, None, None, None) => {
+                info!("admin: received `help` command");
+                AdminResponse::Help
+            }
+            ("!schedule", Some("set"), Some(field), Some(range_begin), Some(range_end)) => {
+                info!("admin: received `schedule` command");
 
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content(
-                    "Hey there, I support the following admin commands:\n\
-                    ```\n\
-                    !schedule set [start|finish] <HH:MM[am|pm]> <HH:MM[am|pm]>\n\
-                    ```\n\
-                    Update the current schedule for either `start` or `finish` with the given \
-                    range in 12-hour format like `07:00am 08:00am`.\n\
-                    ```\n\
-                    !off_days [add|remove] <weekday>\n\
-                    ```\n\
-                    Update the off days by `add`ing or `remove`ing a single weekday like \
-                    `Mon` or `tuesday`.",
-                )?
-                .await?;
-        }
-        ("!schedule", Some("set"), Some(field), Some(range_begin), Some(range_end)) => {
-            info!("direct: received `schedule` command");
+                let res = || async {
+                    update_schedule(
+                        state,
+                        field.parse()?,
+                        (
+                            NaiveTime::parse_from_str(range_begin, "%I:%M%P")?,
+                            NaiveTime::parse_from_str(range_end, "%I:%M%P")?,
+                        ),
+                    )
+                    .await
+                };
 
-            let res = || async {
-                update_schedule(
-                    state,
-                    field.parse()?,
-                    (
-                        NaiveTime::parse_from_str(range_begin, "%I:%M%P")?,
-                        NaiveTime::parse_from_str(range_end, "%I:%M%P")?,
-                    ),
-                )
-                .await
-            };
+                AdminResponse::Schedule(res().await)
+            }
+            ("!off_days", Some(action), Some(weekday), None, None) => {
+                info!("admin: received `off_days` command");
 
-            let message = match res().await {
-                Ok(()) => format!("{} schedule updated", emojis::OK_HAND),
-                Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
-            };
+                let res = || async {
+                    update_off_days(
+                        state,
+                        action.parse()?,
+                        weekday
+                            .parse()
+                            .map_err(|_| anyhow!("unknown weekday `{}`", weekday))?,
+                    )
+                    .await
+                };
 
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content(message)?
-                .await?;
-        }
-        ("!off_days", Some(action), Some(weekday), None, None) => {
-            info!("direct: received `off_days` command");
-
-            let res = || async {
-                update_off_days(
-                    state,
-                    action.parse()?,
-                    weekday
-                        .parse()
-                        .map_err(|_| anyhow!("unknown weekday `{}`", weekday))?,
-                )
-                .await
-            };
-
-            let message = match res().await {
-                Ok(()) => format!("{} off days updated", emojis::OK_HAND),
-                Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
-            };
-
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content(message)?
-                .await?;
-        }
-        _ => {}
-    }
-
-    Ok(())
+                AdminResponse::OffDays(res().await)
+            }
+            _ => AdminResponse::Unknown,
+        },
+    )
 }
 
 enum Field {

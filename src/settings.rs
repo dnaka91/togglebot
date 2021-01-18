@@ -58,6 +58,16 @@ impl BaseSchedule {
         )
     }
 
+    #[must_use]
+    pub fn format_start(&self) -> String {
+        Self::format_range(self.start)
+    }
+
+    #[must_use]
+    pub fn format_finish(&self) -> String {
+        Self::format_range(self.finish)
+    }
+
     fn format_range(range: (NaiveTime, NaiveTime)) -> String {
         if range.0 == range.1 {
             range.0.format("%I:%M%P").to_string()
