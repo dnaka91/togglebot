@@ -97,8 +97,22 @@ async fn handle_guild_message(state: AsyncState, msg: &Message, http: Client) ->
                 .reply(msg.id)
                 .content(
                     "Thanks for asking, I'm a bot to help answer some typical questions.\n\
-                    Currently I only know the `!schedule` command that tells you the \
-                    Twitch streaming schedule of **togglebit**.",
+                    Currently I know the following commands:\n\
+                    `!links` gives you a list of links to sites where **togglebit** is present.\n\
+                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.",
+                )?
+                .await?;
+        }
+        "!links" => {
+            info!("guild: received `links` command");
+
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content(
+                    "Website: <https://togglebit.io>\n\
+                    GitHub: <https://github.com/togglebyte>\n\
+                    Twitch: <https://twitch.tv/togglebit>\n\
+                    Discord: <https://discord.gg/qtyDMat>",
                 )?
                 .await?;
         }
