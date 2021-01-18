@@ -1,0 +1,20 @@
+[package]
+name = "togglebot"
+version = "0.1.0"
+authors = ["Dominik Nakamura <dnaka91@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0.38"
+dotenv = "0.15.0"
+env_logger = { version = "0.8.2", default-features = false, features = ["atty", "termcolor"] }
+futures-util = "0.3.12"
+log = { version = "0.4.13", features = ["release_max_level_info"] }
+tokio = { version = "1.0.2", features = ["macros", "rt", "signal"] }
+twilight-embed-builder = "0.3.0"
+twilight-gateway = "0.3.1"
+twilight-http = "0.3.1"
+twilight-model = "0.3.1"
+
+[profile.release]
+lto = true
