@@ -10,7 +10,7 @@ use log::{error, info, warn};
 use togglebot::{
     discord,
     settings::{self, State},
-    twitch, AdminResponse, Response, UserResponse,
+    twitch, AdminResponse, Message, Response, Source, UserResponse,
 };
 use tokio::sync::{broadcast, mpsc, RwLock};
 
@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
                 .await
                 .map(Response::Admin)
         } else {
-            handle_user_message(state.clone(), message.content)
+            handle_user_message(state.clone(), message)
                 .await
                 .map(Response::User)
         };
@@ -64,8 +64,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn handle_user_message(state: AsyncState, content: String) -> Result<UserResponse> {
-    Ok(match content.as_ref() {
+async fn handle_user_message(state: AsyncState, message: Message) -> Result<UserResponse> {
+    Ok(match message.content.as_ref() {
         "!help" => {
             info!("user: received `help` command");
             UserResponse::Help
@@ -80,12 +80,18 @@ async fn handle_user_message(state: AsyncState, content: String) -> Result<UserR
         }
         "!links" => {
             info!("user: received `links` command");
-            UserResponse::Links(&[
-                ("Website", "https://togglebit.io"),
-                ("GitHub", "https://github.com/togglebyte"),
-                ("Twitch", "https://twitch.tv/togglebit"),
-                ("Discord", "https://discord.gg/qtyDMat"),
-            ])
+            UserResponse::Links(match message.source {
+                Source::Discord => &[
+                    ("Website", "https://togglebit.io"),
+                    ("GitHub", "https://github.com/togglebyte"),
+                    ("Twitch", "https://twitch.tv/togglebit"),
+                ],
+                Source::Twitch => &[
+                    ("Website", "https://togglebit.io"),
+                    ("GitHub", "https://github.com/togglebyte"),
+                    ("Discord", "https://discord.gg/qtyDMat"),
+                ],
+            })
         }
         "!schedule" => {
             info!("user: received `schedule` command");
