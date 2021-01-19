@@ -10,10 +10,17 @@ use tokio::fs;
 #[derive(Deserialize)]
 pub struct Config {
     pub discord: Discord,
+    pub twitch: Twitch,
 }
 
 #[derive(Deserialize)]
 pub struct Discord {
+    pub token: String,
+}
+
+#[derive(Deserialize)]
+pub struct Twitch {
+    pub login: String,
     pub token: String,
 }
 

@@ -18,6 +18,7 @@ twilight-embed-builder = "0.3.0"
 twilight-gateway = "0.3.1"
 twilight-http = "0.3.2"
 twilight-model = "0.3.1"
+twitch-irc = "2.1.0"
 
 [dev-dependencies]
 maplit = "1.0.2"

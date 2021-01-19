@@ -10,7 +10,7 @@ use log::{error, info, warn};
 use togglebot::{
     discord,
     settings::{self, State},
-    AdminResponse, Response, UserResponse,
+    twitch, AdminResponse, Response, UserResponse,
 };
 use tokio::sync::{broadcast, mpsc, RwLock};
 
@@ -26,6 +26,7 @@ async fn main() -> Result<()> {
     let state = Arc::new(RwLock::new(state));
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
+    let shutdown_rx2 = shutdown_tx.subscribe();
 
     tokio::spawn(async move {
         tokio::signal::ctrl_c().await.ok();
@@ -36,7 +37,8 @@ async fn main() -> Result<()> {
 
     let (queue_tx, mut queue_rx) = mpsc::channel(100);
 
-    discord::start(&config.discord, queue_tx, shutdown_rx).await?;
+    discord::start(&config.discord, queue_tx.clone(), shutdown_rx).await?;
+    twitch::start(&config.twitch, queue_tx, shutdown_rx2).await?;
 
     while let Some((message, reply)) = queue_rx.recv().await {
         let res = if message.admin {

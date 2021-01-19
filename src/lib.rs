@@ -11,6 +11,7 @@ pub use tokio::sync::{
 pub mod discord;
 pub mod emojis;
 pub mod settings;
+pub mod twitch;
 
 type Queue = MpscSender<(Message, OneshotSender<Response>)>;
 type Shutdown = BroadcastReceiver<()>;

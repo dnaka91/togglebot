@@ -1,7 +1,7 @@
 # 🤖 ToggleBot
 
-This is the ToggleBot bot used on [togglebit](https://github.com/togglebyte)'s Discord server (and
-soon Twitch chat as well).
+This is the ToggleBot bot used on [togglebit](https://github.com/togglebyte)'s Discord server and
+Twitch chat.
 
 ## License
 

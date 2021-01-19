@@ -41,7 +41,7 @@ pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Re
             let queue = queue.clone();
 
             tokio::spawn(async move {
-                if let Err(e) = handle_event(queue, event, http.clone()).await {
+                if let Err(e) = handle_event(queue, event, http).await {
                     error!("error during event handling: {}", e);
                 }
             });
@@ -82,8 +82,8 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Resu
     if queue.send((message, tx)).await.is_ok() {
         if let Ok(resp) = rx.await {
             match resp {
-                Response::User(user_resp) => handle_guild_message(user_resp, msg, http).await?,
-                Response::Admin(admin_resp) => handle_direct_message(admin_resp, msg, http).await?,
+                Response::User(user_resp) => handle_user_message(user_resp, msg, http).await?,
+                Response::Admin(admin_resp) => handle_admin_message(admin_resp, msg, http).await?,
             }
         }
     }
@@ -91,7 +91,7 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Resu
     Ok(())
 }
 
-async fn handle_guild_message(resp: UserResponse, msg: ChannelMessage, http: Client) -> Result<()> {
+async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Client) -> Result<()> {
     match resp {
         UserResponse::Help => {
             http.create_message(msg.channel_id)
@@ -136,9 +136,9 @@ async fn handle_guild_message(resp: UserResponse, msg: ChannelMessage, http: Cli
                     .enumerate()
                     .fold(String::new(), |mut days, (i, day)| {
                         if i == last_off_day {
-                            days.push_str(" and ")
+                            days.push_str(" and ");
                         } else if i > 0 {
-                            days.push_str(", ")
+                            days.push_str(", ");
                         }
 
                         days.push_str("**");
@@ -170,7 +170,7 @@ async fn handle_guild_message(resp: UserResponse, msg: ChannelMessage, http: Cli
     Ok(())
 }
 
-async fn handle_direct_message(
+async fn handle_admin_message(
     resp: AdminResponse,
     msg: ChannelMessage,
     http: Client,
