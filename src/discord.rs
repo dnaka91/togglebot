@@ -109,8 +109,16 @@ async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Clie
                 .content(
                     "Available commands:\n\
                     `!help` gives a short info about this bot.\n\
+                    `!lark` tells **togglebit** that he's a lark.\n\
                     `!links` gives you a list of links to sites where **togglebit** is present.\n\
-                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.")?
+                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.",
+                )?
+                .await?;
+        }
+        UserResponse::Lark => {
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content("Oh ToggleBit, you lark!")?
                 .await?;
         }
         UserResponse::Links(links) => {

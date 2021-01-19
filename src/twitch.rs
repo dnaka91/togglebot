@@ -79,6 +79,7 @@ async fn handle_message(queue: Queue, msg: PrivmsgMessage, client: Client) -> Re
     Ok(())
 }
 
+#[allow(clippy::match_same_arms)]
 async fn handle_user_message(
     resp: UserResponse,
     msg: PrivmsgMessage,
@@ -105,6 +106,9 @@ async fn handle_user_message(
                     Some(msg.message_id),
                 )
                 .await?;
+        }
+        UserResponse::Lark => {
+            // Alread exists on togglebit's own witchbox tool.
         }
         UserResponse::Links(links) => {
             client

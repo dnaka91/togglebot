@@ -74,6 +74,10 @@ async fn handle_user_message(state: AsyncState, content: String) -> Result<UserR
             info!("user: received `commands` command");
             UserResponse::Commands
         }
+        "!lark" => {
+            info!("user: received `lark` command");
+            UserResponse::Lark
+        }
         "!links" => {
             info!("user: received `links` command");
             UserResponse::Links(&[
