@@ -36,6 +36,7 @@ pub enum Response {
 pub enum UserResponse {
     Unknown,
     Help,
+    Commands,
     Links(&'static [(&'static str, &'static str)]),
     Schedule {
         start: String,

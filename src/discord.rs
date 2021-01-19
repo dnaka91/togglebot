@@ -98,10 +98,19 @@ async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Clie
                 .reply(msg.id)
                 .content(
                     "Thanks for asking, I'm a bot to help answer some typical questions.\n\
-                    Currently I know the following commands:\n\
-                    `!links` gives you a list of links to sites where **togglebit** is present.\n\
-                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.",
+                    Try out the `!commands` command to see what I can do.\n\n\
+                    My source code is at <https://github.com/dnaka91/togglebot>",
                 )?
+                .await?;
+        }
+        UserResponse::Commands => {
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content(
+                    "Available commands:\n\
+                    `!help` gives a short info about this bot.\n\
+                    `!links` gives you a list of links to sites where **togglebit** is present.\n\
+                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.")?
                 .await?;
         }
         UserResponse::Links(links) => {

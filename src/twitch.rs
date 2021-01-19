@@ -89,11 +89,19 @@ async fn handle_user_message(
             client
                 .say_in_response(
                     CHANNEL.to_owned(),
-                    format!(
-                        "Thanks for asking @{}, I'm a bot to help answer some typical questions. \
-                        Currently I know the following commands: !links, !schedule",
-                        msg.sender.login
-                    ),
+                    "Thanks for asking, I'm a bot to help answer some typical questions. \
+                    Try out `!commands` command to see what I can do. \
+                    My source code is at https://github.com/dnaka91/togglebot"
+                        .to_owned(),
+                    Some(msg.message_id),
+                )
+                .await?;
+        }
+        UserResponse::Commands => {
+            client
+                .say_in_response(
+                    CHANNEL.to_owned(),
+                    "Available commands: !help, !links, !schedule".to_owned(),
                     Some(msg.message_id),
                 )
                 .await?;
