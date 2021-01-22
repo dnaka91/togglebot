@@ -4,7 +4,7 @@
 
 use std::{str::FromStr, sync::Arc};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, ensure, Result};
 use chrono::prelude::*;
 use log::{error, info, warn};
 use togglebot::{
@@ -119,7 +119,24 @@ async fn handle_user_message(state: AsyncState, message: Message) -> Result<User
                     .collect(),
             }
         }
-        _ => UserResponse::Unknown,
+        name => {
+            if let Some(name) = name.strip_prefix('!') {
+                state
+                    .read()
+                    .await
+                    .custom_commands
+                    .get(name)
+                    .and_then(|content| content.get(&message.source))
+                    .map(|content| {
+                        info!("user: received custom `{}` command", name);
+                        content
+                    })
+                    .cloned()
+                    .map_or(UserResponse::Unknown, UserResponse::Custom)
+            } else {
+                UserResponse::Unknown
+            }
+        }
     })
 }
 
@@ -175,6 +192,20 @@ async fn handle_admin_message(state: AsyncState, content: String) -> Result<Admi
                 };
 
                 AdminResponse::OffDays(res().await)
+            }
+            ("!custom_commands", Some(action), Some(source), Some(name), _) => {
+                info!("admin: received `custom_commands` command");
+
+                let content = content
+                    .splitn(4, char::is_whitespace)
+                    .filter(|c| !c.is_empty())
+                    .nth(3);
+
+                let res = || async {
+                    update_commands(state, action.parse()?, source.parse()?, name, content).await
+                };
+
+                AdminResponse::CustomCommands(res().await)
             }
             _ => AdminResponse::Unknown,
         },
@@ -243,6 +274,93 @@ async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) ->
     }
 
     settings::save_state(&*state).await?;
+
+    Ok(())
+}
+
+const RESERVED_COMMANDS: &[&str] = &["help", "commands", "lark", "link", "schedule"];
+
+enum CommandSource {
+    Source(Source),
+    All,
+}
+
+impl FromStr for CommandSource {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "discord" => Self::Source(Source::Discord),
+            "twitch" => Self::Source(Source::Twitch),
+            "all" => Self::All,
+            _ => bail!("unkown source `{}`", s),
+        })
+    }
+}
+
+async fn update_commands(
+    state: AsyncState,
+    action: Action,
+    source: CommandSource,
+    name: &str,
+    content: Option<&str>,
+) -> Result<()> {
+    ensure!(
+        !name.starts_with('!'),
+        "command names must not start with an `!`",
+    );
+    ensure!(
+        name.starts_with(|c| ('a'..='z').contains(&c)),
+        "command names must start with a lowercase letter",
+    );
+    ensure!(
+        name.chars()
+            .all(|c| c == '_' || ('a'..='z').contains(&c) || ('0'..='9').contains(&c)),
+        "command names must constist of only letters, numbers and underscores",
+    );
+    ensure!(
+        !RESERVED_COMMANDS.contains(&name),
+        "the command name `{}` is reserved",
+        name,
+    );
+
+    let mut state = state.write().await;
+    match action {
+        Action::Add => {
+            if let Some(content) = content {
+                match source {
+                    CommandSource::Source(source) => {
+                        state
+                            .custom_commands
+                            .entry(name.to_owned())
+                            .or_default()
+                            .insert(source, content.to_owned());
+                    }
+                    CommandSource::All => {
+                        let entry = state.custom_commands.entry(name.to_owned()).or_default();
+
+                        for source in &[Source::Discord, Source::Twitch] {
+                            entry.insert(*source, content.to_owned());
+                        }
+                    }
+                }
+            } else {
+                bail!("no content for the command provided");
+            }
+        }
+        Action::Remove => match source {
+            CommandSource::Source(source) => {
+                if let Some(entry) = state.custom_commands.get_mut(name) {
+                    entry.remove(&source);
+                }
+            }
+            CommandSource::All => {
+                state.custom_commands.remove(name);
+            }
+        },
+    }
+
+    settings::save_state(&state).await?;
 
     Ok(())
 }

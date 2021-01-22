@@ -3,6 +3,7 @@
 #![allow(clippy::missing_errors_doc)]
 
 pub use anyhow::Result;
+use serde::{Deserialize, Serialize};
 pub use tokio::sync::{
     broadcast::Receiver as BroadcastReceiver, mpsc::Sender as MpscSender,
     oneshot::Sender as OneshotSender,
@@ -22,7 +23,7 @@ pub struct Message {
     pub admin: bool,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Source {
     Discord,
     Twitch,
@@ -44,6 +45,7 @@ pub enum UserResponse {
         finish: String,
         off_days: Vec<String>,
     },
+    Custom(String),
 }
 
 pub enum AdminResponse {
@@ -51,4 +53,5 @@ pub enum AdminResponse {
     Help,
     Schedule(Result<()>),
     OffDays(Result<()>),
+    CustomCommands(Result<()>),
 }

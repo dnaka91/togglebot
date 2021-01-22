@@ -163,6 +163,11 @@ async fn handle_user_message(
                 )
                 .await?;
         }
+        UserResponse::Custom(content) => {
+            client
+                .say_in_response(CHANNEL.to_owned(), content, Some(msg.message_id))
+                .await?;
+        }
         UserResponse::Unknown => {}
     }
     Ok(())

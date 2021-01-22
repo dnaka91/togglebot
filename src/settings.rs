@@ -1,11 +1,16 @@
 //! All configuration and state loading/saving logic.
 
-use std::{collections::HashSet, io::ErrorKind};
+use std::{
+    collections::{HashMap, HashSet},
+    io::ErrorKind,
+};
 
 use anyhow::Result;
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
+
+use crate::Source;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -36,8 +41,12 @@ pub async fn load_config() -> Result<Config> {
 
 #[derive(Serialize, Deserialize)]
 pub struct State {
+    #[serde(default)]
     pub schedule: BaseSchedule,
+    #[serde(default)]
     pub off_days: HashSet<Weekday>,
+    #[serde(default)]
+    pub custom_commands: HashMap<String, HashMap<Source, String>>,
 }
 
 impl Default for State {
@@ -45,6 +54,7 @@ impl Default for State {
         Self {
             schedule: BaseSchedule::default(),
             off_days: [Weekday::Sat, Weekday::Sun].iter().copied().collect(),
+            custom_commands: HashMap::new(),
         }
     }
 }
@@ -114,7 +124,7 @@ pub async fn save_state(state: &State) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use maplit::hashset;
+    use maplit::{hashmap, hashset};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -134,7 +144,8 @@ mod tests {
                     "16:00:00"
                 ]
             },
-            "off_days": ["Sat", "Sun"]
+            "off_days": ["Sat", "Sun"],
+            "custom_commands": {}
         }};
 
         assert_eq!(expect, output);
@@ -154,6 +165,11 @@ mod tests {
                 ),
             },
             off_days: hashset![Weekday::Mon],
+            custom_commands: hashmap! {
+                "hello".to_owned() => hashmap! {
+                    Source::Discord => "Hello World!".to_owned(),
+                }
+            },
         })
         .unwrap();
         let expect = json! {{
@@ -167,7 +183,12 @@ mod tests {
                     "17:15:20"
                 ]
             },
-            "off_days": ["Mon"]
+            "off_days": ["Mon"],
+            "custom_commands": {
+                "hello": {
+                    "Discord": "Hello World!"
+                }
+            }
         }};
 
         assert_eq!(expect, output);
