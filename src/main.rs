@@ -197,9 +197,9 @@ async fn handle_admin_message(state: AsyncState, content: String) -> Result<Admi
                 info!("admin: received `custom_commands` command");
 
                 let content = content
-                    .splitn(4, char::is_whitespace)
+                    .splitn(5, char::is_whitespace)
                     .filter(|c| !c.is_empty())
-                    .nth(3);
+                    .nth(4);
 
                 let res = || async {
                     update_commands(state, action.parse()?, source.parse()?, name, content).await
