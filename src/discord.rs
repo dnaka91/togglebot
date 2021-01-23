@@ -115,12 +115,6 @@ async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Clie
                 )?
                 .await?;
         }
-        UserResponse::Lark => {
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content("Oh ToggleBit, you lark!")?
-                .await?;
-        }
         UserResponse::Links(links) => {
             http.create_message(msg.channel_id)
                 .reply(msg.id)

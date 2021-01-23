@@ -38,7 +38,6 @@ pub enum UserResponse {
     Unknown,
     Help,
     Commands,
-    Lark,
     Links(&'static [(&'static str, &'static str)]),
     Schedule {
         start: String,

@@ -107,9 +107,6 @@ async fn handle_user_message(
                 )
                 .await?;
         }
-        UserResponse::Lark => {
-            // Alread exists on togglebit's own witchbox tool.
-        }
         UserResponse::Links(links) => {
             client
                 .say_in_response(

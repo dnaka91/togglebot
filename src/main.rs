@@ -74,10 +74,6 @@ async fn handle_user_message(state: AsyncState, message: Message) -> Result<User
             info!("user: received `commands` command");
             UserResponse::Commands
         }
-        "!lark" => {
-            info!("user: received `lark` command");
-            UserResponse::Lark
-        }
         "!links" => {
             info!("user: received `links` command");
             UserResponse::Links(match message.source {
@@ -278,7 +274,7 @@ async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) ->
     Ok(())
 }
 
-const RESERVED_COMMANDS: &[&str] = &["help", "commands", "lark", "link", "schedule"];
+const RESERVED_COMMANDS: &[&str] = &["help", "commands", "links", "schedule"];
 
 enum CommandSource {
     Source(Source),
