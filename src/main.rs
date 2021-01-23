@@ -189,6 +189,9 @@ async fn handle_admin_message(state: AsyncState, content: String) -> Result<Admi
 
                 AdminResponse::OffDays(res().await)
             }
+            ("!custom_commands", Some("list"), None, None, None) => {
+                AdminResponse::CustomCommands(list_commands(state).await.map(Some))
+            }
             ("!custom_commands", Some(action), Some(source), Some(name), _) => {
                 info!("admin: received `custom_commands` command");
 
@@ -201,7 +204,7 @@ async fn handle_admin_message(state: AsyncState, content: String) -> Result<Admi
                     update_commands(state, action.parse()?, source.parse()?, name, content).await
                 };
 
-                AdminResponse::CustomCommands(res().await)
+                AdminResponse::CustomCommands(res().await.map(|_| None))
             }
             _ => AdminResponse::Unknown,
         },
@@ -359,4 +362,18 @@ async fn update_commands(
     settings::save_state(&state).await?;
 
     Ok(())
+}
+
+async fn list_commands(state: AsyncState) -> Result<Vec<(String, Source, String)>> {
+    Ok(state
+        .read()
+        .await
+        .custom_commands
+        .iter()
+        .flat_map(|(name, sources)| {
+            sources
+                .iter()
+                .map(move |(source, content)| (name.clone(), *source, content.clone()))
+        })
+        .collect())
 }

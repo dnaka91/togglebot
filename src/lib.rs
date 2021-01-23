@@ -29,6 +29,15 @@ pub enum Source {
     Twitch,
 }
 
+impl AsRef<str> for Source {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Discord => "Discord",
+            Self::Twitch => "Twitch",
+        }
+    }
+}
+
 pub enum Response {
     User(UserResponse),
     Admin(AdminResponse),
@@ -52,5 +61,5 @@ pub enum AdminResponse {
     Help,
     Schedule(Result<()>),
     OffDays(Result<()>),
-    CustomCommands(Result<()>),
+    CustomCommands(Result<Option<Vec<(String, Source, String)>>>),
 }

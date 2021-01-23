@@ -245,7 +245,16 @@ async fn handle_admin_message(
         }
         AdminResponse::CustomCommands(res) => {
             let message = match res {
-                Ok(()) => format!("{} custom commands updated", emojis::OK_HAND),
+                Ok(Some(list)) => list.into_iter().fold(String::from("available custom commands:"), |mut list,(name,source,content)|{
+                    list.push_str("\n\n`!");
+                    list.push_str(&name);
+                    list.push_str("` (");
+                    list.push_str(source.as_ref());
+                    list.push_str("):\n> ");
+                    list.push_str(&content);
+                    list
+                }),
+                Ok(None) => format!("{} custom commands updated", emojis::OK_HAND),
                 Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
             };
 
