@@ -66,7 +66,7 @@ async fn main() -> Result<()> {
 
 async fn handle_user_message(state: AsyncState, message: Message) -> Result<UserResponse> {
     Ok(match message.content.as_ref() {
-        "!help" => {
+        "!help" | "!bot" => {
             info!("user: received `help` command");
             UserResponse::Help
         }
@@ -274,7 +274,7 @@ async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) ->
     Ok(())
 }
 
-const RESERVED_COMMANDS: &[&str] = &["help", "commands", "links", "schedule"];
+const RESERVED_COMMANDS: &[&str] = &["help", "bot", "commands", "links", "schedule"];
 
 enum CommandSource {
     Source(Source),

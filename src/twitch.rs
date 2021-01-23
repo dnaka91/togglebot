@@ -102,7 +102,7 @@ async fn handle_user_message(
             client
                 .say_in_response(
                     CHANNEL.to_owned(),
-                    "Available commands: !help, !links, !schedule".to_owned(),
+                    "Available commands: !help (or !bot), !links, !schedule".to_owned(),
                     Some(msg.message_id),
                 )
                 .await?;
