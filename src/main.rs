@@ -146,7 +146,7 @@ async fn handle_admin_message(state: AsyncState, content: String) -> Result<Admi
 
     Ok(
         match (
-            command,
+            command.to_lowercase().as_ref(),
             parts.next(),
             parts.next(),
             parts.next(),
