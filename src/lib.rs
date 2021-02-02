@@ -11,6 +11,7 @@ pub use tokio::sync::{
 
 pub mod discord;
 pub mod emojis;
+pub mod handler;
 pub mod settings;
 pub mod twitch;
 
