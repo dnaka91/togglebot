@@ -9,7 +9,7 @@
 [twitch-img]: https://img.shields.io/badge/twitch-togglebit-9146ff?style=for-the-badge&logo=twitch&logoColor=white
 [twitch-url]: https://twitch.tv/togglebit
 [discord-img]: https://img.shields.io/badge/discord-togglebit-7289da?style=for-the-badge&logo=discord&logoColor=white
-[discord-url]: https://twitch.tv/togglebit
+[discord-url]: https://discord.gg/qtyDMat
 
 This is the ToggleBot bot used on [togglebit](https://github.com/togglebyte)'s Discord server and
 Twitch chat.
