@@ -86,97 +86,126 @@ async fn handle_user_message(
     client: Client,
 ) -> Result<()> {
     match resp {
-        UserResponse::Help => {
-            client
-                .say_in_response(
-                    CHANNEL.to_owned(),
-                    "Thanks for asking, I'm a bot to help answer some typical questions. \
-                    Try out `!commands` command to see what I can do. \
-                    My source code is at https://github.com/dnaka91/togglebot"
-                        .to_owned(),
-                    Some(msg.message_id),
-                )
-                .await?;
-        }
-        UserResponse::Commands(res) => {
-            let message = match res {
-                Ok(names) => names.into_iter().fold(
-                    String::from("Available commands: !help (or !bot), !links, !schedule"),
-                    |mut list, name| {
-                        list.push_str(", !");
-                        list.push_str(&name);
-                        list
-                    },
-                ),
-                Err(e) => {
-                    error!("failed listing commands: {}", e);
-                    "Sorry, something went wrong fetching the list of commands".to_owned()
-                }
-            };
-
-            client
-                .say_in_response(CHANNEL.to_owned(), message, Some(msg.message_id))
-                .await?;
-        }
-        UserResponse::Links(links) => {
-            client
-                .say_in_response(
-                    CHANNEL.to_owned(),
-                    links
-                        .iter()
-                        .enumerate()
-                        .fold(String::new(), |mut list, (i, (name, url))| {
-                            if i > 0 {
-                                list.push_str(" | ");
-                            }
-
-                            list.push_str(name);
-                            list.push_str(": ");
-                            list.push_str(url);
-                            list
-                        }),
-                    Some(msg.message_id),
-                )
-                .await?;
-        }
+        UserResponse::Help => handle_help(msg, client).await,
+        UserResponse::Commands(res) => handle_commands(msg, client, res).await,
+        UserResponse::Links(links) => handle_links(msg, client, links).await,
         UserResponse::Schedule {
             start,
             finish,
             off_days,
-        } => {
-            let last_off_day = off_days.len() - 1;
-            let days = format!(
-                "Every day, except {}",
-                off_days
-                    .into_iter()
-                    .enumerate()
-                    .fold(String::new(), |mut days, (i, day)| {
-                        if i == last_off_day {
-                            days.push_str(" and ");
-                        } else if i > 0 {
-                            days.push_str(", ");
-                        }
-
-                        days.push_str(&day);
-                        days
-                    })
-            );
-            let time = format!("Starting around {}, finishing around {}", start, finish);
-
-            client
-                .say_in_response(
-                    CHANNEL.to_owned(),
-                    format!("{} | {} | Timezone CET", days, time),
-                    Some(msg.message_id),
-                )
-                .await?;
-        }
-        UserResponse::Custom(content) => {
-            client
-                .say_in_response(CHANNEL.to_owned(), content, Some(msg.message_id))
-                .await?;
-        }
-        UserResponse::Unknown => {}
+        } => handle_schedule(msg, client, start, finish, off_days).await,
+        UserResponse::Custom(content) => handle_custom(msg, client, content).await,
+        UserResponse::Unknown => Ok(()),
     }
+}
+
+async fn handle_help(msg: PrivmsgMessage, client: Client) -> Result<()> {
+    client
+        .say_in_response(
+            CHANNEL.to_owned(),
+            "Thanks for asking, I'm a bot to help answer some typical questions. \
+            Try out `!commands` command to see what I can do. \
+            My source code is at https://github.com/dnaka91/togglebot"
+                .to_owned(),
+            Some(msg.message_id),
+        )
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_commands(
+    msg: PrivmsgMessage,
+    client: Client,
+    res: Result<Vec<String>>,
+) -> Result<()> {
+    let message = match res {
+        Ok(names) => names.into_iter().fold(
+            String::from("Available commands: !help (or !bot), !links, !schedule"),
+            |mut list, name| {
+                list.push_str(", !");
+                list.push_str(&name);
+                list
+            },
+        ),
+        Err(e) => {
+            error!("failed listing commands: {}", e);
+            "Sorry, something went wrong fetching the list of commands".to_owned()
+        }
+    };
+
+    client
+        .say_in_response(CHANNEL.to_owned(), message, Some(msg.message_id))
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_links(msg: PrivmsgMessage, client: Client, links: &[(&str, &str)]) -> Result<()> {
+    client
+        .say_in_response(
+            CHANNEL.to_owned(),
+            links
+                .iter()
+                .enumerate()
+                .fold(String::new(), |mut list, (i, (name, url))| {
+                    if i > 0 {
+                        list.push_str(" | ");
+                    }
+
+                    list.push_str(name);
+                    list.push_str(": ");
+                    list.push_str(url);
+                    list
+                }),
+            Some(msg.message_id),
+        )
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_schedule(
+    msg: PrivmsgMessage,
+    client: Client,
+    start: String,
+    finish: String,
+    off_days: Vec<String>,
+) -> Result<()> {
+    let last_off_day = off_days.len() - 1;
+    let days = format!(
+        "Every day, except {}",
+        off_days
+            .into_iter()
+            .enumerate()
+            .fold(String::new(), |mut days, (i, day)| {
+                if i == last_off_day {
+                    days.push_str(" and ");
+                } else if i > 0 {
+                    days.push_str(", ");
+                }
+
+                days.push_str(&day);
+                days
+            })
+    );
+    let time = format!("Starting around {}, finishing around {}", start, finish);
+
+    client
+        .say_in_response(
+            CHANNEL.to_owned(),
+            format!("{} | {} | Timezone CET", days, time),
+            Some(msg.message_id),
+        )
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_custom(msg: PrivmsgMessage, client: Client, content: String) -> Result<()> {
+    client
+        .say_in_response(CHANNEL.to_owned(), content, Some(msg.message_id))
+        .await?;
+
     Ok(())
 }
