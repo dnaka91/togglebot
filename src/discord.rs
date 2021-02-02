@@ -217,7 +217,12 @@ async fn handle_admin_message(
                     Add or remove a custom command that has fixed content and can be anything. \
                     The command can be modified for all sources or individually. \
                     Command names must start with a lowercase letter, only consist of lowercase \
-                    letters, numbers and underscores and must not start with the `!`.",
+                    letters, numbers and underscores and must not start with the `!`.\n\
+                    \n\
+                    ```\n\
+                    !custom_commands list\n\
+                    ```\n\
+                    List all currently available custom commands.",
                 )?
                 .await?;
         }
@@ -245,15 +250,18 @@ async fn handle_admin_message(
         }
         AdminResponse::CustomCommands(res) => {
             let message = match res {
-                Ok(Some(list)) => list.into_iter().fold(String::from("available custom commands:"), |mut list,(name,source,content)|{
-                    list.push_str("\n\n`!");
-                    list.push_str(&name);
-                    list.push_str("` (");
-                    list.push_str(source.as_ref());
-                    list.push_str("):\n> ");
-                    list.push_str(&content);
-                    list
-                }),
+                Ok(Some(list)) => list.into_iter().fold(
+                    String::from("available custom commands:"),
+                    |mut list, (name, source, content)| {
+                        list.push_str("\n\n`!");
+                        list.push_str(&name);
+                        list.push_str("` (");
+                        list.push_str(source.as_ref());
+                        list.push_str("):\n> ");
+                        list.push_str(&content);
+                        list
+                    },
+                ),
                 Ok(None) => format!("{} custom commands updated", emojis::OK_HAND),
                 Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
             };
