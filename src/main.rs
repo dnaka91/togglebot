@@ -35,11 +35,11 @@ async fn main() -> Result<()> {
 
     while let Some((message, reply)) = queue_rx.recv().await {
         let res = if message.admin {
-            handler::handle_admin_message(state.clone(), message.content)
+            handler::admin_message(state.clone(), message.content)
                 .await
                 .map(Response::Admin)
         } else {
-            handler::handle_user_message(state.clone(), message)
+            handler::user_message(state.clone(), message)
                 .await
                 .map(Response::User)
         };
