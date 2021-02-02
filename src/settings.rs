@@ -1,6 +1,8 @@
 //! All configuration and state loading/saving logic.
 
 use std::io::ErrorKind;
+#[cfg(test)]
+use std::{collections::hash_map::DefaultHasher, hash::BuildHasherDefault};
 
 use anyhow::Result;
 use chrono::prelude::*;
@@ -10,20 +12,13 @@ use tokio::fs;
 use crate::Source;
 
 #[cfg(not(test))]
-type HashSet<T> = std::collections::HashSet<T, std::collections::hash_map::RandomState>;
+type HashSet<T> = std::collections::HashSet<T>;
 #[cfg(test)]
-type HashSet<T> = std::collections::HashSet<
-    T,
-    std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>,
->;
+type HashSet<T> = std::collections::HashSet<T, BuildHasherDefault<DefaultHasher>>;
 #[cfg(not(test))]
-type HashMap<K, V> = std::collections::HashMap<K, V, std::collections::hash_map::RandomState>;
+type HashMap<K, V> = std::collections::HashMap<K, V>;
 #[cfg(test)]
-type HashMap<K, V> = std::collections::HashMap<
-    K,
-    V,
-    std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>,
->;
+type HashMap<K, V> = std::collections::HashMap<K, V, BuildHasherDefault<DefaultHasher>>;
 
 #[derive(Deserialize)]
 pub struct Config {
