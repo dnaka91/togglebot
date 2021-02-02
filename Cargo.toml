@@ -21,7 +21,6 @@ twilight-model = "0.3.2"
 twitch-irc = "2.1.0"
 
 [dev-dependencies]
-maplit = "1.0.2"
 pretty_assertions = "0.6.1"
 
 [profile.release]

@@ -1,9 +1,6 @@
 //! All configuration and state loading/saving logic.
 
-use std::{
-    collections::{HashMap, HashSet},
-    io::ErrorKind,
-};
+use std::io::ErrorKind;
 
 use anyhow::Result;
 use chrono::prelude::*;
@@ -11,6 +8,22 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 use crate::Source;
+
+#[cfg(not(test))]
+type HashSet<T> = std::collections::HashSet<T, std::collections::hash_map::RandomState>;
+#[cfg(test)]
+type HashSet<T> = std::collections::HashSet<
+    T,
+    std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>,
+>;
+#[cfg(not(test))]
+type HashMap<K, V> = std::collections::HashMap<K, V, std::collections::hash_map::RandomState>;
+#[cfg(test)]
+type HashMap<K, V> = std::collections::HashMap<
+    K,
+    V,
+    std::hash::BuildHasherDefault<std::collections::hash_map::DefaultHasher>,
+>;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -54,7 +67,7 @@ impl Default for State {
         Self {
             schedule: BaseSchedule::default(),
             off_days: [Weekday::Sat, Weekday::Sun].iter().copied().collect(),
-            custom_commands: HashMap::new(),
+            custom_commands: HashMap::default(),
         }
     }
 }
@@ -66,15 +79,6 @@ pub struct BaseSchedule {
 }
 
 impl BaseSchedule {
-    #[must_use]
-    pub fn format(&self) -> String {
-        format!(
-            "starting around **{}**, finishing around **{}**",
-            Self::format_range(self.start),
-            Self::format_range(self.finish)
-        )
-    }
-
     #[must_use]
     pub fn format_start(&self) -> String {
         Self::format_range(self.start)
@@ -124,7 +128,6 @@ pub async fn save_state(state: &State) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use maplit::{hashmap, hashset};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -164,12 +167,15 @@ mod tests {
                     NaiveTime::from_hms(17, 15, 20),
                 ),
             },
-            off_days: hashset![Weekday::Mon],
-            custom_commands: hashmap! {
-                "hello".to_owned() => hashmap! {
-                    Source::Discord => "Hello World!".to_owned(),
-                }
-            },
+            off_days: [Weekday::Mon].iter().copied().collect(),
+            custom_commands: vec![(
+                "hello".to_owned(),
+                vec![(Source::Discord, "Hello World!".to_owned())]
+                    .into_iter()
+                    .collect(),
+            )]
+            .into_iter()
+            .collect(),
         })
         .unwrap();
         let expect = json! {{
@@ -192,18 +198,5 @@ mod tests {
         }};
 
         assert_eq!(expect, output);
-    }
-
-    #[test]
-    fn format() {
-        let schedule = BaseSchedule {
-            start: (NaiveTime::from_hms(8, 0, 0), NaiveTime::from_hms(9, 0, 0)),
-            finish: (NaiveTime::from_hms(16, 0, 0), NaiveTime::from_hms(16, 0, 0)),
-        };
-
-        assert_eq!(
-            "starting around **08:00~09:00am**, finishing around **04:00pm**",
-            schedule.format()
-        );
     }
 }
