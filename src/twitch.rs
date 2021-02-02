@@ -98,13 +98,24 @@ async fn handle_user_message(
                 )
                 .await?;
         }
-        UserResponse::Commands => {
+        UserResponse::Commands(res) => {
+            let message = match res {
+                Ok(names) => names.into_iter().fold(
+                    String::from("Available commands: !help (or !bot), !links, !schedule"),
+                    |mut list, name| {
+                        list.push_str(", !");
+                        list.push_str(&name);
+                        list
+                    },
+                ),
+                Err(e) => {
+                    error!("failed listing commands: {}", e);
+                    "Sorry, something went wrong fetching the list of commands".to_owned()
+                }
+            };
+
             client
-                .say_in_response(
-                    CHANNEL.to_owned(),
-                    "Available commands: !help (or !bot), !links, !schedule".to_owned(),
-                    Some(msg.message_id),
-                )
+                .say_in_response(CHANNEL.to_owned(), message, Some(msg.message_id))
                 .await?;
         }
         UserResponse::Links(links) => {

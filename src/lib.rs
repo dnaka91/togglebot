@@ -46,7 +46,7 @@ pub enum Response {
 pub enum UserResponse {
     Unknown,
     Help,
-    Commands,
+    Commands(Result<Vec<String>>),
     Links(&'static [(&'static str, &'static str)]),
     Schedule {
         start: String,

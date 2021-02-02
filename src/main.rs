@@ -72,7 +72,7 @@ async fn handle_user_message(state: AsyncState, message: Message) -> Result<User
         }
         "!commands" => {
             info!("user: received `commands` command");
-            UserResponse::Commands
+            UserResponse::Commands(list_command_names(state, message.source).await)
         }
         "!links" => {
             info!("user: received `links` command");
@@ -362,6 +362,22 @@ async fn update_commands(
     settings::save_state(&state).await?;
 
     Ok(())
+}
+
+async fn list_command_names(state: AsyncState, source: Source) -> Result<Vec<String>> {
+    Ok(state
+        .read()
+        .await
+        .custom_commands
+        .iter()
+        .filter_map(|(name, sources)| {
+            if sources.contains_key(&source) {
+                Some(name.clone())
+            } else {
+                None
+            }
+        })
+        .collect())
 }
 
 async fn list_commands(state: AsyncState) -> Result<Vec<(String, Source, String)>> {

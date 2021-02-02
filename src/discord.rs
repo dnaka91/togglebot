@@ -91,6 +91,7 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Resu
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Client) -> Result<()> {
     match resp {
         UserResponse::Help => {
@@ -103,16 +104,37 @@ async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Clie
                 )?
                 .await?;
         }
-        UserResponse::Commands => {
+        UserResponse::Commands(res) => {
+            let message = match res {
+                Ok(names) => names.into_iter().enumerate().fold(
+                    String::from(
+                        "Available commands:\n\
+                        `!help` (or `!bot`) gives a short info about this bot.\n\
+                        `!lark` tells **togglebit** that he's a lark.\n\
+                        `!links` gives you a list of links to sites where **togglebit** is present.\n\
+                        `!schedule` tells you the Twitch streaming schedule of **togglebit**.\n\
+                        \n\
+                        Further custom commands:\n",
+                    ),
+                    |mut list, (i, name)| {
+                        if i > 0 {
+                            list.push_str(", ");
+                        }
+                        list.push_str("`!");
+                        list.push_str(&name);
+                        list.push('`');
+                        list
+                    },
+                ),
+                Err(e) => {
+                    error!("failed listing commands: {}", e);
+                    "Sorry, something went wrong fetching the list of commands".to_owned()
+                }
+            };
+
             http.create_message(msg.channel_id)
                 .reply(msg.id)
-                .content(
-                    "Available commands:\n\
-                    `!help` (or `!bot`) gives a short info about this bot.\n\
-                    `!lark` tells **togglebit** that he's a lark.\n\
-                    `!links` gives you a list of links to sites where **togglebit** is present.\n\
-                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.",
-                )?
+                .content(message)?
                 .await?;
         }
         UserResponse::Links(links) => {
