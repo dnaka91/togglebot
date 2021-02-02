@@ -1,4 +1,5 @@
 use anyhow::Result;
+use indoc::indoc;
 use log::error;
 use twilight_embed_builder::{EmbedBuilder, EmbedFieldBuilder};
 use twilight_http::Client;
@@ -7,11 +8,12 @@ use twilight_model::channel::Message as ChannelMessage;
 pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(
-            "Thanks for asking, I'm a bot to help answer some typical questions.\n\
-        Try out the `!commands` command to see what I can do.\n\n\
-        My source code is at <https://github.com/dnaka91/togglebot>",
-        )?
+        .content(indoc! {"
+            Thanks for asking, I'm a bot to help answer some typical questions.
+            Try out the `!commands` command to see what I can do.
+
+            My source code is at <https://github.com/dnaka91/togglebot>
+        "})?
         .await?;
 
     Ok(())
@@ -20,15 +22,15 @@ pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
 pub async fn commands(msg: ChannelMessage, http: Client, res: Result<Vec<String>>) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().enumerate().fold(
-            String::from(
-                "Available commands:\n\
-                `!help` (or `!bot`) gives a short info about this bot.\n\
-                `!lark` tells **togglebit** that he's a lark.\n\
-                `!links` gives you a list of links to sites where **togglebit** is present.\n\
-                `!schedule` tells you the Twitch streaming schedule of **togglebit**.\n\
-                \n\
-                Further custom commands:\n",
-            ),
+            String::from(indoc! {"
+                    Available commands:
+                    `!help` (or `!bot`) gives a short info about this bot.
+                    `!lark` tells **togglebit** that he's a lark.
+                    `!links` gives you a list of links to sites where **togglebit** is present.
+                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.
+
+                    Further custom commands:
+                "}),
             |mut list, (i, name)| {
                 if i > 0 {
                     list.push_str(", ");

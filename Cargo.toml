@@ -9,6 +9,7 @@ anyhow = "1.0.38"
 chrono = { version = "0.4.19", features = ["serde"] }
 env_logger = { version = "0.8.2", default-features = false, features = ["atty", "termcolor"] }
 futures-util = "0.3.12"
+indoc = "1.0.3"
 log = { version = "0.4.14", features = ["release_max_level_info"] }
 serde = { version = "1.0.123", features = ["derive"] }
 serde_json = "1.0.61"
