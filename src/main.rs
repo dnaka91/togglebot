@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
 }
 
 async fn handle_user_message(state: AsyncState, message: Message) -> Result<UserResponse> {
-    Ok(match message.content.as_ref() {
+    Ok(match message.content.to_lowercase().as_ref() {
         "!help" | "!bot" => {
             info!("user: received `help` command");
             UserResponse::Help
@@ -146,7 +146,7 @@ async fn handle_admin_message(state: AsyncState, content: String) -> Result<Admi
 
     Ok(
         match (
-            command,
+            command.to_lowercase().as_ref(),
             parts.next(),
             parts.next(),
             parts.next(),
