@@ -1,3 +1,5 @@
+//! Twitch service connector that allows to receive commands from Twitch channels.
+
 use anyhow::Result;
 use log::{error, info};
 use tokio::{select, sync::oneshot};

@@ -1,3 +1,5 @@
+//! Main handling logic for all supported bot commands.
+
 use std::sync::Arc;
 
 use anyhow::{bail, Result};
@@ -8,8 +10,10 @@ use crate::{settings::State, AdminResponse, Message, UserResponse};
 mod admin;
 mod user;
 
+/// Convenience type alias for a [`State`] wrapped in an [`Arc`] and a [`RwLock`].
 pub type AsyncState = Arc<RwLock<State>>;
 
+/// Handle any user facing message and prepare a response.
 pub async fn user_message(state: AsyncState, message: Message) -> Result<UserResponse> {
     Ok(match message.content.to_lowercase().as_ref() {
         "!help" | "!bot" => user::help(),
@@ -20,6 +24,7 @@ pub async fn user_message(state: AsyncState, message: Message) -> Result<UserRes
     })
 }
 
+/// Handle admin facing messages to control the bot and prepare a response.
 pub async fn admin_message(state: AsyncState, content: String) -> Result<AdminResponse> {
     let mut parts = content.split_whitespace();
     let command = if let Some(cmd) = parts.next() {

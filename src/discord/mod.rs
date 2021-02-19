@@ -1,3 +1,5 @@
+//! Discord service connector that allows to receive commands from Discord servers.
+
 use anyhow::Result;
 use futures_util::StreamExt;
 use log::{error, info};
