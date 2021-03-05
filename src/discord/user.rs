@@ -5,6 +5,10 @@ use twilight_embed_builder::{EmbedBuilder, EmbedFieldBuilder};
 use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;
 
+/// Gandalf's famous "You shall not pass!" scene.
+const GANDALF_GIF: &str =
+    "https://tenor.com/view/you-shall-not-pass-lotr-do-not-enter-not-allowed-scream-gif-16729885";
+
 pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
@@ -28,6 +32,7 @@ pub async fn commands(msg: ChannelMessage, http: Client, res: Result<Vec<String>
                     `!lark` tells **togglebit** that he's a lark.
                     `!links` gives you a list of links to sites where **togglebit** is present.
                     `!schedule` tells you the Twitch streaming schedule of **togglebit**.
+                    `!ban` refuse anything with the power of Gandalf.
 
                     Further custom commands:
                 "}),
@@ -120,6 +125,17 @@ pub async fn schedule(
                 .field(EmbedFieldBuilder::new("Timezone", "CET")?)
                 .build()?,
         )?
+        .await?;
+
+    Ok(())
+}
+pub async fn ban(msg: ChannelMessage, http: Client, target: String) -> Result<()> {
+    http.create_message(msg.channel_id)
+        .reply(msg.id)
+        .content(format!(
+            "{}, **YOU SHALL NOT PASS!!**\n\n{}",
+            target, GANDALF_GIF
+        ))?
         .await?;
 
     Ok(())

@@ -96,6 +96,7 @@ async fn handle_user_message(
             finish,
             off_days,
         } => handle_schedule(msg, client, start, finish, off_days).await,
+        UserResponse::Ban(target) => handle_ban(msg, client, target).await,
         UserResponse::Custom(content) => handle_custom(msg, client, content).await,
         UserResponse::Unknown => Ok(()),
     }
@@ -123,7 +124,7 @@ async fn handle_commands(
 ) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().fold(
-            String::from("Available commands: !help (or !bot), !links, !schedule"),
+            String::from("Available commands: !help (or !bot), !links, !schedule, !ban"),
             |mut list, name| {
                 list.push_str(", !");
                 list.push_str(&name);
@@ -197,6 +198,18 @@ async fn handle_schedule(
         .say_in_response(
             CHANNEL.to_owned(),
             format!("{} | {} | Timezone CET", days, time),
+            Some(msg.message_id),
+        )
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_ban(msg: PrivmsgMessage, client: Client, target: String) -> Result<()> {
+    client
+        .say_in_response(
+            CHANNEL.to_owned(),
+            format!("{}, YOU SHALL NOT PASS!!", target),
             Some(msg.message_id),
         )
         .await?;

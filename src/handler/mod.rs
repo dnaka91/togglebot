@@ -15,12 +15,21 @@ pub type AsyncState = Arc<RwLock<State>>;
 
 /// Handle any user facing message and prepare a response.
 pub async fn user_message(state: AsyncState, message: Message) -> Result<UserResponse> {
-    Ok(match message.content.to_lowercase().as_ref() {
-        "!help" | "!bot" => user::help(),
-        "!commands" => user::commands(state, message.source).await,
-        "!links" => user::links(message.source),
-        "!schedule" => user::schedule(state).await,
-        name => user::custom(state, message.source, name).await,
+    let mut parts = message.content.splitn(2, char::is_whitespace);
+    let command = if let Some(cmd) = parts.next() {
+        cmd
+    } else {
+        bail!("got message without content");
+    };
+
+    Ok(match (command.to_lowercase().as_ref(), parts.next()) {
+        ("!help", None) | ("!bot", None) => user::help(),
+        ("!commands", None) => user::commands(state, message.source).await,
+        ("!links", None) => user::links(message.source),
+        ("!schedule", None) => user::schedule(state).await,
+        ("!ban", Some(target)) => user::ban(target),
+        (name, None) => user::custom(state, message.source, name).await,
+        _ => UserResponse::Unknown,
     })
 }
 
@@ -30,7 +39,7 @@ pub async fn admin_message(state: AsyncState, content: String) -> Result<AdminRe
     let command = if let Some(cmd) = parts.next() {
         cmd
     } else {
-        bail!("got message without content")
+        bail!("got message without content");
     };
 
     Ok(

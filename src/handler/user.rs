@@ -73,6 +73,11 @@ pub async fn schedule(state: AsyncState) -> UserResponse {
     }
 }
 
+pub fn ban(target: &str) -> UserResponse {
+    info!("user: received `ban` command");
+    UserResponse::Ban(target.to_owned())
+}
+
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {
     if let Some(name) = name.strip_prefix('!') {
         state
