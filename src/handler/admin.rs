@@ -175,7 +175,7 @@ impl FromStr for CommandSource {
     }
 }
 
-const RESERVED_COMMANDS: &[&str] = &["help", "bot", "commands", "links", "schedule"];
+const RESERVED_COMMANDS: &[&str] = &["help", "bot", "commands", "links", "schedule", "ban"];
 
 async fn update_commands(
     state: AsyncState,
