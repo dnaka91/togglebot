@@ -66,7 +66,12 @@ async fn handle_event(queue: Queue, event: Event, http: Client) -> Result<()> {
 
 /// List of admins that are allowed to customize the bot. Currently static and will be added to the
 /// settings in the future.
-const ADMINS: &[(&str, &str)] = &[("dnaka91", "1754"), ("ToggleBit", "0090")];
+const ADMINS: &[(&str, &str)] = &[
+    ("dnaka91", "1754"),
+    ("ToggleBit", "0090"),
+    ("_Bare", "6674"),
+    ("TrolledWoods", "2954"),
+];
 
 async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Result<()> {
     if msg.author.bot {
