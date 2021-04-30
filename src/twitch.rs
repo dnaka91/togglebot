@@ -15,6 +15,7 @@ type Client = TwitchIRCClient<TCPTransport, StaticLoginCredentials>;
 
 const CHANNEL: &str = "togglebit";
 
+#[allow(clippy::missing_panics_doc)]
 pub async fn start(config: &Twitch, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
     let config = ClientConfig::new_simple(StaticLoginCredentials::new(
         config.login.clone(),
