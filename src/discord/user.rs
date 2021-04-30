@@ -32,6 +32,7 @@ pub async fn commands(msg: ChannelMessage, http: Client, res: Result<Vec<String>
                     `!lark` tells **togglebit** that he's a lark.
                     `!links` gives you a list of links to sites where **togglebit** is present.
                     `!schedule` tells you the Twitch streaming schedule of **togglebit**.
+                    `!crate` get the link for any existing crate.
                     `!ban` refuse anything with the power of Gandalf.
 
                     Further custom commands:
@@ -136,6 +137,23 @@ pub async fn ban(msg: ChannelMessage, http: Client, target: String) -> Result<()
             "{}, **YOU SHALL NOT PASS!!**\n\n{}",
             target, GANDALF_GIF
         ))?
+        .await?;
+
+    Ok(())
+}
+
+pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<String>) -> Result<()> {
+    let message = match res {
+        Ok(link) => link,
+        Err(e) => {
+            error!("failed searching for crate: {}", e);
+            "Sorry, something went wrong looking up the crate".to_owned()
+        }
+    };
+
+    http.create_message(msg.channel_id)
+        .reply(msg.id)
+        .content(message)?
         .await?;
 
     Ok(())

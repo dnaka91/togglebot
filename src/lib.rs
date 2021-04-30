@@ -78,6 +78,7 @@ pub enum UserResponse {
         off_days: Vec<String>,
     },
     Ban(String),
+    Crate(Result<String>),
     Custom(String),
 }
 
