@@ -121,9 +121,9 @@ pub async fn schedule(
         .content("Here is togglebit's stream schedule:")?
         .embed(
             EmbedBuilder::new()
-                .field(EmbedFieldBuilder::new("Days", days)?)
-                .field(EmbedFieldBuilder::new("Time", time)?)
-                .field(EmbedFieldBuilder::new("Timezone", "CET")?)
+                .field(EmbedFieldBuilder::new("Days", days))
+                .field(EmbedFieldBuilder::new("Time", time))
+                .field(EmbedFieldBuilder::new("Timezone", "CET"))
                 .build()?,
         )?
         .await?;
