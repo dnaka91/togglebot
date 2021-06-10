@@ -5,6 +5,8 @@ use twilight_embed_builder::{EmbedBuilder, EmbedFieldBuilder};
 use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;
 
+use crate::CrateSearch;
+
 /// Gandalf's famous "You shall not pass!" scene.
 const GANDALF_GIF: &str =
     "https://tenor.com/view/you-shall-not-pass-lotr-do-not-enter-not-allowed-scream-gif-16729885";
@@ -142,19 +144,65 @@ pub async fn ban(msg: ChannelMessage, http: Client, target: String) -> Result<()
     Ok(())
 }
 
-pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<String>) -> Result<()> {
-    let message = match res {
-        Ok(link) => link,
+pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<CrateSearch>) -> Result<()> {
+    match res {
+        Ok(search) => {
+            let (content, embed) = match search {
+                CrateSearch::Found(info) => (
+                    String::new(),
+                    EmbedBuilder::new()
+                        .title(format!("{} (v{})", info.name, info.newest_version))
+                        .description(info.description)
+                        .field(EmbedFieldBuilder::new(
+                            "Last update",
+                            info.updated_at
+                                .naive_utc()
+                                .format("%Y-%m-%d %H:%M UTC")
+                                .to_string(),
+                        ))
+                        .field(EmbedFieldBuilder::new(
+                            "Downloads",
+                            if info.downloads > 1_000_000 {
+                                format!("{}+M", info.downloads / 1_000_000)
+                            } else if info.downloads > 1_000 {
+                                format!("{}+k", info.downloads / 1_000)
+                            } else {
+                                info.downloads.to_string()
+                            },
+                        ))
+                        .field(EmbedFieldBuilder::new(
+                            "Documentation",
+                            info.documentation.unwrap_or(format!(
+                                "https://docs.rs/{0}/{1}/{0}",
+                                info.name, info.newest_version
+                            )),
+                        ))
+                        .field(EmbedFieldBuilder::new("Repository", info.repository))
+                        .field(EmbedFieldBuilder::new(
+                            "More information",
+                            format!(
+                                "https://lib.rs/crates/{0} or\nhttps://crates.io/crates/{0}",
+                                info.name
+                            ),
+                        ))
+                        .build()?,
+                ),
+                CrateSearch::NotFound(message) => (message, EmbedBuilder::new().build()?),
+            };
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content(content)?
+                .embed(embed)?
+                .await?;
+        }
         Err(e) => {
             error!("failed searching for crate: {}", e);
-            "Sorry, something went wrong looking up the crate".to_owned()
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content("Sorry, something went wrong looking up the crate")?
+                .await?;
         }
-    };
-
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(message)?
-        .await?;
+    }
 
     Ok(())
 }

@@ -7,6 +7,7 @@
 
 /// Result type used throughout the whole crate.
 pub use anyhow::Result;
+pub use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
 pub use tokio::sync::{
     broadcast::Receiver as BroadcastReceiver, mpsc::Sender as MpscSender,
@@ -78,8 +79,24 @@ pub enum UserResponse {
         off_days: Vec<String>,
     },
     Ban(String),
-    Crate(Result<String>),
+    Crate(Result<CrateSearch>),
     Custom(String),
+}
+
+pub enum CrateSearch {
+    Found(CrateInfo),
+    NotFound(String),
+}
+
+#[derive(Deserialize)]
+pub struct CrateInfo {
+    pub name: String,
+    pub updated_at: DateTime<FixedOffset>,
+    pub downloads: u64,
+    pub newest_version: String,
+    pub description: String,
+    pub documentation: Option<String>,
+    pub repository: String,
 }
 
 pub enum AdminResponse {

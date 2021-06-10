@@ -2,9 +2,10 @@ use anyhow::bail;
 use chrono::Weekday;
 use log::info;
 use reqwest::StatusCode;
+use serde::Deserialize;
 
 use super::AsyncState;
-use crate::{Source, UserResponse};
+use crate::{CrateInfo, CrateSearch, Source, UserResponse};
 
 pub fn help() -> UserResponse {
     info!("user: received `help` command");
@@ -81,20 +82,28 @@ pub fn ban(target: &str) -> UserResponse {
 }
 
 pub async fn crate_(name: &str) -> UserResponse {
+    #[derive(Deserialize)]
+    struct ApiResponse {
+        #[serde(rename = "crate")]
+        crate_: CrateInfo,
+    }
+
     info!("user: received `crate` command");
 
     let res = async {
-        let link = format!("https://lib.rs/crates/{}", name);
+        let link = format!("https://crates.io/api/v1/crates/{}", name);
         let resp = reqwest::Client::builder()
-            .user_agent("ToggleBot")
+            .user_agent("ToggleBot (https://github.com/dnaka91/togglebot)")
             .build()?
             .get(&link)
             .send()
             .await?;
 
         Ok(match resp.status() {
-            StatusCode::OK => link,
-            StatusCode::NOT_FOUND => format!("Crate `{}` doesn't exist", name),
+            StatusCode::OK => CrateSearch::Found(resp.json::<ApiResponse>().await?.crate_),
+            StatusCode::NOT_FOUND => {
+                CrateSearch::NotFound(format!("Crate `{}` doesn't exist", name))
+            }
             s => bail!("unexpected status code {:?}", s),
         })
     };

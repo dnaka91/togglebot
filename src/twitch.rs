@@ -9,7 +9,9 @@ use twitch_irc::{
     ClientConfig, TCPTransport, TwitchIRCClient,
 };
 
-use crate::{settings::Twitch, Message, Queue, Response, Shutdown, Source, UserResponse};
+use crate::{
+    settings::Twitch, CrateSearch, Message, Queue, Response, Shutdown, Source, UserResponse,
+};
 
 type Client = TwitchIRCClient<TCPTransport, StaticLoginCredentials>;
 
@@ -219,9 +221,12 @@ async fn handle_ban(msg: PrivmsgMessage, client: Client, target: String) -> Resu
     Ok(())
 }
 
-async fn handle_crate(msg: PrivmsgMessage, client: Client, res: Result<String>) -> Result<()> {
+async fn handle_crate(msg: PrivmsgMessage, client: Client, res: Result<CrateSearch>) -> Result<()> {
     let message = match res {
-        Ok(link) => link,
+        Ok(search) => match search {
+            CrateSearch::Found(info) => format!("https://lib.rs/crates/{}", info.name),
+            CrateSearch::NotFound(message) => message,
+        },
         Err(e) => {
             error!("failed searching for crate: {}", e);
             "Sorry, something went wrong looking up the crate".to_owned()
