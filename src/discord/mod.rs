@@ -18,7 +18,7 @@ mod user;
 pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
     let http = Client::new(&config.token);
 
-    let mut shard = Shard::builder(
+    let shard = Shard::builder(
         &config.token,
         Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
     )
