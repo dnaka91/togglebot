@@ -5,9 +5,9 @@ authors = ["Dominik Nakamura <dnaka91@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.40"
+anyhow = "1.0.41"
 chrono = { version = "0.4.19", features = ["serde"] }
-env_logger = { version = "0.8.3", default-features = false, features = ["atty", "termcolor"] }
+env_logger = { version = "0.8.4", default-features = false, features = ["atty", "termcolor"] }
 futures-util = "0.3.15"
 indoc = "1.0.3"
 log = { version = "0.4.14", features = ["release_max_level_info"] }
@@ -16,10 +16,10 @@ serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 tokio = { version = "1.6.1", features = ["fs", "macros", "rt", "signal", "sync"] }
 toml = "0.5.8"
-twilight-embed-builder = "0.4.1"
-twilight-gateway = { version = "0.4.1", default-features = false, features = ["rustls-webpki-roots", "stock-zlib"] }
-twilight-http = { version = "0.4.2", default-features = false, features = ["rustls-webpki-roots"] }
-twilight-model = "0.4.2"
+twilight-embed-builder = "0.5.0"
+twilight-gateway = { version = "0.5.0", default-features = false, features = ["rustls-webpki-roots", "zlib-stock"] }
+twilight-http = { version = "0.5.0", default-features = false, features = ["rustls-webpki-roots"] }
+twilight-model = "0.5.0"
 twitch-irc = "2.2.0"
 
 [dev-dependencies]

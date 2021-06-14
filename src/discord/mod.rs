@@ -18,10 +18,11 @@ mod user;
 pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
     let http = Client::new(&config.token);
 
-    let shard = Shard::builder(
+    let (shard, mut events) = Shard::builder(
         &config.token,
         Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
     )
+    .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
     .http_client(http.clone())
     .build();
 
@@ -35,8 +36,6 @@ pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Re
         info!("discord connection shutting down");
         shard_spawn.shutdown();
     });
-
-    let mut events = shard.some_events(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE);
 
     tokio::spawn(async move {
         while let Some(event) = events.next().await {
