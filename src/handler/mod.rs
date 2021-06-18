@@ -23,7 +23,7 @@ pub async fn user_message(state: AsyncState, message: Message) -> Result<UserRes
     };
 
     Ok(match (command.to_lowercase().as_ref(), parts.next()) {
-        ("!help", None) | ("!bot", None) => user::help(),
+        ("!help" | "!bot", None) => user::help(),
         ("!commands", None) => user::commands(state, message.source).await,
         ("!links", None) => user::links(message.source),
         ("!schedule", None) => user::schedule(state).await,
