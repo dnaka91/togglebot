@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.cargo/git \
 
 RUN strip /root/.cargo/bin/togglebot
 
-FROM alpine:3.13
+FROM scratch
 
 WORKDIR /data
 

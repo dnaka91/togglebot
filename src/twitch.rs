@@ -6,14 +6,14 @@ use tokio::{select, sync::oneshot};
 use twitch_irc::{
     login::StaticLoginCredentials,
     message::{PrivmsgMessage, ServerMessage},
-    ClientConfig, TCPTransport, TwitchIRCClient,
+    ClientConfig, SecureTCPTransport, TwitchIRCClient,
 };
 
 use crate::{
     settings::Twitch, CrateSearch, Message, Queue, Response, Shutdown, Source, UserResponse,
 };
 
-type Client = TwitchIRCClient<TCPTransport, StaticLoginCredentials>;
+type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
 const CHANNEL: &str = "togglebit";
 
