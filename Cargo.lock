@@ -1242,9 +1242,9 @@ dependencies = [
 
 [[package]]
 name = "twilight-gateway"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc6cf18f7af995b6a54c6206d965f72eb1591fa6f38fd5299eb5bd26590115e6"
+checksum = "9688b534e5ab3adc82bad59dcdd56f197869371891589000148e86f99dee7706"
 dependencies = [
  "bitflags",
  "flate2",
