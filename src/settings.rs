@@ -106,8 +106,10 @@ impl Default for BaseSchedule {
     }
 }
 
+const STATE_FILE: &str = concat!("/var/lib/", env!("CARGO_CRATE_NAME"), "/state.json");
+
 pub fn load_state() -> Result<State> {
-    let state = match std::fs::read("state.json") {
+    let state = match std::fs::read(STATE_FILE) {
         Ok(buf) => buf,
         Err(e) if e.kind() == ErrorKind::NotFound => return Ok(State::default()),
         Err(e) => return Err(e.into()),
@@ -117,10 +119,15 @@ pub fn load_state() -> Result<State> {
 }
 
 pub async fn save_state(state: &State) -> Result<()> {
+    const STATE_DIR: &str = concat!("/var/lib/", env!("CARGO_CRATE_NAME"));
+    const TEMP_FILE: &str = concat!("/var/lib/", env!("CARGO_CRATE_NAME"), "/~temp-state.json");
+
+    fs::create_dir_all(STATE_DIR).await?;
+
     let json = serde_json::to_vec_pretty(state)?;
 
-    fs::write("~temp-state.json", &json).await?;
-    fs::rename("~temp-state.json", "state.json").await?;
+    fs::write(TEMP_FILE, &json).await?;
+    fs::rename(TEMP_FILE, STATE_FILE).await?;
 
     Ok(())
 }

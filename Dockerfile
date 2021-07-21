@@ -15,8 +15,6 @@ RUN strip --strip-all /root/.cargo/bin/togglebot
 
 FROM scratch
 
-WORKDIR /data
-
 COPY --from=builder /root/.cargo/bin/togglebot /bin/
 
 STOPSIGNAL SIGINT
