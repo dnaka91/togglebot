@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 #[cfg(test)]
 use std::{collections::hash_map::DefaultHasher, hash::BuildHasherDefault};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
@@ -37,14 +37,18 @@ pub struct Twitch {
     pub token: String,
 }
 
-pub async fn load_config() -> Result<Config> {
-    let config = fs::read("/app/config.toml").await;
-    let config = match config {
-        Ok(c) => c,
-        Err(_) => fs::read("config.toml").await?,
-    };
+pub fn load_config() -> Result<Config> {
+    let locations = &[
+        concat!("/etc/", env!("CARGO_CRATE_NAME"), "/config.toml"),
+        concat!("/app/", env!("CARGO_CRATE_NAME"), ".toml"),
+        concat!(env!("CARGO_CRATE_NAME"), ".toml"),
+    ];
+    let buf = locations.iter().find_map(|loc| std::fs::read(loc).ok());
 
-    toml::from_slice(&config).map_err(Into::into)
+    match buf {
+        Some(buf) => Ok(toml::from_slice(&buf)?),
+        None => bail!("failed finding settings"),
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -102,8 +106,8 @@ impl Default for BaseSchedule {
     }
 }
 
-pub async fn load_state() -> Result<State> {
-    let state = match fs::read("state.json").await {
+pub fn load_state() -> Result<State> {
+    let state = match std::fs::read("state.json") {
         Ok(buf) => buf,
         Err(e) if e.kind() == ErrorKind::NotFound => return Ok(State::default()),
         Err(e) => return Err(e.into()),

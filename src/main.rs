@@ -14,8 +14,8 @@ async fn main() -> Result<()> {
     std::env::set_var("RUST_LOG", "warn,togglebot=trace");
     env_logger::init();
 
-    let config = settings::load_config().await?;
-    let state = settings::load_state().await?;
+    let config = settings::load_config()?;
+    let state = settings::load_state()?;
     let state = Arc::new(RwLock::new(state));
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
