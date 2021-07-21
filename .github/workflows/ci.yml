@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Setup Rust
+      - name: Setup Rust (nightly)
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -41,7 +41,7 @@ jobs:
         with:
           command: fmt
           args: -- --check
-      - name: Setup Rust
+      - name: Setup Rust (stable)
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
