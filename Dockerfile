@@ -11,14 +11,14 @@ RUN --mount=type=cache,target=/root/.cargo/git \
     --mount=type=cache,target=/volume/target \
     cargo install --locked --path .
 
-RUN strip /root/.cargo/bin/togglebot
+RUN strip --strip-all /root/.cargo/bin/togglebot
 
 FROM scratch
 
 WORKDIR /data
 
-COPY --from=builder /root/.cargo/bin/togglebot /app/
+COPY --from=builder /root/.cargo/bin/togglebot /bin/
 
 STOPSIGNAL SIGINT
 
-ENTRYPOINT ["/app/togglebot"]
+ENTRYPOINT ["/bin/togglebot"]
