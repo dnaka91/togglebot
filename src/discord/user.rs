@@ -121,13 +121,11 @@ pub async fn schedule(
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content("Here is togglebit's stream schedule:")?
-        .embed(
-            EmbedBuilder::new()
-                .field(EmbedFieldBuilder::new("Days", days))
-                .field(EmbedFieldBuilder::new("Time", time))
-                .field(EmbedFieldBuilder::new("Timezone", "CET"))
-                .build()?,
-        )?
+        .embeds([EmbedBuilder::new()
+            .field(EmbedFieldBuilder::new("Days", days))
+            .field(EmbedFieldBuilder::new("Time", time))
+            .field(EmbedFieldBuilder::new("Timezone", "CET"))
+            .build()?])?
         .await?;
 
     Ok(())
@@ -192,7 +190,7 @@ pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<CrateSearch>)
             http.create_message(msg.channel_id)
                 .reply(msg.id)
                 .content(content)?
-                .embed(embed)?
+                .embeds([embed])?
                 .await?;
         }
         Err(e) => {
