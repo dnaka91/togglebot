@@ -113,9 +113,9 @@ pub async fn crate_(name: &str) -> UserResponse {
     UserResponse::Crate(res.await)
 }
 
-pub async fn doc(fqn: &str) -> UserResponse {
+pub async fn doc(path: &str) -> UserResponse {
     info!("user: received `doc` command");
-    UserResponse::Doc(doc::find(fqn).await)
+    UserResponse::Doc(doc::find(path).await)
 }
 
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {

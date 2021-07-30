@@ -183,9 +183,9 @@ dependencies = [
 
 [[package]]
 name = "docsearch"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b95c4413690563ba151c66698b0d1b5c4d5c3ae314b8378c813a0707fb1a3dc"
+checksum = "877a0ffe2e438a95497af9d5b9d19945d23e0313a9192c35aa215be56181f9ef"
 dependencies = [
  "log",
  "reqwest",
@@ -194,6 +194,7 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "thiserror",
+ "unicode-xid",
 ]
 
 [[package]]

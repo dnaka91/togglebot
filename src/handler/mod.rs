@@ -28,7 +28,7 @@ pub async fn user_message(state: AsyncState, message: Message) -> Result<UserRes
         ("!links", None) => user::links(message.source),
         ("!schedule", None) => user::schedule(state).await,
         ("!crate" | "!crates", Some(name)) => user::crate_(name).await,
-        ("!doc" | "!docs", Some(fqn)) => user::doc(fqn).await,
+        ("!doc" | "!docs", Some(path)) => user::doc(path).await,
         ("!ban", Some(target)) => user::ban(target),
         (name, None) => user::custom(state, message.source, name).await,
         _ => UserResponse::Unknown,
