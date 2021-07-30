@@ -129,7 +129,14 @@ async fn handle_commands(
 ) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().fold(
-            String::from("Available commands: !help (or !bot), !links, !schedule, !crate, !ban"),
+            String::from(
+                "Available commands: \
+                !help (or !bot), \
+                !links, !schedule, \
+                !crate(s), \
+                !doc(s), \
+                !ban",
+            ),
             |mut list, name| {
                 list.push_str(", !");
                 list.push_str(&name);
