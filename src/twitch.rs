@@ -101,6 +101,7 @@ async fn handle_user_message(
         } => handle_schedule(msg, client, start, finish, off_days).await,
         UserResponse::Ban(target) => handle_ban(msg, client, target).await,
         UserResponse::Crate(res) => handle_crate(msg, client, res).await,
+        UserResponse::Doc(res) => handle_doc(msg, client, res).await,
         UserResponse::Custom(content) => handle_custom(msg, client, content).await,
         UserResponse::Unknown => Ok(()),
     }
@@ -230,6 +231,22 @@ async fn handle_crate(msg: PrivmsgMessage, client: Client, res: Result<CrateSear
         Err(e) => {
             error!("failed searching for crate: {}", e);
             "Sorry, something went wrong looking up the crate".to_owned()
+        }
+    };
+
+    client
+        .say_in_response(CHANNEL.to_owned(), message, Some(msg.message_id))
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_doc(msg: PrivmsgMessage, client: Client, res: Result<String>) -> Result<()> {
+    let message = match res {
+        Ok(link) => link,
+        Err(e) => {
+            error!("failed searching for docs: {}", e);
+            "Sorry, something went wrong looking up the documentation".to_owned()
         }
     };
 

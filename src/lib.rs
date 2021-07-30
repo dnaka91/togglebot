@@ -80,6 +80,7 @@ pub enum UserResponse {
     },
     Ban(String),
     Crate(Result<CrateSearch>),
+    Doc(Result<String>),
     Custom(String),
 }
 

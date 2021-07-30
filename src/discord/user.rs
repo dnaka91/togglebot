@@ -205,6 +205,23 @@ pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<CrateSearch>)
     Ok(())
 }
 
+pub async fn doc(msg: ChannelMessage, http: Client, res: Result<String>) -> Result<()> {
+    let message = match res {
+        Ok(link) => link,
+        Err(e) => {
+            error!("failed searching for docs: {}", e);
+            "Sorry, something went wrong looking up the documentation".to_owned()
+        }
+    };
+
+    http.create_message(msg.channel_id)
+        .reply(msg.id)
+        .content(message)?
+        .await?;
+
+    Ok(())
+}
+
 pub async fn custom(msg: ChannelMessage, http: Client, content: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)

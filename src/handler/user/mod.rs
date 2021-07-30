@@ -7,6 +7,8 @@ use serde::Deserialize;
 use super::AsyncState;
 use crate::{CrateInfo, CrateSearch, Source, UserResponse};
 
+mod doc;
+
 pub fn help() -> UserResponse {
     info!("user: received `help` command");
     UserResponse::Help
@@ -109,6 +111,11 @@ pub async fn crate_(name: &str) -> UserResponse {
     };
 
     UserResponse::Crate(res.await)
+}
+
+pub async fn doc(fqn: &str) -> UserResponse {
+    info!("user: received `doc` command");
+    UserResponse::Doc(doc::find(fqn).await)
 }
 
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {

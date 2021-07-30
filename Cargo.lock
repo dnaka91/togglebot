@@ -182,6 +182,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "docsearch"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b95c4413690563ba151c66698b0d1b5c4d5c3ae314b8378c813a0707fb1a3dc"
+dependencies = [
+ "log",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "thiserror",
+]
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -538,6 +553,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "lru_time_cache"
+version = "0.11.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9106e1d747ffd48e6be5bb2d97fa706ed25b144fbee4d5c02eae110cd8d6badd"
+
+[[package]]
 name = "matches"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -870,6 +891,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "semver"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f3aac57ee7f3272d8395c6e4f502f434f0e289fcd62876f70daa008c20dcabe"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -901,9 +931,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.64"
+version = "1.0.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "799e97dc9fdae36a5c8b8f2cae9ce2ee9fdce2058c57a93e6099d919fd982f79"
+checksum = "336b10da19a12ad094b59d870ebde26a45402e5b470add4b5fd03c5048a32127"
 dependencies = [
  "itoa",
  "ryu",
@@ -1055,10 +1085,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "docsearch",
  "env_logger",
  "futures-util",
  "indoc",
  "log",
+ "lru_time_cache",
+ "once_cell",
  "pretty_assertions",
  "reqwest",
  "serde",
