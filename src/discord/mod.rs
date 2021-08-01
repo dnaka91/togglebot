@@ -1,11 +1,12 @@
 //! Discord service connector that allows to receive commands from Discord servers.
 
 use anyhow::Result;
+use async_trait::async_trait;
 use futures_util::StreamExt;
 use log::{error, info};
 use tokio::sync::oneshot;
 use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
-use twilight_http::Client;
+use twilight_http::{request::channel::message::CreateMessage, Client};
 use twilight_model::channel::Message as ChannelMessage;
 
 use crate::{
@@ -16,7 +17,7 @@ mod admin;
 mod user;
 
 pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
-    let http = Client::new(&config.token);
+    let http = Client::new(config.token.clone());
 
     let (shard, mut events) = Shard::builder(
         &config.token,
@@ -127,5 +128,24 @@ async fn handle_admin_message(
         AdminResponse::OffDays(res) => admin::off_days(msg, http, res).await,
         AdminResponse::CustomCommands(res) => admin::custom_commands(msg, http, res).await,
         AdminResponse::Unknown => Ok(()),
+    }
+}
+
+/// Simple trait that combines the new `value.exec().await?.model.await` chain into a simple
+/// method call.
+#[async_trait]
+trait ExecModelExt {
+    type Value;
+
+    /// Send the command by calling `exec()` and `model()`.
+    async fn send(self) -> Result<Self::Value>;
+}
+
+#[async_trait]
+impl<'a> ExecModelExt for CreateMessage<'a> {
+    type Value = ChannelMessage;
+
+    async fn send(self) -> Result<Self::Value> {
+        self.exec().await?.model().await.map_err(Into::into)
     }
 }

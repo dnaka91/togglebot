@@ -3,6 +3,7 @@ use indoc::indoc;
 use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;
 
+use super::ExecModelExt;
 use crate::{emojis, Source};
 
 pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
@@ -36,6 +37,7 @@ pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
             ```
             List all currently available custom commands.
         "})?
+        .send()
         .await?;
 
     Ok(())
@@ -49,7 +51,8 @@ pub async fn schedule(msg: ChannelMessage, http: Client, res: Result<()>) -> Res
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(message)?
+        .content(&message)?
+        .send()
         .await?;
 
     Ok(())
@@ -63,7 +66,8 @@ pub async fn off_days(msg: ChannelMessage, http: Client, res: Result<()>) -> Res
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(message)?
+        .content(&message)?
+        .send()
         .await?;
 
     Ok(())
@@ -93,7 +97,8 @@ pub async fn custom_commands(
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(message)?
+        .content(&message)?
+        .send()
         .await?;
 
     Ok(())

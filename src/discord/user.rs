@@ -5,6 +5,7 @@ use twilight_embed_builder::{EmbedBuilder, EmbedFieldBuilder};
 use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;
 
+use super::ExecModelExt;
 use crate::CrateSearch;
 
 /// Gandalf's famous "You shall not pass!" scene.
@@ -20,6 +21,7 @@ pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
 
             My source code is at <https://github.com/dnaka91/togglebot>
         "})?
+        .send()
         .await?;
 
     Ok(())
@@ -58,7 +60,8 @@ pub async fn commands(msg: ChannelMessage, http: Client, res: Result<Vec<String>
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(message)?
+        .content(&message)?
+        .send()
         .await?;
 
     Ok(())
@@ -68,7 +71,7 @@ pub async fn links(msg: ChannelMessage, http: Client, links: &[(&str, &str)]) ->
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(
-            links
+            &links
                 .iter()
                 .enumerate()
                 .fold(String::new(), |mut list, (i, (name, url))| {
@@ -83,6 +86,7 @@ pub async fn links(msg: ChannelMessage, http: Client, links: &[(&str, &str)]) ->
                     list
                 }),
         )?
+        .send()
         .await?;
 
     Ok(())
@@ -122,11 +126,12 @@ pub async fn schedule(
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content("Here is togglebit's stream schedule:")?
-        .embeds([EmbedBuilder::new()
+        .embeds(&[EmbedBuilder::new()
             .field(EmbedFieldBuilder::new("Days", days))
             .field(EmbedFieldBuilder::new("Time", time))
             .field(EmbedFieldBuilder::new("Timezone", "CET"))
             .build()?])?
+        .send()
         .await?;
 
     Ok(())
@@ -134,10 +139,11 @@ pub async fn schedule(
 pub async fn ban(msg: ChannelMessage, http: Client, target: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(format!(
+        .content(&format!(
             "{}, **YOU SHALL NOT PASS!!**\n\n{}",
             target, GANDALF_GIF
         ))?
+        .send()
         .await?;
 
     Ok(())
@@ -190,8 +196,9 @@ pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<CrateSearch>)
             };
             http.create_message(msg.channel_id)
                 .reply(msg.id)
-                .content(content)?
-                .embeds([embed])?
+                .content(&content)?
+                .embeds(&[embed])?
+                .send()
                 .await?;
         }
         Err(e) => {
@@ -199,6 +206,7 @@ pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<CrateSearch>)
             http.create_message(msg.channel_id)
                 .reply(msg.id)
                 .content("Sorry, something went wrong looking up the crate")?
+                .send()
                 .await?;
         }
     }
@@ -217,7 +225,8 @@ pub async fn doc(msg: ChannelMessage, http: Client, res: Result<String>) -> Resu
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(message)?
+        .content(&message)?
+        .send()
         .await?;
 
     Ok(())
@@ -226,7 +235,8 @@ pub async fn doc(msg: ChannelMessage, http: Client, res: Result<String>) -> Resu
 pub async fn custom(msg: ChannelMessage, http: Client, content: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(content)?
+        .content(&content)?
+        .send()
         .await?;
 
     Ok(())
