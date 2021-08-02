@@ -10,7 +10,7 @@ use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use tokio::{fs, sync::Mutex};
 
-const CACHE_DIR: &str = concat!("/tmp/", env!("CARGO_CRATE_NAME"), "/doc-indexes");
+const CACHE_DIR: &str = concat!("/tmp/", env!("CARGO_PKG_NAME"), "/doc-indexes");
 
 /// Cache of previously resolved paths to allow quick retrieval of doc links for frequently used
 /// items.

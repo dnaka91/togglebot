@@ -39,9 +39,9 @@ pub struct Twitch {
 
 pub fn load_config() -> Result<Config> {
     let locations = &[
-        concat!("/etc/", env!("CARGO_CRATE_NAME"), "/config.toml"),
-        concat!("/app/", env!("CARGO_CRATE_NAME"), ".toml"),
-        concat!(env!("CARGO_CRATE_NAME"), ".toml"),
+        concat!("/etc/", env!("CARGO_PKG_NAME"), "/config.toml"),
+        concat!("/app/", env!("CARGO_PKG_NAME"), ".toml"),
+        concat!(env!("CARGO_PKG_NAME"), ".toml"),
     ];
     let buf = locations.iter().find_map(|loc| std::fs::read(loc).ok());
 
@@ -106,7 +106,7 @@ impl Default for BaseSchedule {
     }
 }
 
-const STATE_FILE: &str = concat!("/var/lib/", env!("CARGO_CRATE_NAME"), "/state.json");
+const STATE_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/state.json");
 
 pub fn load_state() -> Result<State> {
     let state = match std::fs::read(STATE_FILE) {
@@ -119,8 +119,8 @@ pub fn load_state() -> Result<State> {
 }
 
 pub async fn save_state(state: &State) -> Result<()> {
-    const STATE_DIR: &str = concat!("/var/lib/", env!("CARGO_CRATE_NAME"));
-    const TEMP_FILE: &str = concat!("/var/lib/", env!("CARGO_CRATE_NAME"), "/~temp-state.json");
+    const STATE_DIR: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"));
+    const TEMP_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/~temp-state.json");
 
     fs::create_dir_all(STATE_DIR).await?;
 
