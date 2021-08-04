@@ -7,7 +7,7 @@ use log::{error, info};
 use tokio::sync::oneshot;
 use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
 use twilight_http::{request::channel::message::CreateMessage, Client};
-use twilight_model::channel::Message as ChannelMessage;
+use twilight_model::{channel::Message as ChannelMessage, id::UserId};
 
 use crate::{
     settings::Discord, AdminResponse, Message, Queue, Response, Shutdown, Source, UserResponse,
@@ -66,11 +66,12 @@ async fn handle_event(queue: Queue, event: Event, http: Client) -> Result<()> {
 
 /// List of admins that are allowed to customize the bot. Currently static and will be added to the
 /// settings in the future.
-const ADMINS: &[(&str, &str)] = &[
-    ("dnaka91", "1754"),
-    ("ToggleBit", "0090"),
-    ("_Bare", "6674"),
-    ("TrolledWoods", "2954"),
+#[allow(clippy::unreadable_literal)]
+const ADMINS: &[UserId] = &[
+    UserId(110883807707566080), // dnaka91
+    UserId(648566744797020190), // ToggleBit
+    UserId(327267106834087936), // _Bare
+    UserId(378644347354087434), // TrolledWoods
 ];
 
 async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Result<()> {
@@ -82,8 +83,7 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Resu
     let message = Message {
         source: Source::Discord,
         content: msg.content.clone(),
-        admin: msg.guild_id.is_none()
-            && ADMINS.contains(&(&msg.author.name, &msg.author.discriminator)),
+        admin: msg.guild_id.is_none() && ADMINS.contains(&msg.author.id),
     };
     let (tx, rx) = oneshot::channel();
 
