@@ -1289,9 +1289,9 @@ dependencies = [
 
 [[package]]
 name = "twilight-http"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "999ba324a27f49dc9e884e3b1a3fa0aaa8a8e56494d0a78afba34dfe947f3a86"
+checksum = "4128213d069b65eca0a652451bc6e66f09bca06ddab96bfbce56c8aa7ff25c9a"
 dependencies = [
  "hyper",
  "hyper-rustls",
