@@ -5,7 +5,7 @@ authors = ["Dominik Nakamura <dnaka91@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-anyhow = "1.0.43"
+anyhow = "1.0.44"
 async-trait = "0.1.51"
 chrono = { version = "0.4.19", features = ["serde"] }
 docsearch = "0.2.0"
