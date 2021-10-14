@@ -33,7 +33,6 @@ pub async fn commands(msg: ChannelMessage, http: Client, res: Result<Vec<String>
             String::from(indoc! {"
                     Available commands:
                     `!help` (or `!bot`) gives a short info about this bot.
-                    `!lark` tells **togglebit** that he's a lark.
                     `!links` gives you a list of links to sites where **togglebit** is present.
                     `!schedule` tells you the Twitch streaming schedule of **togglebit**.
                     `!crate(s)` get the link for any existing crate.
