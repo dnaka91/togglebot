@@ -24,7 +24,7 @@ toml = "0.5.8"
 twilight-embed-builder = "0.6.0"
 twilight-gateway = { version = "0.6.5", default-features = false, features = ["rustls-webpki-roots", "zlib-stock"] }
 twilight-http = { version = "0.6.6", default-features = false, features = ["rustls-webpki-roots"] }
-twilight-model = "0.6.5"
+twilight-model = "0.7.1"
 twitch-irc = { version = "3.0.1", default-features = false, features = ["transport-tcp-rustls-webpki-roots"] }
 
 [dev-dependencies]
