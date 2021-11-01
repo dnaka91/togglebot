@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use indoc::indoc;
 use twilight_http::Client;
@@ -6,7 +8,7 @@ use twilight_model::channel::Message as ChannelMessage;
 use super::ExecModelExt;
 use crate::{emojis, Source};
 
-pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
+pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(indoc! {"
@@ -43,7 +45,7 @@ pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
     Ok(())
 }
 
-pub async fn schedule(msg: ChannelMessage, http: Client, res: Result<()>) -> Result<()> {
+pub async fn schedule(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -> Result<()> {
     let message = match res {
         Ok(()) => format!("{} schedule updated", emojis::OK_HAND),
         Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
@@ -58,7 +60,7 @@ pub async fn schedule(msg: ChannelMessage, http: Client, res: Result<()>) -> Res
     Ok(())
 }
 
-pub async fn off_days(msg: ChannelMessage, http: Client, res: Result<()>) -> Result<()> {
+pub async fn off_days(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -> Result<()> {
     let message = match res {
         Ok(()) => format!("{} off days updated", emojis::OK_HAND),
         Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
@@ -75,7 +77,7 @@ pub async fn off_days(msg: ChannelMessage, http: Client, res: Result<()>) -> Res
 
 pub async fn custom_commands(
     msg: ChannelMessage,
-    http: Client,
+    http: Arc<Client>,
     res: Result<Option<Vec<(String, Source, String)>>>,
 ) -> Result<()> {
     let message = match res {

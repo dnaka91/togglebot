@@ -1,5 +1,7 @@
 //! Discord service connector that allows to receive commands from Discord servers.
 
+use std::sync::Arc;
+
 use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -17,15 +19,16 @@ mod admin;
 mod user;
 
 pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
-    let http = Client::new(config.token.clone());
+    let http = Arc::new(Client::new(config.token.clone()));
 
     let (shard, mut events) = Shard::builder(
         &config.token,
         Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
     )
     .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
-    .http_client(http.clone())
+    .http_client(Arc::clone(&http))
     .build();
+    let shard = Arc::new(shard);
 
     shard.start().await?;
 
@@ -54,7 +57,7 @@ pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Re
     Ok(())
 }
 
-async fn handle_event(queue: Queue, event: Event, http: Client) -> Result<()> {
+async fn handle_event(queue: Queue, event: Event, http: Arc<Client>) -> Result<()> {
     match event {
         Event::MessageCreate(msg) => handle_message(queue, msg.0, http).await?,
         Event::Ready(_) => info!("discord connection ready, listening for events"),
@@ -67,14 +70,16 @@ async fn handle_event(queue: Queue, event: Event, http: Client) -> Result<()> {
 /// List of admins that are allowed to customize the bot. Currently static and will be added to the
 /// settings in the future.
 #[allow(clippy::unreadable_literal)]
-const ADMINS: &[UserId] = &[
-    UserId(110883807707566080), // dnaka91
-    UserId(648566744797020190), // ToggleBit
-    UserId(327267106834087936), // _Bare
-    UserId(378644347354087434), // TrolledWoods
-];
+const ADMINS: &[UserId] = unsafe {
+    &[
+        UserId::new_unchecked(110883807707566080), // dnaka91
+        UserId::new_unchecked(648566744797020190), // ToggleBit
+        UserId::new_unchecked(327267106834087936), // _Bare
+        UserId::new_unchecked(378644347354087434), // TrolledWoods
+    ]
+};
 
-async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Result<()> {
+async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
     if msg.author.bot {
         // Ignore bots and our own messages.
         return Ok(());
@@ -99,7 +104,11 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Client) -> Resu
     Ok(())
 }
 
-async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Client) -> Result<()> {
+async fn handle_user_message(
+    resp: UserResponse,
+    msg: ChannelMessage,
+    http: Arc<Client>,
+) -> Result<()> {
     match resp {
         UserResponse::Help => user::help(msg, http).await,
         UserResponse::Commands(res) => user::commands(msg, http, res).await,
@@ -120,7 +129,7 @@ async fn handle_user_message(resp: UserResponse, msg: ChannelMessage, http: Clie
 async fn handle_admin_message(
     resp: AdminResponse,
     msg: ChannelMessage,
-    http: Client,
+    http: Arc<Client>,
 ) -> Result<()> {
     match resp {
         AdminResponse::Help => admin::help(msg, http).await,

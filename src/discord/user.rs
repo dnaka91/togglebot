@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use indoc::indoc;
 use log::error;
@@ -12,7 +14,7 @@ use crate::CrateSearch;
 const GANDALF_GIF: &str =
     "https://tenor.com/view/you-shall-not-pass-lotr-do-not-enter-not-allowed-scream-gif-16729885";
 
-pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
+pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(indoc! {"
@@ -27,7 +29,11 @@ pub async fn help(msg: ChannelMessage, http: Client) -> Result<()> {
     Ok(())
 }
 
-pub async fn commands(msg: ChannelMessage, http: Client, res: Result<Vec<String>>) -> Result<()> {
+pub async fn commands(
+    msg: ChannelMessage,
+    http: Arc<Client>,
+    res: Result<Vec<String>>,
+) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().enumerate().fold(
             String::from(indoc! {"
@@ -66,7 +72,7 @@ pub async fn commands(msg: ChannelMessage, http: Client, res: Result<Vec<String>
     Ok(())
 }
 
-pub async fn links(msg: ChannelMessage, http: Client, links: &[(&str, &str)]) -> Result<()> {
+pub async fn links(msg: ChannelMessage, http: Arc<Client>, links: &[(&str, &str)]) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(
@@ -93,7 +99,7 @@ pub async fn links(msg: ChannelMessage, http: Client, links: &[(&str, &str)]) ->
 
 pub async fn schedule(
     msg: ChannelMessage,
-    http: Client,
+    http: Arc<Client>,
     start: String,
     finish: String,
     off_days: Vec<String>,
@@ -135,7 +141,7 @@ pub async fn schedule(
 
     Ok(())
 }
-pub async fn ban(msg: ChannelMessage, http: Client, target: String) -> Result<()> {
+pub async fn ban(msg: ChannelMessage, http: Arc<Client>, target: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(&format!(
@@ -148,7 +154,11 @@ pub async fn ban(msg: ChannelMessage, http: Client, target: String) -> Result<()
     Ok(())
 }
 
-pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<CrateSearch>) -> Result<()> {
+pub async fn crate_(
+    msg: ChannelMessage,
+    http: Arc<Client>,
+    res: Result<CrateSearch>,
+) -> Result<()> {
     match res {
         Ok(search) => {
             let (content, embed) = match search {
@@ -213,7 +223,7 @@ pub async fn crate_(msg: ChannelMessage, http: Client, res: Result<CrateSearch>)
     Ok(())
 }
 
-pub async fn doc(msg: ChannelMessage, http: Client, res: Result<String>) -> Result<()> {
+pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) -> Result<()> {
     let message = match res {
         Ok(link) => link,
         Err(e) => {
@@ -231,7 +241,7 @@ pub async fn doc(msg: ChannelMessage, http: Client, res: Result<String>) -> Resu
     Ok(())
 }
 
-pub async fn custom(msg: ChannelMessage, http: Client, content: String) -> Result<()> {
+pub async fn custom(msg: ChannelMessage, http: Arc<Client>, content: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(&content)?
