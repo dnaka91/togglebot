@@ -59,10 +59,10 @@ pub async fn admin_message(state: AsyncState, content: String) -> Result<AdminRe
             ("!off_days", Some(action), Some(weekday), None, None) => {
                 admin::off_days(state, action, weekday).await
             }
-            ("!custom_commands", Some("list"), None, None, None) => {
+            ("!custom_commands" | "!custom_command", Some("list"), None, None, None) => {
                 admin::custom_commands_list(state).await
             }
-            ("!custom_commands", Some(action), Some(source), Some(name), _) => {
+            ("!custom_commands" | "!custom_command", Some(action), Some(source), Some(name), _) => {
                 admin::custom_commands(state, &content, action, source, name).await
             }
             _ => AdminResponse::Unknown,

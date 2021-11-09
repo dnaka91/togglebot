@@ -27,7 +27,7 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             `Mon` or `tuesday`.
 
             ```
-            !custom_commands [add|remove] [all|discord|twitch] <name> <content>
+            !custom_command(s) [add|remove] [all|discord|twitch] <name> <content>
             ```
             Add or remove a custom command that has fixed content and can be anything. \
             The command can be modified for all sources or individually. \
