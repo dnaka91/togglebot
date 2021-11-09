@@ -5,10 +5,10 @@ use std::time::Duration;
 
 use anyhow::{bail, Result};
 use docsearch::{Index, SimplePath};
-use log::{debug, warn};
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use tokio::{fs, sync::Mutex};
+use tracing::{debug, warn};
 
 const CACHE_DIR: &str = concat!("/tmp/", env!("CARGO_PKG_NAME"), "/doc-indexes");
 

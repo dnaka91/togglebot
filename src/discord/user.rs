@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use indoc::indoc;
-use log::error;
+use tracing::error;
 use twilight_embed_builder::{EmbedBuilder, EmbedFieldBuilder};
 use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;

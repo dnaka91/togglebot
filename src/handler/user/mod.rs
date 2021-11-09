@@ -1,8 +1,8 @@
 use anyhow::bail;
 use chrono::Weekday;
-use log::info;
 use reqwest::StatusCode;
 use serde::Deserialize;
+use tracing::info;
 
 use super::AsyncState;
 use crate::{CrateInfo, CrateSearch, Source, UserResponse};

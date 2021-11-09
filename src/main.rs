@@ -5,14 +5,21 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use log::{error, info, warn};
 use togglebot::{discord, handler, settings, twitch, Response};
 use tokio::sync::{broadcast, mpsc, RwLock};
+use tracing::{error, info, warn, Level};
+use tracing_subscriber::{filter::Targets, prelude::*};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    std::env::set_var("RUST_LOG", "warn,togglebot=trace");
-    env_logger::init();
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            Targets::new()
+                .with_target(env!("CARGO_PKG_NAME"), Level::TRACE)
+                .with_default(Level::WARN),
+        )
+        .init();
 
     let config = settings::load_config()?;
     let state = settings::load_state()?;

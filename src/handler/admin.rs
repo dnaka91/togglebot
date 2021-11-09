@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, bail, ensure, Result};
 use chrono::{NaiveTime, Weekday};
-use log::info;
+use tracing::info;
 
 use super::AsyncState;
 use crate::{settings, AdminResponse, Source};
