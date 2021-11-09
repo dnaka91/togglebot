@@ -78,13 +78,13 @@ pub async fn off_days(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -
     Ok(())
 }
 
-pub async fn custom_commands(
+pub async fn custom_commands_list(
     msg: ChannelMessage,
     http: Arc<Client>,
-    res: Result<Option<BTreeMap<String, BTreeSet<Source>>>>,
+    res: Result<BTreeMap<String, BTreeSet<Source>>>,
 ) -> Result<()> {
     let message = match res {
-        Ok(Some(list)) => list.into_iter().fold(
+        Ok(list) => list.into_iter().fold(
             String::from("available custom commands:"),
             |mut list, (name, sources)| {
                 list.push_str("\n`!");
@@ -102,7 +102,25 @@ pub async fn custom_commands(
                 list
             },
         ),
-        Ok(None) => format!("{} custom commands updated", emojis::OK_HAND),
+        Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
+    };
+
+    http.create_message(msg.channel_id)
+        .reply(msg.id)
+        .content(&message)?
+        .send()
+        .await?;
+
+    Ok(())
+}
+
+pub async fn custom_commands_edit(
+    msg: ChannelMessage,
+    http: Arc<Client>,
+    res: Result<()>,
+) -> Result<()> {
+    let message = match res {
+        Ok(()) => format!("{} custom commands updated", emojis::OK_HAND),
         Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
     };
 

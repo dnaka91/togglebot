@@ -8,7 +8,7 @@ use chrono::{NaiveTime, Weekday};
 use tracing::info;
 
 use super::AsyncState;
-use crate::{settings, AdminResponse, Source};
+use crate::{settings, AdminResponse, CustomCommandsResponse, Source};
 
 pub fn help() -> AdminResponse {
     info!("admin: received `help` command");
@@ -123,7 +123,7 @@ async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) ->
 
 pub async fn custom_commands_list(state: AsyncState) -> AdminResponse {
     info!("admin: received `custom_commands list` command");
-    AdminResponse::CustomCommands(list_commands(state).await.map(Some))
+    AdminResponse::CustomCommands(CustomCommandsResponse::List(list_commands(state).await))
 }
 
 async fn list_commands(state: AsyncState) -> Result<BTreeMap<String, BTreeSet<Source>>> {
@@ -158,7 +158,7 @@ pub async fn custom_commands(
     let res =
         || async { update_commands(state, action.parse()?, source.parse()?, name, content).await };
 
-    AdminResponse::CustomCommands(res().await.map(|_| None))
+    AdminResponse::CustomCommands(CustomCommandsResponse::Edit(res().await))
 }
 
 enum CommandSource {

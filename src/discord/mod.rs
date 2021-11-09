@@ -12,7 +12,8 @@ use twilight_http::{request::channel::message::CreateMessage, Client};
 use twilight_model::{channel::Message as ChannelMessage, id::UserId};
 
 use crate::{
-    settings::Discord, AdminResponse, Message, Queue, Response, Shutdown, Source, UserResponse,
+    settings::Discord, AdminResponse, CustomCommandsResponse, Message, Queue, Response, Shutdown,
+    Source, UserResponse,
 };
 
 mod admin;
@@ -135,7 +136,10 @@ async fn handle_admin_message(
         AdminResponse::Help => admin::help(msg, http).await,
         AdminResponse::Schedule(res) => admin::schedule(msg, http, res).await,
         AdminResponse::OffDays(res) => admin::off_days(msg, http, res).await,
-        AdminResponse::CustomCommands(res) => admin::custom_commands(msg, http, res).await,
+        AdminResponse::CustomCommands(resp) => match resp {
+            CustomCommandsResponse::List(res) => admin::custom_commands_list(msg, http, res).await,
+            CustomCommandsResponse::Edit(res) => admin::custom_commands_edit(msg, http, res).await,
+        },
         AdminResponse::Unknown => Ok(()),
     }
 }

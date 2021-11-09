@@ -109,5 +109,10 @@ pub enum AdminResponse {
     Help,
     Schedule(Result<()>),
     OffDays(Result<()>),
-    CustomCommands(Result<Option<BTreeMap<String, BTreeSet<Source>>>>),
+    CustomCommands(CustomCommandsResponse),
+}
+
+pub enum CustomCommandsResponse {
+    List(Result<BTreeMap<String, BTreeSet<Source>>>),
+    Edit(Result<()>),
 }
