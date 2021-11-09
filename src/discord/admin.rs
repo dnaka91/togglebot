@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 use anyhow::Result;
 use indoc::indoc;
@@ -78,18 +81,24 @@ pub async fn off_days(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -
 pub async fn custom_commands(
     msg: ChannelMessage,
     http: Arc<Client>,
-    res: Result<Option<Vec<(String, Source, String)>>>,
+    res: Result<Option<BTreeMap<String, BTreeSet<Source>>>>,
 ) -> Result<()> {
     let message = match res {
         Ok(Some(list)) => list.into_iter().fold(
             String::from("available custom commands:"),
-            |mut list, (name, source, content)| {
-                list.push_str("\n\n`!");
+            |mut list, (name, sources)| {
+                list.push_str("\n`!");
                 list.push_str(&name);
                 list.push_str("` (");
-                list.push_str(source.as_ref());
-                list.push_str("):\n> ");
-                list.push_str(&content);
+
+                for (i, source) in sources.into_iter().enumerate() {
+                    if i > 0 {
+                        list.push_str(", ");
+                    }
+                    list.push_str(source.as_ref());
+                }
+
+                list.push(')');
                 list
             },
         ),

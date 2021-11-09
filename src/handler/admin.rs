@@ -1,4 +1,7 @@
-use std::str::FromStr;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    str::FromStr,
+};
 
 use anyhow::{anyhow, bail, ensure, Result};
 use chrono::{NaiveTime, Weekday};
@@ -123,16 +126,17 @@ pub async fn custom_commands_list(state: AsyncState) -> AdminResponse {
     AdminResponse::CustomCommands(list_commands(state).await.map(Some))
 }
 
-async fn list_commands(state: AsyncState) -> Result<Vec<(String, Source, String)>> {
+async fn list_commands(state: AsyncState) -> Result<BTreeMap<String, BTreeSet<Source>>> {
     Ok(state
         .read()
         .await
         .custom_commands
         .iter()
-        .flat_map(|(name, sources)| {
-            sources
-                .iter()
-                .map(move |(source, content)| (name.clone(), *source, content.clone()))
+        .map(|(name, sources)| {
+            (
+                name.clone(),
+                sources.iter().map(|(source, _)| *source).collect(),
+            )
         })
         .collect())
 }

@@ -5,6 +5,8 @@
 #![warn(clippy::nursery)]
 #![allow(clippy::missing_errors_doc)]
 
+use std::collections::{BTreeMap, BTreeSet};
+
 /// Result type used throughout the whole crate.
 pub use anyhow::Result;
 pub use chrono::{DateTime, FixedOffset};
@@ -39,7 +41,7 @@ pub struct Message {
 }
 
 /// Possible sources that a message came from.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Source {
     /// Discord source <https://discord.com>.
     Discord,
@@ -107,5 +109,5 @@ pub enum AdminResponse {
     Help,
     Schedule(Result<()>),
     OffDays(Result<()>),
-    CustomCommands(Result<Option<Vec<(String, Source, String)>>>),
+    CustomCommands(Result<Option<BTreeMap<String, BTreeSet<Source>>>>),
 }
