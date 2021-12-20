@@ -158,7 +158,8 @@ mod tests {
                 ]
             },
             "off_days": ["Sat", "Sun"],
-            "custom_commands": {}
+            "custom_commands": {},
+            "admins": []
         }};
 
         assert_eq!(expect, output);
