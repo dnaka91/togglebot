@@ -110,7 +110,7 @@ impl Default for BaseSchedule {
     }
 }
 
-const STATE_FILE: &str = concat!("./", env!("CARGO_PKG_NAME"), "/state.json");
+const STATE_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/state.json");
 
 pub fn load_state() -> Result<State> {
     let state = match std::fs::read(STATE_FILE) {
@@ -123,8 +123,8 @@ pub fn load_state() -> Result<State> {
 }
 
 pub async fn save_state(state: &State) -> Result<()> {
-    const STATE_DIR: &str = concat!("./", env!("CARGO_PKG_NAME"));
-    const TEMP_FILE: &str = concat!("./", env!("CARGO_PKG_NAME"), "/~temp-state.json");
+    const STATE_DIR: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"));
+    const TEMP_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/~temp-state.json");
 
     fs::create_dir_all(STATE_DIR).await?;
 
