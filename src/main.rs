@@ -5,7 +5,12 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use togglebot::{discord, handler, settings, twitch, Response};
+use togglebot::{
+    discord,
+    handler::{self, Access},
+    settings::{self, State},
+    twitch, AdminResponse, Message, OwnerResponse, Response,
+};
 use tokio::sync::{broadcast, mpsc, RwLock};
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::{filter::Targets, prelude::*};
@@ -41,17 +46,15 @@ async fn main() -> Result<()> {
     twitch::start(&config.twitch, queue_tx, shutdown_rx2).await?;
 
     while let Some((message, reply)) = queue_rx.recv().await {
-        let res = if message.admin {
-            handler::admin_message(state.clone(), message.content)
-                .await
-                .map(Response::Admin)
-        } else {
-            handler::user_message(state.clone(), message)
-                .await
-                .map(Response::User)
+        let res = async {
+            match handler::access(&config, Arc::clone(&state), &message.author).await {
+                Access::Standard => handle_user_message(&state, &message).await,
+                Access::Admin => handle_admin_message(&state, &message).await,
+                Access::Owner => handle_owner_message(&state, &message).await,
+            }
         };
 
-        match res {
+        match res.await {
             Ok(resp) => {
                 reply.send(resp).ok();
             }
@@ -62,4 +65,24 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn handle_user_message(state: &Arc<RwLock<State>>, message: &Message) -> Result<Response> {
+    handler::user_message(Arc::clone(state), &message.content, message.source)
+        .await
+        .map(Response::User)
+}
+
+async fn handle_admin_message(state: &Arc<RwLock<State>>, message: &Message) -> Result<Response> {
+    match handler::admin_message(Arc::clone(state), &message.content).await? {
+        AdminResponse::Unknown => handle_user_message(state, message).await,
+        resp => Ok(Response::Admin(resp)),
+    }
+}
+
+async fn handle_owner_message(state: &Arc<RwLock<State>>, message: &Message) -> Result<Response> {
+    match handler::owner_message(Arc::clone(state), &message.content, message.mention).await? {
+        OwnerResponse::Unknown => handle_admin_message(state, message).await,
+        resp => Ok(Response::Owner(resp)),
+    }
 }

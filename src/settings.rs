@@ -1,8 +1,8 @@
 //! All configuration and state loading/saving logic.
 
-use std::io::ErrorKind;
 #[cfg(test)]
 use std::{collections::hash_map::DefaultHasher, hash::BuildHasherDefault};
+use std::{io::ErrorKind, num::NonZeroU64};
 
 use anyhow::{bail, Result};
 use chrono::prelude::*;
@@ -29,6 +29,7 @@ pub struct Config {
 #[derive(Deserialize)]
 pub struct Discord {
     pub token: String,
+    pub owners: HashSet<NonZeroU64>,
 }
 
 #[derive(Deserialize)]
@@ -59,6 +60,8 @@ pub struct State {
     pub off_days: HashSet<Weekday>,
     #[serde(default)]
     pub custom_commands: HashMap<String, HashMap<Source, String>>,
+    #[serde(default)]
+    pub admins: HashSet<NonZeroU64>,
 }
 
 impl Default for State {
@@ -67,6 +70,7 @@ impl Default for State {
             schedule: BaseSchedule::default(),
             off_days: [Weekday::Sat, Weekday::Sun].iter().copied().collect(),
             custom_commands: HashMap::default(),
+            admins: HashSet::default(),
         }
     }
 }
@@ -106,7 +110,7 @@ impl Default for BaseSchedule {
     }
 }
 
-const STATE_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/state.json");
+const STATE_FILE: &str = concat!("./", env!("CARGO_PKG_NAME"), "/state.json");
 
 pub fn load_state() -> Result<State> {
     let state = match std::fs::read(STATE_FILE) {
@@ -119,8 +123,8 @@ pub fn load_state() -> Result<State> {
 }
 
 pub async fn save_state(state: &State) -> Result<()> {
-    const STATE_DIR: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"));
-    const TEMP_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/~temp-state.json");
+    const STATE_DIR: &str = concat!("./", env!("CARGO_PKG_NAME"));
+    const TEMP_FILE: &str = concat!("./", env!("CARGO_PKG_NAME"), "/~temp-state.json");
 
     fs::create_dir_all(STATE_DIR).await?;
 
@@ -182,6 +186,7 @@ mod tests {
             )]
             .into_iter()
             .collect(),
+            admins: [NonZeroU64::new(1).unwrap()].into_iter().collect(),
         })
         .unwrap();
         let expect = json! {{
@@ -200,7 +205,8 @@ mod tests {
                 "hello": {
                     "Discord": "Hello World!"
                 }
-            }
+            },
+            "admins": [1]
         }};
 
         assert_eq!(expect, output);

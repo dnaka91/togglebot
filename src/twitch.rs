@@ -10,7 +10,8 @@ use twitch_irc::{
 };
 
 use crate::{
-    settings::Twitch, CrateSearch, Message, Queue, Response, Shutdown, Source, UserResponse,
+    settings::Twitch, AuthorId, CrateSearch, Message, Queue, Response, Shutdown, Source,
+    UserResponse,
 };
 
 type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
@@ -68,15 +69,18 @@ async fn handle_message(queue: Queue, msg: PrivmsgMessage, client: Client) -> Re
     let message = Message {
         source: Source::Twitch,
         content: msg.message_text.clone(),
-        admin: false,
+        author: AuthorId::Twitch(msg.sender.id),
+        mention: None,
     };
     let (tx, rx) = oneshot::channel();
 
     if queue.send((message, tx)).await.is_ok() {
         if let Ok(resp) = rx.await {
             match resp {
-                Response::User(user_resp) => handle_user_message(user_resp, msg, client).await?,
-                Response::Admin(_) => {}
+                Response::User(user_resp) => {
+                    handle_user_message(user_resp, msg.message_id, client).await?;
+                }
+                Response::Admin(_) | Response::Owner(_) => {}
             }
         }
     }
@@ -85,29 +89,25 @@ async fn handle_message(queue: Queue, msg: PrivmsgMessage, client: Client) -> Re
 }
 
 #[allow(clippy::match_same_arms)]
-async fn handle_user_message(
-    resp: UserResponse,
-    msg: PrivmsgMessage,
-    client: Client,
-) -> Result<()> {
+async fn handle_user_message(resp: UserResponse, msg_id: String, client: Client) -> Result<()> {
     match resp {
-        UserResponse::Help => handle_help(msg, client).await,
-        UserResponse::Commands(res) => handle_commands(msg, client, res).await,
-        UserResponse::Links(links) => handle_links(msg, client, links).await,
+        UserResponse::Help => handle_help(msg_id, client).await,
+        UserResponse::Commands(res) => handle_commands(msg_id, client, res).await,
+        UserResponse::Links(links) => handle_links(msg_id, client, links).await,
         UserResponse::Schedule {
             start,
             finish,
             off_days,
-        } => handle_schedule(msg, client, start, finish, off_days).await,
-        UserResponse::Ban(target) => handle_ban(msg, client, target).await,
-        UserResponse::Crate(res) => handle_crate(msg, client, res).await,
-        UserResponse::Doc(res) => handle_doc(msg, client, res).await,
-        UserResponse::Custom(content) => handle_custom(msg, client, content).await,
+        } => handle_schedule(msg_id, client, start, finish, off_days).await,
+        UserResponse::Ban(target) => handle_ban(msg_id, client, target).await,
+        UserResponse::Crate(res) => handle_crate(msg_id, client, res).await,
+        UserResponse::Doc(res) => handle_doc(msg_id, client, res).await,
+        UserResponse::Custom(content) => handle_custom(msg_id, client, content).await,
         UserResponse::Unknown => Ok(()),
     }
 }
 
-async fn handle_help(msg: PrivmsgMessage, client: Client) -> Result<()> {
+async fn handle_help(msg_id: String, client: Client) -> Result<()> {
     client
         .say_in_response(
             CHANNEL.to_owned(),
@@ -115,18 +115,14 @@ async fn handle_help(msg: PrivmsgMessage, client: Client) -> Result<()> {
             Try out `!commands` command to see what I can do. \
             My source code is at https://github.com/dnaka91/togglebot"
                 .to_owned(),
-            Some(msg.message_id),
+            Some(msg_id),
         )
         .await?;
 
     Ok(())
 }
 
-async fn handle_commands(
-    msg: PrivmsgMessage,
-    client: Client,
-    res: Result<Vec<String>>,
-) -> Result<()> {
+async fn handle_commands(msg_id: String, client: Client, res: Result<Vec<String>>) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().fold(
             String::from(
@@ -150,13 +146,13 @@ async fn handle_commands(
     };
 
     client
-        .say_in_response(CHANNEL.to_owned(), message, Some(msg.message_id))
+        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_links(msg: PrivmsgMessage, client: Client, links: &[(&str, &str)]) -> Result<()> {
+async fn handle_links(msg_id: String, client: Client, links: &[(&str, &str)]) -> Result<()> {
     client
         .say_in_response(
             CHANNEL.to_owned(),
@@ -173,7 +169,7 @@ async fn handle_links(msg: PrivmsgMessage, client: Client, links: &[(&str, &str)
                     list.push_str(url);
                     list
                 }),
-            Some(msg.message_id),
+            Some(msg_id),
         )
         .await?;
 
@@ -181,7 +177,7 @@ async fn handle_links(msg: PrivmsgMessage, client: Client, links: &[(&str, &str)
 }
 
 async fn handle_schedule(
-    msg: PrivmsgMessage,
+    msg_id: String,
     client: Client,
     start: String,
     finish: String,
@@ -210,26 +206,26 @@ async fn handle_schedule(
         .say_in_response(
             CHANNEL.to_owned(),
             format!("{} | {} | Timezone CET", days, time),
-            Some(msg.message_id),
+            Some(msg_id),
         )
         .await?;
 
     Ok(())
 }
 
-async fn handle_ban(msg: PrivmsgMessage, client: Client, target: String) -> Result<()> {
+async fn handle_ban(msg_id: String, client: Client, target: String) -> Result<()> {
     client
         .say_in_response(
             CHANNEL.to_owned(),
             format!("{}, YOU SHALL NOT PASS!!", target),
-            Some(msg.message_id),
+            Some(msg_id),
         )
         .await?;
 
     Ok(())
 }
 
-async fn handle_crate(msg: PrivmsgMessage, client: Client, res: Result<CrateSearch>) -> Result<()> {
+async fn handle_crate(msg_id: String, client: Client, res: Result<CrateSearch>) -> Result<()> {
     let message = match res {
         Ok(search) => match search {
             CrateSearch::Found(info) => format!("https://lib.rs/crates/{}", info.name),
@@ -242,13 +238,13 @@ async fn handle_crate(msg: PrivmsgMessage, client: Client, res: Result<CrateSear
     };
 
     client
-        .say_in_response(CHANNEL.to_owned(), message, Some(msg.message_id))
+        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_doc(msg: PrivmsgMessage, client: Client, res: Result<String>) -> Result<()> {
+async fn handle_doc(msg_id: String, client: Client, res: Result<String>) -> Result<()> {
     let message = match res {
         Ok(link) => link,
         Err(e) => {
@@ -258,15 +254,15 @@ async fn handle_doc(msg: PrivmsgMessage, client: Client, res: Result<String>) ->
     };
 
     client
-        .say_in_response(CHANNEL.to_owned(), message, Some(msg.message_id))
+        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_custom(msg: PrivmsgMessage, client: Client, content: String) -> Result<()> {
+async fn handle_custom(msg_id: String, client: Client, content: String) -> Result<()> {
     client
-        .say_in_response(CHANNEL.to_owned(), content, Some(msg.message_id))
+        .say_in_response(CHANNEL.to_owned(), content, Some(msg_id))
         .await?;
 
     Ok(())

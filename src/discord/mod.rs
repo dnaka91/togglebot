@@ -9,14 +9,15 @@ use tokio::sync::oneshot;
 use tracing::{error, info};
 use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
 use twilight_http::{request::channel::message::CreateMessage, Client};
-use twilight_model::{channel::Message as ChannelMessage, id::UserId};
+use twilight_model::channel::Message as ChannelMessage;
 
 use crate::{
-    settings::Discord, AdminResponse, CustomCommandsResponse, Message, Queue, Response, Shutdown,
-    Source, UserResponse,
+    settings::Discord, AdminResponse, AdminsResponse, AuthorId, CustomCommandsResponse, Message,
+    OwnerResponse, Queue, Response, Shutdown, Source, UserResponse,
 };
 
 mod admin;
+mod owner;
 mod user;
 
 pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
@@ -68,18 +69,6 @@ async fn handle_event(queue: Queue, event: Event, http: Arc<Client>) -> Result<(
     Ok(())
 }
 
-/// List of admins that are allowed to customize the bot. Currently static and will be added to the
-/// settings in the future.
-#[allow(clippy::unreadable_literal)]
-const ADMINS: &[UserId] = unsafe {
-    &[
-        UserId::new_unchecked(110883807707566080), // dnaka91
-        UserId::new_unchecked(648566744797020190), // ToggleBit
-        UserId::new_unchecked(327267106834087936), // _Bare
-        UserId::new_unchecked(378644347354087434), // TrolledWoods
-    ]
-};
-
 async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
     if msg.author.bot {
         // Ignore bots and our own messages.
@@ -89,7 +78,12 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) ->
     let message = Message {
         source: Source::Discord,
         content: msg.content.clone(),
-        admin: msg.guild_id.is_none() && ADMINS.contains(&msg.author.id),
+        author: AuthorId::Discord(msg.author.id.0),
+        mention: msg
+            .mentions
+            .first()
+            .filter(|mention| !mention.bot)
+            .map(|mention| mention.id.0),
     };
     let (tx, rx) = oneshot::channel();
 
@@ -98,6 +92,7 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) ->
             match resp {
                 Response::User(user_resp) => handle_user_message(user_resp, msg, http).await?,
                 Response::Admin(admin_resp) => handle_admin_message(admin_resp, msg, http).await?,
+                Response::Owner(owner_resp) => handle_owner_message(owner_resp, msg, http).await?,
             }
         }
     }
@@ -141,6 +136,21 @@ async fn handle_admin_message(
             CustomCommandsResponse::Edit(res) => admin::custom_commands_edit(msg, http, res).await,
         },
         AdminResponse::Unknown => Ok(()),
+    }
+}
+
+async fn handle_owner_message(
+    resp: OwnerResponse,
+    msg: ChannelMessage,
+    http: Arc<Client>,
+) -> Result<()> {
+    match resp {
+        OwnerResponse::Help => owner::help(msg, http).await,
+        OwnerResponse::Admins(resp) => match resp {
+            AdminsResponse::List(res) => owner::admins_list(msg, http, res).await,
+            AdminsResponse::Edit(res) => owner::admins_edit(msg, http, res).await,
+        },
+        OwnerResponse::Unknown => Ok(()),
     }
 }
 

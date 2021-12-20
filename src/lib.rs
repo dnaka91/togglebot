@@ -5,7 +5,10 @@
 #![warn(clippy::nursery)]
 #![allow(clippy::missing_errors_doc)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    num::NonZeroU64,
+};
 
 /// Result type used throughout the whole crate.
 pub use anyhow::Result;
@@ -31,22 +34,30 @@ pub type Shutdown = BroadcastReceiver<()>;
 
 /// A message that was received by a service connector. It contains all information needed by the
 /// handler to parse and act upon the message.
+#[derive(Debug)]
 pub struct Message {
     /// Tells what service connector the message came from.
     pub source: Source,
     /// The whole message content.
     pub content: String,
     /// Whether this message is considered an admin command.
-    pub admin: bool,
+    pub author: AuthorId,
+    pub mention: Option<NonZeroU64>,
 }
 
 /// Possible sources that a message came from.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Debug)]
 pub enum Source {
     /// Discord source <https://discord.com>.
     Discord,
     /// Twitch source <https://twitch.tv>.
     Twitch,
+}
+
+#[derive(Debug)]
+pub enum AuthorId {
+    Discord(NonZeroU64),
+    Twitch(String),
 }
 
 impl AsRef<str> for Source {
@@ -64,6 +75,7 @@ pub enum Response {
     User(UserResponse),
     /// Response for an admin command.
     Admin(AdminResponse),
+    Owner(OwnerResponse),
 }
 
 pub enum UserResponse {
@@ -115,4 +127,20 @@ pub enum AdminResponse {
 pub enum CustomCommandsResponse {
     List(Result<BTreeMap<String, BTreeSet<Source>>>),
     Edit(Result<()>),
+}
+
+pub enum OwnerResponse {
+    Unknown,
+    Help,
+    Admins(AdminsResponse),
+}
+
+pub enum AdminsResponse {
+    List(Vec<NonZeroU64>),
+    Edit(Result<AdminAction>),
+}
+
+pub enum AdminAction {
+    Added,
+    Removed,
 }

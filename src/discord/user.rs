@@ -39,6 +39,7 @@ pub async fn commands(
             String::from(indoc! {"
                     Available commands:
                     `!help` (or `!bot`) gives a short info about this bot.
+                    `!ahelp` gives a list of admin commands (if you're an admin).
                     `!links` gives you a list of links to sites where **togglebit** is present.
                     `!schedule` tells you the Twitch streaming schedule of **togglebit**.
                     `!crate(s)` get the link for any existing crate.

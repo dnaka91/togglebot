@@ -179,7 +179,39 @@ impl FromStr for CommandSource {
     }
 }
 
-const RESERVED_COMMANDS: &[&str] = &["help", "bot", "commands", "links", "schedule", "ban"];
+/// List of all pre-defined commands that can not be defined as name for custom commands.
+///
+/// As custom commands are checked last, there is no chance of accidentally hiding the other
+/// commands, but refusing these names helps to avoid confusion about commands not being triggered.
+const RESERVED_COMMANDS: &[&str] = &[
+    // user commands
+    "help",
+    "bot",
+    "commands",
+    "links",
+    "schedule",
+    "crate",
+    "crates",
+    "doc",
+    "docs",
+    "ban",
+    // admin commands
+    "admin_help",
+    "admin-help",
+    "adminhelp",
+    "ahelp",
+    "edit_schedule",
+    "off_days",
+    "custom_commands",
+    "custom_command",
+    // owner commands
+    "owner_help",
+    "owner-help",
+    "ownerhelp",
+    "ohelp",
+    "admins",
+    "admin",
+];
 
 async fn update_commands(
     state: AsyncState,

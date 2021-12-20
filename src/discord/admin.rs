@@ -18,7 +18,13 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             Hey there, I support the following admin commands:
 
             ```
-            !schedule set [start|finish] <HH:MM[am|pm]> <HH:MM[am|pm]>
+            !ohelp
+            ```
+            Show information about available owner commands. **Only available if \
+            you're an owner yourself.**
+
+            ```
+            !edit_schedule set [start|finish] <HH:MM[am|pm]> <HH:MM[am|pm]>
             ```
             Update the current schedule for either `start` or `finish` with the given \
             range in 12-hour format like `07:00am 08:00am`.
