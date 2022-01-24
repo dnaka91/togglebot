@@ -1,7 +1,7 @@
 [advisories]
 ignore = [
-	"RUSTSEC-2020-0071",
-	"RUSTSEC-2020-0159",
+    "RUSTSEC-2020-0071",
+    "RUSTSEC-2020-0159",
 ]
 
 [licenses]
@@ -15,9 +15,25 @@ exceptions = [
 ]
 
 [[licenses.clarify]]
+name = "encoding_rs"
+version = "*"
+expression = "(Apache-2.0 OR MIT) AND BSD-3-Clause"
+license-files = [
+    { path = "COPYRIGHT", hash = 0x39f8ad31 },
+]
+
+[[licenses.clarify]]
 name = "ring"
 version = "*"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+[bans]
+skip = [
+    { name = "itoa", version = "=0.4.8" },
+]
+skip-tree = [
+    { name = "twitch-irc", depth = 4 },
 ]
