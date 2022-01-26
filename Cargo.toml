@@ -3,7 +3,6 @@ name = "togglebot"
 version = "0.1.0"
 authors = ["Dominik Nakamura <dnaka91@gmail.com>"]
 edition = "2021"
-rust-version = "1.56"
 
 [dependencies]
 anyhow = "1.0.53"
