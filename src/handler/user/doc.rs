@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use anyhow::{bail, Result};
-use docsearch::{Index, SimplePath};
+use docsearch::{Index, SimplePath, Version};
 use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use tokio::{fs, sync::Mutex};
@@ -78,7 +78,7 @@ async fn index_from_file(file_name: &str) -> Result<Index> {
 /// After retrieval the index is saved to the local disk cache. Failing to do so will **not** return
 /// an error to allow getting the index independent of disk errors.
 async fn index_from_remote(path: &SimplePath, file_name: &str) -> Result<Index> {
-    let index = docsearch::search(path.crate_name(), None).await?;
+    let index = docsearch::search(path.crate_name(), Version::Latest).await?;
 
     if let Err(e) = save_index(&index, file_name).await {
         warn!("failed to save index to cache: {:?}", e);
