@@ -9,8 +9,9 @@ use lru_time_cache::LruCache;
 use once_cell::sync::Lazy;
 use tokio::{fs, sync::Mutex};
 use tracing::{debug, warn};
+use unidirs::{Utf8Path, Utf8PathBuf};
 
-const CACHE_DIR: &str = concat!("/tmp/", env!("CARGO_PKG_NAME"), "/doc-indexes");
+use crate::dirs::DIRS;
 
 /// Cache of previously resolved paths to allow quick retrieval of doc links for frequently used
 /// items.
@@ -55,12 +56,12 @@ pub async fn find(path: &str) -> Result<String> {
 }
 
 /// Generate the file name for the index cache from the given path.
-fn index_file_name(path: &SimplePath) -> String {
-    format!("{}/{}.json", CACHE_DIR, path.crate_name())
+fn index_file_name(path: &SimplePath) -> Utf8PathBuf {
+    format!("{}/{}.json", DIRS.doc_indexes_dir(), path.crate_name()).into()
 }
 
 /// Try to load the index from local file cache.
-async fn index_from_file(file_name: &str) -> Result<Index> {
+async fn index_from_file(file_name: &Utf8Path) -> Result<Index> {
     let meta = fs::metadata(&file_name).await?;
 
     if meta.modified()?.elapsed()? > Duration::from_secs(60 * 60 * 24 * 3) {
@@ -77,7 +78,7 @@ async fn index_from_file(file_name: &str) -> Result<Index> {
 ///
 /// After retrieval the index is saved to the local disk cache. Failing to do so will **not** return
 /// an error to allow getting the index independent of disk errors.
-async fn index_from_remote(path: &SimplePath, file_name: &str) -> Result<Index> {
+async fn index_from_remote(path: &SimplePath, file_name: &Utf8Path) -> Result<Index> {
     let index = docsearch::search(path.crate_name(), Version::Latest).await?;
 
     if let Err(e) = save_index(&index, file_name).await {
@@ -88,10 +89,10 @@ async fn index_from_remote(path: &SimplePath, file_name: &str) -> Result<Index> 
 }
 
 /// Save an index to its known cache folder.
-async fn save_index(index: &Index, file_name: &str) -> Result<()> {
+async fn save_index(index: &Index, file_name: &Utf8Path) -> Result<()> {
     let buf = serde_json::to_vec(index)?;
 
-    fs::create_dir_all(CACHE_DIR).await?;
+    fs::create_dir_all(DIRS.doc_indexes_dir()).await?;
     fs::write(&file_name, buf).await?;
 
     Ok(())

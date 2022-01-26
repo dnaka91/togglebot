@@ -19,6 +19,7 @@ pub use tokio::sync::{
     oneshot::Sender as OneshotSender,
 };
 
+mod dirs;
 pub mod discord;
 pub mod emojis;
 pub mod handler;

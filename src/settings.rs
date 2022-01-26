@@ -4,12 +4,12 @@
 use std::{collections::hash_map::DefaultHasher, hash::BuildHasherDefault};
 use std::{io::ErrorKind, num::NonZeroU64};
 
-use anyhow::{bail, Result};
+use anyhow::{Context, Result};
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
-use crate::Source;
+use crate::{dirs::DIRS, Source};
 
 #[cfg(not(test))]
 type HashSet<T> = std::collections::HashSet<T>;
@@ -39,17 +39,8 @@ pub struct Twitch {
 }
 
 pub fn load_config() -> Result<Config> {
-    let locations = &[
-        concat!("/etc/", env!("CARGO_PKG_NAME"), "/config.toml"),
-        concat!("/app/", env!("CARGO_PKG_NAME"), ".toml"),
-        concat!(env!("CARGO_PKG_NAME"), ".toml"),
-    ];
-    let buf = locations.iter().find_map(|loc| std::fs::read(loc).ok());
-
-    match buf {
-        Some(buf) => Ok(toml::from_slice(&buf)?),
-        None => bail!("failed finding settings"),
-    }
+    let buf = std::fs::read(DIRS.config_file()).context("failed reading config file")?;
+    toml::from_slice(&buf).context("failed parsing settings")
 }
 
 #[derive(Serialize, Deserialize)]
@@ -110,10 +101,8 @@ impl Default for BaseSchedule {
     }
 }
 
-const STATE_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/state.json");
-
 pub fn load_state() -> Result<State> {
-    let state = match std::fs::read(STATE_FILE) {
+    let state = match std::fs::read(DIRS.state_file()) {
         Ok(buf) => buf,
         Err(e) if e.kind() == ErrorKind::NotFound => return Ok(State::default()),
         Err(e) => return Err(e.into()),
@@ -123,15 +112,12 @@ pub fn load_state() -> Result<State> {
 }
 
 pub async fn save_state(state: &State) -> Result<()> {
-    const STATE_DIR: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"));
-    const TEMP_FILE: &str = concat!("/var/lib/", env!("CARGO_PKG_NAME"), "/~temp-state.json");
-
-    fs::create_dir_all(STATE_DIR).await?;
+    fs::create_dir_all(DIRS.data_dir()).await?;
 
     let json = serde_json::to_vec_pretty(state)?;
 
-    fs::write(TEMP_FILE, &json).await?;
-    fs::rename(TEMP_FILE, STATE_FILE).await?;
+    fs::write(DIRS.state_temp_file(), &json).await?;
+    fs::rename(DIRS.state_temp_file(), DIRS.state_file()).await?;
 
     Ok(())
 }
