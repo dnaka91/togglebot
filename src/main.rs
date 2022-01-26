@@ -21,7 +21,8 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .with(
             Targets::new()
-                .with_target(env!("CARGO_PKG_NAME"), Level::TRACE)
+                .with_target(env!("CARGO_CRATE_NAME"), Level::TRACE)
+                .with_target("docsearch", Level::TRACE)
                 .with_default(Level::WARN),
         )
         .init();
