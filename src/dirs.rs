@@ -22,8 +22,8 @@ impl Dirs {
 
         Ok(Self {
             settings_file: dirs.config_dir().join("config.toml"),
-            state_file: dirs.config_dir().join("state.json"),
-            state_temp_file: dirs.config_dir().join("~temp-state.json"),
+            state_file: dirs.data_dir().join("state.json"),
+            state_temp_file: dirs.data_dir().join("~temp-state.json"),
             doc_indexes_dir: dirs.cache_dir().join("doc-indexes"),
             dirs,
         })
