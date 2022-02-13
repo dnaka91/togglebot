@@ -24,7 +24,7 @@ pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Re
     let http = Arc::new(Client::new(config.token.clone()));
 
     let (shard, mut events) = Shard::builder(
-        &config.token,
+        config.token.clone(),
         Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
     )
     .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
@@ -78,12 +78,12 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) ->
     let message = Message {
         source: Source::Discord,
         content: msg.content.clone(),
-        author: AuthorId::Discord(msg.author.id.0),
+        author: AuthorId::Discord(msg.author.id.into()),
         mention: msg
             .mentions
             .first()
             .filter(|mention| !mention.bot)
-            .map(|mention| mention.id.0),
+            .map(|mention| mention.id.into()),
     };
     let (tx, rx) = oneshot::channel();
 

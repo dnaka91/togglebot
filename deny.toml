@@ -31,9 +31,6 @@ license-files = [
 ]
 
 [bans]
-skip = [
-    { name = "itoa", version = "=0.4.8" },
-]
 skip-tree = [
     { name = "twitch-irc", depth = 4 },
 ]
