@@ -1,4 +1,4 @@
-FROM rust:1.58-alpine as builder
+FROM rust:1.59-alpine as builder
 
 WORKDIR /volume
 
@@ -7,8 +7,7 @@ RUN apk add --no-cache musl-dev=~1.2
 COPY src/ src/
 COPY Cargo.lock Cargo.toml ./
 
-RUN cargo build --release && \
-    strip --strip-all target/release/togglebot
+RUN cargo build --release
 
 FROM alpine:3.15 as newuser
 
