@@ -6,6 +6,7 @@ on:
       - main
 env:
   CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
   RUSTFLAGS: "-C debuginfo=0 -D warnings"
 jobs:
   test:
@@ -71,9 +72,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Check ${{ matrix.checks }}
-        uses: EmbarkStudios/cargo-deny-action@v1
+        uses: dnaka91/actions/deny-check@main
         with:
-          command: check ${{ matrix.checks }}
+          checks: ${{ matrix.checks }}
   publish:
     name: Publish
     runs-on: ubuntu-latest
