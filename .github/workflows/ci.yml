@@ -19,17 +19,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: taiki-e/github-actions/install-rust@main
         with:
-          profile: minimal
           toolchain: stable
-          override: true
       - name: Configure cache
         uses: Swatinem/rust-cache@v1
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo test
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -37,28 +33,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup Rust (nightly)
-        uses: actions-rs/toolchain@v1
+        uses: taiki-e/github-actions/install-rust@main
         with:
           toolchain: nightly
-          override: true
-          components: rustfmt
+          component: rustfmt
       - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt -- --check
       - name: Setup Rust (stable)
-        uses: actions-rs/toolchain@v1
+        uses: taiki-e/github-actions/install-rust@main
         with:
           toolchain: stable
-          override: true
+          component: clippy
       - name: Configure cache
         uses: Swatinem/rust-cache@v1
       - name: Run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+        run: cargo clippy -- -D warnings
   cargo-deny:
     name: Cargo Deny
     runs-on: ubuntu-latest
