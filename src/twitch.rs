@@ -26,7 +26,7 @@ pub async fn start(config: &Twitch, queue: Queue, mut shutdown: Shutdown) -> Res
     ));
     let (mut messages, client) = Client::new(config);
 
-    client.join(CHANNEL.to_owned());
+    client.join(CHANNEL.to_owned())?;
 
     tokio::spawn(async move {
         loop {
