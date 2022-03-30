@@ -25,7 +25,7 @@ pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Re
 
     let (shard, mut events) = Shard::builder(
         config.token.clone(),
-        Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES,
+        Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES | Intents::MESSAGE_CONTENT,
     )
     .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
     .http_client(Arc::clone(&http))
