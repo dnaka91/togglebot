@@ -118,7 +118,14 @@ async fn handle_user_message(
         UserResponse::Crate(res) => user::crate_(msg, http, res).await,
         UserResponse::Doc(res) => user::doc(msg, http, res).await,
         UserResponse::Custom(content) => user::custom(msg, http, content).await,
-        UserResponse::Unknown => Ok(()),
+        UserResponse::Unknown(message) => {
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content(&format!("```{message}```"))?
+                .send()
+                .await?;
+            Ok(())
+        }
     }
 }
 

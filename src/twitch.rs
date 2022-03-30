@@ -103,7 +103,7 @@ async fn handle_user_message(resp: UserResponse, msg_id: String, client: Client)
         UserResponse::Crate(res) => handle_crate(msg_id, client, res).await,
         UserResponse::Doc(res) => handle_doc(msg_id, client, res).await,
         UserResponse::Custom(content) => handle_custom(msg_id, client, content).await,
-        UserResponse::Unknown => Ok(()),
+        UserResponse::Unknown(_) => Ok(()),
     }
 }
 

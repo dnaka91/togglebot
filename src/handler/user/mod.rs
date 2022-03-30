@@ -131,8 +131,11 @@ pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserRespon
                 content
             })
             .cloned()
-            .map_or(UserResponse::Unknown, UserResponse::Custom)
+            .map_or_else(
+                || UserResponse::Unknown("Unknown command".to_owned()),
+                UserResponse::Custom,
+            )
     } else {
-        UserResponse::Unknown
+        UserResponse::Unknown("Unknown command".to_owned())
     }
 }

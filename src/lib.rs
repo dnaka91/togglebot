@@ -81,7 +81,7 @@ pub enum Response {
 
 pub enum UserResponse {
     /// Command was not recognized and should be ignored.
-    Unknown,
+    Unknown(String),
     /// Print a help message showing how to use the bot.
     Help,
     /// List all available commands to the user.

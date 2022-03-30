@@ -3,14 +3,17 @@
 use std::{num::NonZeroU64, sync::Arc};
 
 use anyhow::{bail, Result};
+use clap::Parser;
 use tokio::sync::RwLock;
 
+use self::models::UserMessage;
 use crate::{
     settings::{Config, State},
     AdminResponse, AuthorId, OwnerResponse, Source, UserResponse,
 };
 
 mod admin;
+mod models;
 mod owner;
 mod user;
 
@@ -45,24 +48,22 @@ pub async fn user_message(
     content: &str,
     source: Source,
 ) -> Result<UserResponse> {
-    let mut parts = content.splitn(2, char::is_whitespace);
-    let command = if let Some(cmd) = parts.next() {
-        cmd
-    } else {
-        bail!("got message without content");
-    };
+    let content = content.strip_prefix('!').unwrap_or(content);
 
-    Ok(match (command.to_lowercase().as_ref(), parts.next()) {
-        ("!help" | "!bot", None) => user::help(),
-        ("!commands", None) => user::commands(state, source).await,
-        ("!links", None) => user::links(source),
-        ("!schedule", None) => user::schedule(state).await,
-        ("!crate" | "!crates", Some(name)) => user::crate_(name).await,
-        ("!doc" | "!docs", Some(path)) => user::doc(path).await,
-        ("!ban", Some(target)) => user::ban(target),
-        (name, None) => user::custom(state, source, name).await,
-        _ => UserResponse::Unknown,
-    })
+    Ok(
+        match UserMessage::try_parse_from(content.split_whitespace()) {
+            Ok(msg) => match msg {
+                UserMessage::Bot => user::help(),
+                UserMessage::Commands => user::commands(state, source).await,
+                UserMessage::Links => user::links(source),
+                UserMessage::Schedule => user::schedule(state).await,
+                UserMessage::Crate { name } => user::crate_(&name).await,
+                UserMessage::Doc { query } => user::doc(&query).await,
+                UserMessage::Ban { target } => user::ban(&target),
+            },
+            Err(e) => UserResponse::Unknown(e.to_string()),
+        },
+    )
 }
 
 /// Handle admin facing messages to control the bot and prepare a response.
