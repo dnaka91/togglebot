@@ -3,9 +3,9 @@ use std::sync::Arc;
 use anyhow::Result;
 use indoc::indoc;
 use tracing::error;
-use twilight_embed_builder::{EmbedBuilder, EmbedFieldBuilder};
 use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;
+use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
 use super::ExecModelExt;
 use crate::CrateSearch;
@@ -136,7 +136,7 @@ pub async fn schedule(
             .field(EmbedFieldBuilder::new("Days", days))
             .field(EmbedFieldBuilder::new("Time", time))
             .field(EmbedFieldBuilder::new("Timezone", "CET"))
-            .build()?])?
+            .build()])?
         .send()
         .await?;
 
@@ -200,9 +200,9 @@ pub async fn crate_(
                                 info.name
                             ),
                         ))
-                        .build()?,
+                        .build(),
                 ),
-                CrateSearch::NotFound(message) => (message, EmbedBuilder::new().build()?),
+                CrateSearch::NotFound(message) => (message, EmbedBuilder::new().build()),
             };
             http.create_message(msg.channel_id)
                 .reply(msg.id)
