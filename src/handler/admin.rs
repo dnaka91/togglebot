@@ -8,7 +8,7 @@ use chrono::{NaiveTime, Weekday};
 use tracing::info;
 
 use super::AsyncState;
-use crate::{settings, AdminResponse, CustomCommandsResponse, Source};
+use crate::{state, AdminResponse, CustomCommandsResponse, Source};
 
 pub fn help() -> AdminResponse {
     info!("admin: received `help` command");
@@ -66,7 +66,7 @@ async fn update_schedule(
         Field::Finish => state.schedule.finish = range,
     }
 
-    settings::save_state(&*state).await?;
+    state::save(&*state).await?;
 
     Ok(())
 }
@@ -116,7 +116,7 @@ async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) ->
         }
     }
 
-    settings::save_state(&*state).await?;
+    state::save(&*state).await?;
 
     Ok(())
 }
@@ -275,7 +275,7 @@ async fn update_commands(
         },
     }
 
-    settings::save_state(&state).await?;
+    state::save(&state).await?;
 
     Ok(())
 }

@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use tracing::info;
 
 use super::AsyncState;
-use crate::{settings, AdminAction, AdminsResponse, OwnerResponse};
+use crate::{state, AdminAction, AdminsResponse, OwnerResponse};
 
 pub fn help() -> OwnerResponse {
     info!("owner: received `help` command");
@@ -61,7 +61,7 @@ async fn update_admins(state: AsyncState, action: Action, user_id: NonZeroU64) -
         }
     }
 
-    settings::save_state(&state).await?;
+    state::save(&state).await?;
 
     Ok(())
 }

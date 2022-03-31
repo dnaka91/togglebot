@@ -24,6 +24,7 @@ pub mod discord;
 pub mod emojis;
 pub mod handler;
 pub mod settings;
+pub mod state;
 pub mod twitch;
 
 /// A queue that service connecters can use to send received messages to the handler and get back a

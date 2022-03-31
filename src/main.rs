@@ -8,7 +8,8 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, State},
+    settings,
+    state::{self, State},
     twitch, AdminResponse, Message, OwnerResponse, Response,
 };
 use tokio::sync::{broadcast, mpsc, RwLock};
@@ -28,7 +29,7 @@ async fn main() -> Result<()> {
         .init();
 
     let config = settings::load_config()?;
-    let state = settings::load_state()?;
+    let state = state::load()?;
     let state = Arc::new(RwLock::new(state));
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);

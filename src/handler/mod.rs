@@ -6,8 +6,7 @@ use anyhow::{bail, Result};
 use tokio::sync::RwLock;
 
 use crate::{
-    settings::{Config, State},
-    AdminResponse, AuthorId, OwnerResponse, Source, UserResponse,
+    settings::Config, state::State, AdminResponse, AuthorId, OwnerResponse, Source, UserResponse,
 };
 
 mod admin;
