@@ -4,11 +4,14 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, ensure, Result};
-use chrono::{NaiveTime, Weekday};
+use time::{Time, Weekday};
 use tracing::info;
 
 use super::AsyncState;
-use crate::{state, AdminResponse, CustomCommandsResponse, Source};
+use crate::{
+    state::{self, SCHEDULE_TIME_FORMAT},
+    AdminResponse, CustomCommandsResponse, Source,
+};
 
 pub fn help() -> AdminResponse {
     info!("admin: received `help` command");
@@ -28,8 +31,8 @@ pub async fn schedule(
             state,
             field.parse()?,
             (
-                NaiveTime::parse_from_str(range_begin, "%I:%M%P")?,
-                NaiveTime::parse_from_str(range_end, "%I:%M%P")?,
+                Time::parse(range_begin, &SCHEDULE_TIME_FORMAT)?,
+                Time::parse(range_end, &SCHEDULE_TIME_FORMAT)?,
             ),
         )
         .await
@@ -55,11 +58,7 @@ impl FromStr for Field {
     }
 }
 
-async fn update_schedule(
-    state: AsyncState,
-    field: Field,
-    range: (NaiveTime, NaiveTime),
-) -> Result<()> {
+async fn update_schedule(state: AsyncState, field: Field, range: (Time, Time)) -> Result<()> {
     let mut state = state.write().await;
     match field {
         Field::Start => state.schedule.start = range,

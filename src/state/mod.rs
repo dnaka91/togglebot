@@ -1,12 +1,18 @@
+mod serde;
+
 #[cfg(test)]
 use std::{collections::hash_map::DefaultHasher, hash::BuildHasherDefault};
 use std::{io::ErrorKind, num::NonZeroU64};
 
-use anyhow::Result;
-use chrono::{NaiveTime, Weekday};
-use serde::{Deserialize, Serialize};
+use anyhow::{Context, Result};
+use time::{
+    format_description::FormatItem,
+    macros::{format_description, time},
+    Time, Weekday,
+};
 use tokio::fs;
 
+use self::serde::{Deserialize, Serialize};
 use crate::{dirs::DIRS, Source};
 
 #[cfg(not(test))]
@@ -22,7 +28,7 @@ type HashMap<K, V> = std::collections::HashMap<K, V, BuildHasherDefault<DefaultH
 pub struct State {
     #[serde(default)]
     pub schedule: BaseSchedule,
-    #[serde(default)]
+    #[serde(default, with = "self::serde::weekdays")]
     pub off_days: HashSet<Weekday>,
     #[serde(default)]
     pub custom_commands: HashMap<String, HashMap<Source, String>>,
@@ -34,44 +40,54 @@ impl Default for State {
     fn default() -> Self {
         Self {
             schedule: BaseSchedule::default(),
-            off_days: [Weekday::Sat, Weekday::Sun].iter().copied().collect(),
+            off_days: [Weekday::Saturday, Weekday::Sunday]
+                .iter()
+                .copied()
+                .collect(),
             custom_commands: HashMap::default(),
             admins: HashSet::default(),
         }
     }
 }
 
+pub const SCHEDULE_TIME_FORMAT: &[FormatItem<'static>] =
+    format_description!("[hour repr:12]:[minute][period case:lower]");
+
 #[derive(Serialize, Deserialize)]
 pub struct BaseSchedule {
-    pub start: (NaiveTime, NaiveTime),
-    pub finish: (NaiveTime, NaiveTime),
+    #[serde(with = "self::serde::pair_time_hms")]
+    pub start: (Time, Time),
+    #[serde(with = "self::serde::pair_time_hms")]
+    pub finish: (Time, Time),
 }
 
 impl BaseSchedule {
-    #[must_use]
-    pub fn format_start(&self) -> String {
+    pub fn format_start(&self) -> Result<String> {
         Self::format_range(self.start)
     }
 
-    #[must_use]
-    pub fn format_finish(&self) -> String {
+    pub fn format_finish(&self) -> Result<String> {
         Self::format_range(self.finish)
     }
 
-    fn format_range(range: (NaiveTime, NaiveTime)) -> String {
-        if range.0 == range.1 {
-            range.0.format("%I:%M%P").to_string()
+    fn format_range(range: (Time, Time)) -> Result<String> {
+        Ok(if range.0 == range.1 {
+            range.0.format(&SCHEDULE_TIME_FORMAT)?
         } else {
-            format!("{}~{}", range.0.format("%I:%M"), range.1.format("%I:%M%P"))
-        }
+            format!(
+                "{}~{}",
+                range.0.format(&SCHEDULE_TIME_FORMAT)?,
+                range.1.format(&SCHEDULE_TIME_FORMAT)?
+            )
+        })
     }
 }
 
 impl Default for BaseSchedule {
     fn default() -> Self {
         Self {
-            start: (NaiveTime::from_hms(7, 0, 0), NaiveTime::from_hms(8, 0, 0)),
-            finish: (NaiveTime::from_hms(16, 0, 0), NaiveTime::from_hms(16, 0, 0)),
+            start: (time!(07:00:00), time!(08:00:00)),
+            finish: (time!(16:00:00), time!(16:00:00)),
         }
     }
 }
@@ -83,7 +99,7 @@ pub fn load() -> Result<State> {
         Err(e) => return Err(e.into()),
     };
 
-    serde_json::from_slice(&state).map_err(Into::into)
+    serde_json::from_slice(&state).context("failed parsing state data")
 }
 
 pub async fn save(state: &State) -> Result<()> {
@@ -120,8 +136,7 @@ mod tests {
             },
             "off_days": ["Sat", "Sun"],
             "custom_commands": {},
-            "admins": [],
-            "stats": {}
+            "admins": []
         }};
 
         assert_eq!(expect, output);
@@ -131,16 +146,10 @@ mod tests {
     fn ser_custom() {
         let output = serde_json::to_value(&State {
             schedule: BaseSchedule {
-                start: (
-                    NaiveTime::from_hms(5, 30, 0),
-                    NaiveTime::from_hms(7, 20, 11),
-                ),
-                finish: (
-                    NaiveTime::from_hms(16, 0, 0),
-                    NaiveTime::from_hms(17, 15, 20),
-                ),
+                start: (time!(05:30:00), time!(07:20:11)),
+                finish: (time!(16:00:00), time!(17:15:20)),
             },
-            off_days: [Weekday::Mon].iter().copied().collect(),
+            off_days: [Weekday::Monday].iter().copied().collect(),
             custom_commands: vec![(
                 "hello".to_owned(),
                 vec![(Source::Discord, "Hello World!".to_owned())]

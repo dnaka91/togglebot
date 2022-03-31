@@ -1,11 +1,11 @@
 use anyhow::bail;
-use chrono::Weekday;
 use reqwest::StatusCode;
 use serde::Deserialize;
+use time::Weekday;
 use tracing::info;
 
 use super::AsyncState;
-use crate::{CrateInfo, CrateSearch, Source, UserResponse};
+use crate::{CrateInfo, CrateSearch, ScheduleResponse, Source, UserResponse};
 
 mod doc;
 
@@ -55,27 +55,30 @@ pub async fn schedule(state: AsyncState) -> UserResponse {
     info!("user: received `schedule` command");
 
     let state = state.read().await;
+    let res = || {
+        Ok(ScheduleResponse {
+            start: state.schedule.format_start()?,
+            finish: state.schedule.format_finish()?,
+            off_days: state
+                .off_days
+                .iter()
+                .map(|weekday| {
+                    match weekday {
+                        Weekday::Monday => "Monday",
+                        Weekday::Tuesday => "Tuesday",
+                        Weekday::Wednesday => "Wednesday",
+                        Weekday::Thursday => "Thursday",
+                        Weekday::Friday => "Friday",
+                        Weekday::Saturday => "Saturday",
+                        Weekday::Sunday => "Sunday",
+                    }
+                    .to_owned()
+                })
+                .collect(),
+        })
+    };
 
-    UserResponse::Schedule {
-        start: state.schedule.format_start(),
-        finish: state.schedule.format_finish(),
-        off_days: state
-            .off_days
-            .iter()
-            .map(|weekday| {
-                match weekday {
-                    Weekday::Mon => "Monday",
-                    Weekday::Tue => "Tuesday",
-                    Weekday::Wed => "Wednesday",
-                    Weekday::Thu => "Thursday",
-                    Weekday::Fri => "Friday",
-                    Weekday::Sat => "Saturday",
-                    Weekday::Sun => "Sunday",
-                }
-                .to_owned()
-            })
-            .collect(),
-    }
+    UserResponse::Schedule(res())
 }
 
 pub fn ban(target: &str) -> UserResponse {

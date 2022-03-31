@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use indoc::indoc;
+use time::{format_description::FormatItem, macros::format_description, UtcOffset};
 use tracing::error;
 use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;
 use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
 use super::ExecModelExt;
-use crate::CrateSearch;
+use crate::{CrateSearch, ScheduleResponse};
 
 /// Gandalf's famous "You shall not pass!" scene.
 const GANDALF_GIF: &str =
@@ -101,44 +102,58 @@ pub async fn links(msg: ChannelMessage, http: Arc<Client>, links: &[(&str, &str)
 pub async fn schedule(
     msg: ChannelMessage,
     http: Arc<Client>,
-    start: String,
-    finish: String,
-    off_days: Vec<String>,
+    res: Result<ScheduleResponse>,
 ) -> Result<()> {
-    let last_off_day = off_days.len() - 1;
-    let days = format!(
-        "Every day, except {}",
-        off_days
-            .into_iter()
-            .enumerate()
-            .fold(String::new(), |mut days, (i, day)| {
-                if i == last_off_day {
-                    days.push_str(" and ");
-                } else if i > 0 {
-                    days.push_str(", ");
-                }
+    match res {
+        Ok(ScheduleResponse {
+            start,
+            finish,
+            off_days,
+        }) => {
+            let last_off_day = off_days.len() - 1;
+            let days = format!(
+                "Every day, except {}",
+                off_days
+                    .into_iter()
+                    .enumerate()
+                    .fold(String::new(), |mut days, (i, day)| {
+                        if i == last_off_day {
+                            days.push_str(" and ");
+                        } else if i > 0 {
+                            days.push_str(", ");
+                        }
 
-                days.push_str("**");
-                days.push_str(&day);
-                days.push_str("**");
-                days
-            })
-    );
-    let time = format!(
-        "starting around **{}**, finishing around **{}**",
-        start, finish
-    );
+                        days.push_str("**");
+                        days.push_str(&day);
+                        days.push_str("**");
+                        days
+                    })
+            );
+            let time = format!(
+                "starting around **{}**, finishing around **{}**",
+                start, finish
+            );
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content("Here is togglebit's stream schedule:")?
-        .embeds(&[EmbedBuilder::new()
-            .field(EmbedFieldBuilder::new("Days", days))
-            .field(EmbedFieldBuilder::new("Time", time))
-            .field(EmbedFieldBuilder::new("Timezone", "CET"))
-            .build()])?
-        .send()
-        .await?;
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content("Here is togglebit's stream schedule:")?
+                .embeds(&[EmbedBuilder::new()
+                    .field(EmbedFieldBuilder::new("Days", days))
+                    .field(EmbedFieldBuilder::new("Time", time))
+                    .field(EmbedFieldBuilder::new("Timezone", "CET"))
+                    .build()])?
+                .send()
+                .await?;
+        }
+        Err(e) => {
+            error!("failed creating schedule response: {}", e);
+            http.create_message(msg.channel_id)
+                .reply(msg.id)
+                .content("Sorry, something went wrong while getting the schedule")?
+                .send()
+                .await?;
+        }
+    }
 
     Ok(())
 }
@@ -160,6 +175,9 @@ pub async fn crate_(
     http: Arc<Client>,
     res: Result<CrateSearch>,
 ) -> Result<()> {
+    const FORMAT: &[FormatItem<'static>] =
+        format_description!("[year]-[month]-[day] [hour]:[minute] UTC");
+
     match res {
         Ok(search) => {
             let (content, embed) = match search {
@@ -170,10 +188,7 @@ pub async fn crate_(
                         .description(info.description)
                         .field(EmbedFieldBuilder::new(
                             "Last update",
-                            info.updated_at
-                                .naive_utc()
-                                .format("%Y-%m-%d %H:%M UTC")
-                                .to_string(),
+                            info.updated_at.to_offset(UtcOffset::UTC).format(&FORMAT)?,
                         ))
                         .field(EmbedFieldBuilder::new(
                             "Downloads",

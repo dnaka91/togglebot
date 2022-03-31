@@ -109,11 +109,7 @@ async fn handle_user_message(
         UserResponse::Help => user::help(msg, http).await,
         UserResponse::Commands(res) => user::commands(msg, http, res).await,
         UserResponse::Links(links) => user::links(msg, http, links).await,
-        UserResponse::Schedule {
-            start,
-            finish,
-            off_days,
-        } => user::schedule(msg, http, start, finish, off_days).await,
+        UserResponse::Schedule(res) => user::schedule(msg, http, res).await,
         UserResponse::Ban(target) => user::ban(msg, http, target).await,
         UserResponse::Crate(res) => user::crate_(msg, http, res).await,
         UserResponse::Doc(res) => user::doc(msg, http, res).await,

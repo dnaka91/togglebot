@@ -12,8 +12,8 @@ use std::{
 
 /// Result type used throughout the whole crate.
 pub use anyhow::Result;
-pub use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 pub use tokio::sync::{
     broadcast::Receiver as BroadcastReceiver, mpsc::Sender as MpscSender,
     oneshot::Sender as OneshotSender,
@@ -89,15 +89,17 @@ pub enum UserResponse {
     Commands(Result<Vec<String>>),
     /// Show a list of links to various platforms where the streamer is present.
     Links(&'static [(&'static str, &'static str)]),
-    Schedule {
-        start: String,
-        finish: String,
-        off_days: Vec<String>,
-    },
+    Schedule(Result<ScheduleResponse>),
     Ban(String),
     Crate(Result<CrateSearch>),
     Doc(Result<String>),
     Custom(String),
+}
+
+pub struct ScheduleResponse {
+    start: String,
+    finish: String,
+    off_days: Vec<String>,
 }
 
 pub enum CrateSearch {
@@ -108,7 +110,7 @@ pub enum CrateSearch {
 #[derive(Deserialize)]
 pub struct CrateInfo {
     pub name: String,
-    pub updated_at: DateTime<FixedOffset>,
+    pub updated_at: OffsetDateTime,
     pub downloads: u64,
     pub newest_version: String,
     pub description: String,

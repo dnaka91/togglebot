@@ -10,8 +10,8 @@ use twitch_irc::{
 };
 
 use crate::{
-    settings::Twitch, AuthorId, CrateSearch, Message, Queue, Response, Shutdown, Source,
-    UserResponse,
+    settings::Twitch, AuthorId, CrateSearch, Message, Queue, Response, ScheduleResponse, Shutdown,
+    Source, UserResponse,
 };
 
 type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
@@ -94,11 +94,7 @@ async fn handle_user_message(resp: UserResponse, msg_id: String, client: Client)
         UserResponse::Help => handle_help(msg_id, client).await,
         UserResponse::Commands(res) => handle_commands(msg_id, client, res).await,
         UserResponse::Links(links) => handle_links(msg_id, client, links).await,
-        UserResponse::Schedule {
-            start,
-            finish,
-            off_days,
-        } => handle_schedule(msg_id, client, start, finish, off_days).await,
+        UserResponse::Schedule(res) => handle_schedule(msg_id, client, res).await,
         UserResponse::Ban(target) => handle_ban(msg_id, client, target).await,
         UserResponse::Crate(res) => handle_crate(msg_id, client, res).await,
         UserResponse::Doc(res) => handle_doc(msg_id, client, res).await,
@@ -179,35 +175,43 @@ async fn handle_links(msg_id: String, client: Client, links: &[(&str, &str)]) ->
 async fn handle_schedule(
     msg_id: String,
     client: Client,
-    start: String,
-    finish: String,
-    off_days: Vec<String>,
+    res: Result<ScheduleResponse>,
 ) -> Result<()> {
-    let last_off_day = off_days.len() - 1;
-    let days = format!(
-        "Every day, except {}",
-        off_days
-            .into_iter()
-            .enumerate()
-            .fold(String::new(), |mut days, (i, day)| {
-                if i == last_off_day {
-                    days.push_str(" and ");
-                } else if i > 0 {
-                    days.push_str(", ");
-                }
+    let message = match res {
+        Ok(ScheduleResponse {
+            start,
+            finish,
+            off_days,
+        }) => {
+            let last_off_day = off_days.len() - 1;
+            let days = format!(
+                "Every day, except {}",
+                off_days
+                    .into_iter()
+                    .enumerate()
+                    .fold(String::new(), |mut days, (i, day)| {
+                        if i == last_off_day {
+                            days.push_str(" and ");
+                        } else if i > 0 {
+                            days.push_str(", ");
+                        }
 
-                days.push_str(&day);
-                days
-            })
-    );
-    let time = format!("Starting around {}, finishing around {}", start, finish);
+                        days.push_str(&day);
+                        days
+                    })
+            );
+            let time = format!("Starting around {}, finishing around {}", start, finish);
+
+            format!("{} | {} | Timezone CET", days, time)
+        }
+        Err(e) => {
+            error!("failed creating schedule response: {}", e);
+            "Sorry, something went wrong while getting the schedule".to_owned()
+        }
+    };
 
     client
-        .say_in_response(
-            CHANNEL.to_owned(),
-            format!("{} | {} | Timezone CET", days, time),
-            Some(msg_id),
-        )
+        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
         .await?;
 
     Ok(())
