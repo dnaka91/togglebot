@@ -113,6 +113,7 @@ pub enum CrateSearch {
 #[derive(Deserialize)]
 pub struct CrateInfo {
     pub name: String,
+    #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
     pub downloads: u64,
     pub newest_version: String,
