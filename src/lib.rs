@@ -83,6 +83,7 @@ pub enum Response {
     Owner(OwnerResponse),
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum UserResponse {
     /// Command was not recognized and should be ignored.
     Unknown,
@@ -99,18 +100,21 @@ pub enum UserResponse {
     Custom(String),
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub struct ScheduleResponse {
     start: String,
     finish: String,
     off_days: Vec<String>,
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum CrateSearch {
     Found(CrateInfo),
     NotFound(String),
 }
 
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 pub struct CrateInfo {
     pub name: String,
     #[serde(with = "time::serde::rfc3339")]
@@ -122,6 +126,7 @@ pub struct CrateInfo {
     pub repository: String,
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum AdminResponse {
     /// Command was not recognized and should be ignored.
     Unknown,
@@ -133,22 +138,26 @@ pub enum AdminResponse {
     Statistics(Result<(bool, Statistics)>),
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum CustomCommandsResponse {
     List(Result<BTreeMap<String, BTreeSet<Source>>>),
     Edit(Result<()>),
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum OwnerResponse {
     Unknown,
     Help,
     Admins(AdminsResponse),
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum AdminsResponse {
     List(Vec<NonZeroU64>),
     Edit(Result<AdminAction>),
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub enum AdminAction {
     Added,
     Removed,

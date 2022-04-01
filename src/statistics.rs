@@ -67,6 +67,7 @@ impl Default for Stats {
 
 /// Statistics for various details about `togglebot` (well, currently only command usage counters).
 #[derive(Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 pub struct Statistics {
     /// Usage counters for commands.
     #[serde(default)]
@@ -76,6 +77,7 @@ pub struct Statistics {
 /// Counters for all available **user** commands. These are split between builtin, custom and
 /// unknown to allow better visualization and categorization.
 #[derive(Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Debug))]
 pub struct CommandUsage {
     /// Standard, built-in commands. Helps to find out which built in commands might be removed
     /// in the future due to low usage.

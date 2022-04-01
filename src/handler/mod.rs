@@ -205,3 +205,211 @@ pub async fn owner_message(
         },
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{AdminAction, AdminsResponse, CustomCommandsResponse};
+
+    fn defaults() -> (AsyncState, AsyncStats, Source) {
+        (
+            Arc::new(RwLock::new(State::default())),
+            Arc::new(RwLock::new(Stats::default())),
+            Source::Discord,
+        )
+    }
+
+    async fn run_user_message(content: &str) -> Result<UserResponse> {
+        tracing_subscriber::fmt::try_init().ok();
+        let (state, statistics, source) = defaults();
+        user_message(state, statistics, content, source).await
+    }
+
+    async fn run_admin_message(content: &str) -> Result<AdminResponse> {
+        tracing_subscriber::fmt::try_init().ok();
+        let (state, statistics, _) = defaults();
+        admin_message(state, statistics, content).await
+    }
+
+    async fn run_owner_message(
+        content: &str,
+        mention: Option<NonZeroU64>,
+    ) -> Result<OwnerResponse> {
+        tracing_subscriber::fmt::try_init().ok();
+        let (state, _, _) = defaults();
+        owner_message(state, content, mention).await
+    }
+
+    #[tokio::test]
+    async fn user_cmd_unknown() {
+        assert!(matches!(
+            run_user_message("!kaboom").await,
+            Ok(UserResponse::Unknown)
+        ));
+    }
+
+    #[tokio::test]
+    async fn user_cmd_help() {
+        assert!(matches!(
+            run_user_message("!help").await,
+            Ok(UserResponse::Help)
+        ));
+    }
+
+    #[tokio::test]
+    async fn user_cmd_commands() {
+        match run_user_message("!commands").await.unwrap() {
+            UserResponse::Commands(Ok(cmds)) => assert!(cmds.is_empty()),
+            UserResponse::Commands(Err(e)) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_links() {
+        assert!(matches!(
+            run_user_message("!links").await,
+            Ok(UserResponse::Links(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn user_cmd_schedule() {
+        match run_user_message("!schedule").await.unwrap() {
+            UserResponse::Schedule(Ok(_)) => {}
+            UserResponse::Schedule(Err(e)) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_ban() {
+        match run_user_message("!ban me").await.unwrap() {
+            UserResponse::Ban(target) => assert_eq!("me", target),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_crate() {
+        match run_user_message("!crate anyhow").await.unwrap() {
+            UserResponse::Crate(Ok(_)) => {}
+            UserResponse::Crate(Err(e)) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_doc() {
+        match run_user_message("!doc anyhow").await.unwrap() {
+            UserResponse::Doc(Ok(_)) => {}
+            UserResponse::Doc(Err(e)) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_custom() {
+        tracing_subscriber::fmt::try_init().ok();
+
+        let (state, statistics, source) = defaults();
+        state.write().await.custom_commands.insert(
+            "hi".to_owned(),
+            [(Source::Discord, "hello".to_owned())]
+                .into_iter()
+                .collect(),
+        );
+
+        match user_message(state, statistics, "!hi", source)
+            .await
+            .unwrap()
+        {
+            UserResponse::Custom(message) => assert_eq!("hello", message),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn admin_cmd_unknown() {
+        assert!(matches!(
+            run_admin_message("!kaboom").await,
+            Ok(AdminResponse::Unknown)
+        ));
+    }
+
+    #[tokio::test]
+    async fn admin_cmd_ahelp() {
+        assert!(matches!(
+            run_admin_message("!ahelp").await,
+            Ok(AdminResponse::Help)
+        ));
+    }
+
+    #[tokio::test]
+    async fn admin_cmd_edit_schedule() {
+        match run_admin_message("!edit_schedule set start 08:00am 09:00am")
+            .await
+            .unwrap()
+        {
+            AdminResponse::Schedule(Ok(())) => {}
+            AdminResponse::Schedule(Err(e)) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn admin_cmd_off_days() {
+        match run_admin_message("!off_days add Sunday").await.unwrap() {
+            AdminResponse::OffDays(Ok(())) => {}
+            AdminResponse::OffDays(Err(e)) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn admin_cmd_custom_commands() {
+        match run_admin_message("!custom_commands list").await.unwrap() {
+            AdminResponse::CustomCommands(CustomCommandsResponse::List(Ok(list))) => {
+                assert!(list.is_empty());
+            }
+            AdminResponse::CustomCommands(CustomCommandsResponse::List(Err(e))) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn admin_cmd_statistics() {
+        assert!(matches!(
+            run_admin_message("!stats").await,
+            Ok(AdminResponse::Statistics(Ok((false, _))))
+        ));
+    }
+
+    #[tokio::test]
+    async fn owner_cmd_ohelp() {
+        assert!(matches!(
+            run_owner_message("!ohelp", None).await,
+            Ok(OwnerResponse::Help)
+        ));
+    }
+
+    #[tokio::test]
+    async fn owner_cmd_admins_list() {
+        match run_owner_message("!admins list", None).await.unwrap() {
+            OwnerResponse::Admins(AdminsResponse::List(list)) => assert!(list.is_empty()),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn owner_cmd_admins_add() {
+        match run_owner_message("!admins add @test", Some(NonZeroU64::new(1).unwrap()))
+            .await
+            .unwrap()
+        {
+            OwnerResponse::Admins(AdminsResponse::Edit(Ok(AdminAction::Added))) => {}
+            OwnerResponse::Admins(AdminsResponse::Edit(Err(e))) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+}

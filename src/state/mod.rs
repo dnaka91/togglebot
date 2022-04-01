@@ -105,6 +105,10 @@ pub fn load() -> Result<State> {
 }
 
 pub async fn save(state: &State) -> Result<()> {
+    if cfg!(test) {
+        return Ok(());
+    }
+
     fs::create_dir_all(DIRS.data_dir()).await?;
 
     let json = serde_json::to_vec_pretty(state)?;
@@ -184,5 +188,11 @@ mod tests {
         }};
 
         assert_eq!(expect, output);
+    }
+
+    #[test]
+    fn parse_schedule_time() {
+        let res = Time::parse("08:00am", &SCHEDULE_TIME_FORMAT);
+        assert_eq!(Ok(time!(08:00:00)), res);
     }
 }
