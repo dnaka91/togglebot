@@ -122,20 +122,16 @@ pub async fn doc(path: &str) -> UserResponse {
 }
 
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {
-    if let Some(name) = name.strip_prefix('!') {
-        state
-            .read()
-            .await
-            .custom_commands
-            .get(name)
-            .and_then(|content| content.get(&source))
-            .map(|content| {
-                info!("user: received custom `{name}` command");
-                content
-            })
-            .cloned()
-            .map_or(UserResponse::Unknown, UserResponse::Custom)
-    } else {
-        UserResponse::Unknown
-    }
+    state
+        .read()
+        .await
+        .custom_commands
+        .get(name)
+        .and_then(|content| content.get(&source))
+        .map(|content| {
+            info!("user: received custom `{name}` command");
+            content
+        })
+        .cloned()
+        .map_or(UserResponse::Unknown, UserResponse::Custom)
 }

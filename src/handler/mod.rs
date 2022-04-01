@@ -53,55 +53,58 @@ pub async fn user_message(
 ) -> Result<UserResponse> {
     let mut parts = content.splitn(2, char::is_whitespace);
     let command = if let Some(cmd) = parts.next() {
-        cmd
+        match cmd.strip_prefix('!') {
+            Some(cmd) => cmd,
+            None => return Ok(UserResponse::Unknown),
+        }
     } else {
         bail!("got message without content");
     };
 
     Ok(match (command.to_lowercase().as_ref(), parts.next()) {
-        ("!help" | "!bot", None) => {
+        ("help" | "bot", None) => {
             statistics
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Help);
             user::help()
         }
-        ("!commands", None) => {
+        ("commands", None) => {
             statistics
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Commands);
             user::commands(state, source).await
         }
-        ("!links", None) => {
+        ("links", None) => {
             statistics
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Links);
             user::links(source)
         }
-        ("!schedule", None) => {
+        ("schedule", None) => {
             statistics
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Schedule);
             user::schedule(state).await
         }
-        ("!crate" | "!crates", Some(name)) => {
+        ("crate" | "crates", Some(name)) => {
             statistics
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Crate);
             user::crate_(name).await
         }
-        ("!doc" | "!docs", Some(path)) => {
+        ("doc" | "docs", Some(path)) => {
             statistics
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Doc);
             user::doc(path).await
         }
-        ("!ban", Some(target)) => {
+        ("ban", Some(target)) => {
             statistics
                 .write()
                 .await
@@ -111,14 +114,12 @@ pub async fn user_message(
         (name, None) => {
             let response = user::custom(state, source, name).await;
 
-            if name.starts_with('!') {
-                let cmd = if matches!(response, UserResponse::Unknown) {
-                    Command::Unknown(name)
-                } else {
-                    Command::Custom(name)
-                };
-                statistics.write().await.increment(cmd);
-            }
+            let name = if matches!(response, UserResponse::Unknown) {
+                Command::Unknown(name)
+            } else {
+                Command::Custom(name)
+            };
+            statistics.write().await.increment(name);
 
             response
         }
@@ -135,7 +136,10 @@ pub async fn admin_message(
 ) -> Result<AdminResponse> {
     let mut parts = content.split_whitespace();
     let command = if let Some(cmd) = parts.next() {
-        cmd
+        match cmd.strip_prefix('!') {
+            Some(cmd) => cmd,
+            None => return Ok(AdminResponse::Unknown),
+        }
     } else {
         bail!("got message without content");
     };
@@ -148,22 +152,22 @@ pub async fn admin_message(
             parts.next(),
             parts.next(),
         ) {
-            ("!admin_help" | "!admin-help" | "!adminhelp" | "!ahelp", None, None, None, None) => {
+            ("admin_help" | "admin-help" | "adminhelp" | "ahelp", None, None, None, None) => {
                 admin::help()
             }
-            ("!edit_schedule", Some("set"), Some(field), Some(range_begin), Some(range_end)) => {
+            ("edit_schedule", Some("set"), Some(field), Some(range_begin), Some(range_end)) => {
                 admin::schedule(state, field, range_begin, range_end).await
             }
-            ("!off_days", Some(action), Some(weekday), None, None) => {
+            ("off_days", Some(action), Some(weekday), None, None) => {
                 admin::off_days(state, action, weekday).await
             }
-            ("!custom_commands" | "!custom_command", Some("list"), None, None, None) => {
+            ("custom_commands" | "custom_command", Some("list"), None, None, None) => {
                 admin::custom_commands_list(state).await
             }
-            ("!custom_commands" | "!custom_command", Some(action), Some(source), Some(name), _) => {
+            ("custom_commands" | "custom_command", Some(action), Some(source), Some(name), _) => {
                 admin::custom_commands(state, statistics, content, action, source, name).await
             }
-            ("!stats", date, None, None, None) => admin::stats(statistics, date).await,
+            ("stats", date, None, None, None) => admin::stats(statistics, date).await,
             _ => AdminResponse::Unknown,
         },
     )
@@ -178,16 +182,19 @@ pub async fn owner_message(
 ) -> Result<OwnerResponse> {
     let mut parts = content.splitn(3, char::is_whitespace);
     let command = if let Some(cmd) = parts.next() {
-        cmd
+        match cmd.strip_prefix('!') {
+            Some(cmd) => cmd,
+            None => return Ok(OwnerResponse::Unknown),
+        }
     } else {
         bail!("got message without content");
     };
 
     Ok(
         match (command.to_lowercase().as_ref(), parts.next(), parts.next()) {
-            ("!owner_help" | "!owner-help" | "!ownerhelp" | "!ohelp", None, None) => owner::help(),
-            ("!admins" | "!admin", Some("list"), None) => owner::admins_list(state).await,
-            ("!admins" | "!admin", Some(action), Some(_)) => {
+            ("owner_help" | "owner-help" | "ownerhelp" | "ohelp", None, None) => owner::help(),
+            ("admins" | "admin", Some("list"), None) => owner::admins_list(state).await,
+            ("admins" | "admin", Some(action), Some(_)) => {
                 if let Some(mention) = mention {
                     owner::admins_edit(state, action, mention).await
                 } else {
