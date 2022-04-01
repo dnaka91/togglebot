@@ -131,6 +131,7 @@ async fn handle_admin_message(
             CustomCommandsResponse::List(res) => admin::custom_commands_list(msg, http, res).await,
             CustomCommandsResponse::Edit(res) => admin::custom_commands_edit(msg, http, res).await,
         },
+        AdminResponse::Statistics(res) => admin::stats(msg, http, res).await,
         AdminResponse::Unknown => Ok(()),
     }
 }

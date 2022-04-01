@@ -7,7 +7,7 @@ use anyhow::{anyhow, bail, ensure, Result};
 use time::{Time, Weekday};
 use tracing::info;
 
-use super::AsyncState;
+use super::{AsyncState, AsyncStats};
 use crate::{
     state::{self, SCHEDULE_TIME_FORMAT},
     AdminResponse, CustomCommandsResponse, Source,
@@ -142,6 +142,7 @@ async fn list_commands(state: AsyncState) -> Result<BTreeMap<String, BTreeSet<So
 
 pub async fn custom_commands(
     state: AsyncState,
+    statistics: AsyncStats,
     content: &str,
     action: &str,
     source: &str,
@@ -154,8 +155,17 @@ pub async fn custom_commands(
         .filter(|c| !c.is_empty())
         .nth(4);
 
-    let res =
-        || async { update_commands(state, action.parse()?, source.parse()?, name, content).await };
+    let res = || async {
+        update_commands(
+            state,
+            statistics,
+            action.parse()?,
+            source.parse()?,
+            name,
+            content,
+        )
+        .await
+    };
 
     AdminResponse::CustomCommands(CustomCommandsResponse::Edit(res().await))
 }
@@ -203,6 +213,7 @@ const RESERVED_COMMANDS: &[&str] = &[
     "off_days",
     "custom_commands",
     "custom_command",
+    "stats",
     // owner commands
     "owner_help",
     "owner-help",
@@ -214,6 +225,7 @@ const RESERVED_COMMANDS: &[&str] = &[
 
 async fn update_commands(
     state: AsyncState,
+    statistics: AsyncStats,
     action: Action,
     source: CommandSource,
     name: &str,
@@ -262,19 +274,42 @@ async fn update_commands(
                 bail!("no content for the command provided");
             }
         }
-        Action::Remove => match source {
-            CommandSource::Source(source) => {
-                if let Some(entry) = state.custom_commands.get_mut(name) {
-                    entry.remove(&source);
+        Action::Remove => {
+            match source {
+                CommandSource::Source(source) => {
+                    if let Some(entry) = state.custom_commands.get_mut(name) {
+                        entry.remove(&source);
+                    }
+                }
+                CommandSource::All => {
+                    state.custom_commands.remove(name);
                 }
             }
-            CommandSource::All => {
-                state.custom_commands.remove(name);
-            }
-        },
+
+            statistics.write().await.erase_custom(name);
+        }
     }
 
     state::save(&state).await?;
 
     Ok(())
+}
+
+pub async fn stats(stats: AsyncStats, date: Option<&str>) -> AdminResponse {
+    let res = || async {
+        let total = date
+            .map(|r| {
+                Ok(match r {
+                    "total" => true,
+                    "current" => false,
+                    _ => bail!("invalid range `{r}`, possible values are `total` or `current`"),
+                })
+            })
+            .transpose()?
+            .unwrap_or_default();
+
+        Ok((total, stats.read().await.get(total).clone()))
+    };
+
+    AdminResponse::Statistics(res().await)
 }

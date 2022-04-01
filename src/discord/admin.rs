@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fmt::Write,
     sync::Arc,
 };
 
@@ -9,7 +10,7 @@ use twilight_http::Client;
 use twilight_model::channel::Message as ChannelMessage;
 
 use super::ExecModelExt;
-use crate::{emojis, Source};
+use crate::{emojis, statistics::Statistics, Source};
 
 pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
     http.create_message(msg.channel_id)
@@ -47,6 +48,12 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             !custom_commands list
             ```
             List all currently available custom commands.
+
+            ```
+            !stats [current|total]
+            ```
+            Get statistics about command usage, either for the **current month** or the \
+            overall counters for **all time**.
         "})?
         .send()
         .await?;
@@ -128,6 +135,53 @@ pub async fn custom_commands_edit(
     let message = match res {
         Ok(()) => format!("{} custom commands updated", emojis::OK_HAND),
         Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
+    };
+
+    http.create_message(msg.channel_id)
+        .reply(msg.id)
+        .content(&message)?
+        .send()
+        .await?;
+
+    Ok(())
+}
+
+pub async fn stats(
+    msg: ChannelMessage,
+    http: Arc<Client>,
+    res: Result<(bool, Statistics)>,
+) -> Result<()> {
+    let message = match res {
+        Ok((total, stats)) => {
+            let mut message = format!(
+                "Here are the statistics of {}",
+                if total {
+                    "all time"
+                } else {
+                    "the current month"
+                }
+            );
+
+            message.push_str("\n\n**Built-in**");
+            for (cmd, count) in stats.command_usage.builtin {
+                let _ = write!(&mut message, "\n`{}`: {count}", cmd.name());
+            }
+
+            message.push_str("\n\n**Custom**");
+            for (cmd, count) in stats.command_usage.custom {
+                let _ = write!(&mut message, "\n`{cmd}`: {count}");
+            }
+
+            message.push_str("\n\n**Unknown**");
+            for (cmd, count) in stats.command_usage.unknown {
+                let _ = write!(&mut message, "\n`{cmd}`: {count}");
+            }
+
+            message
+        }
+        Err(e) => {
+            format!("Sorry, something went wrong fetching the statistics:\n{e}")
+        }
     };
 
     http.create_message(msg.channel_id)

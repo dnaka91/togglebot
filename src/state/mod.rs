@@ -1,3 +1,5 @@
+//! State management and load/save logic for it.
+
 mod serde;
 
 #[cfg(test)]

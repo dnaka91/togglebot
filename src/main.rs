@@ -2,7 +2,7 @@
 #![warn(clippy::nursery)]
 #![allow(clippy::map_err_ignore)]
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use togglebot::{
@@ -10,6 +10,7 @@ use togglebot::{
     handler::{self, Access},
     settings,
     state::{self, State},
+    statistics::{self, Stats},
     twitch, AdminResponse, Message, OwnerResponse, Response,
 };
 use tokio::sync::{broadcast, mpsc, RwLock};
@@ -29,8 +30,26 @@ async fn main() -> Result<()> {
         .init();
 
     let config = settings::load_config()?;
+
     let state = state::load()?;
     let state = Arc::new(RwLock::new(state));
+
+    let statistics = statistics::load()?;
+    let statistics = Arc::new(RwLock::new(statistics));
+    let statistics2 = Arc::clone(&statistics);
+
+    // Sync statistics to the file system once a day
+    tokio::spawn(async move {
+        const ONE_DAY: Duration = Duration::from_secs(60 * 60 * 24);
+
+        // We directly save once at startup. This allows some automatic cleanups by going through
+        // the deserializer -> serialize cycle once.
+        if let Err(e) = statistics::save(&*statistics2.read().await).await {
+            error!(error = ?e, "periodic statistics saving failed");
+        }
+
+        tokio::time::sleep(ONE_DAY).await;
+    });
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
     let shutdown_rx2 = shutdown_tx.subscribe();
@@ -50,9 +69,9 @@ async fn main() -> Result<()> {
     while let Some((message, reply)) = queue_rx.recv().await {
         let res = async {
             match handler::access(&config, Arc::clone(&state), &message.author).await {
-                Access::Standard => handle_user_message(&state, &message).await,
-                Access::Admin => handle_admin_message(&state, &message).await,
-                Access::Owner => handle_owner_message(&state, &message).await,
+                Access::Standard => handle_user_message(&state, &statistics, &message).await,
+                Access::Admin => handle_admin_message(&state, &statistics, &message).await,
+                Access::Owner => handle_owner_message(&state, &statistics, &message).await,
             }
         };
 
@@ -61,30 +80,53 @@ async fn main() -> Result<()> {
                 reply.send(resp).ok();
             }
             Err(e) => {
-                error!("error during event handling: {}", e);
+                error!(error = ?e, "error during event handling");
             }
         }
+    }
+
+    if let Err(e) = statistics::save(&*statistics.read().await).await {
+        error!(error = ?e, "failed saving statistics to file system");
     }
 
     Ok(())
 }
 
-async fn handle_user_message(state: &Arc<RwLock<State>>, message: &Message) -> Result<Response> {
-    handler::user_message(Arc::clone(state), &message.content, message.source)
-        .await
-        .map(Response::User)
+async fn handle_user_message(
+    state: &Arc<RwLock<State>>,
+    statistics: &Arc<RwLock<Stats>>,
+    message: &Message,
+) -> Result<Response> {
+    handler::user_message(
+        Arc::clone(state),
+        Arc::clone(statistics),
+        &message.content,
+        message.source,
+    )
+    .await
+    .map(Response::User)
 }
 
-async fn handle_admin_message(state: &Arc<RwLock<State>>, message: &Message) -> Result<Response> {
-    match handler::admin_message(Arc::clone(state), &message.content).await? {
-        AdminResponse::Unknown => handle_user_message(state, message).await,
+async fn handle_admin_message(
+    state: &Arc<RwLock<State>>,
+    statistics: &Arc<RwLock<Stats>>,
+    message: &Message,
+) -> Result<Response> {
+    match handler::admin_message(Arc::clone(state), Arc::clone(statistics), &message.content)
+        .await?
+    {
+        AdminResponse::Unknown => handle_user_message(state, statistics, message).await,
         resp => Ok(Response::Admin(resp)),
     }
 }
 
-async fn handle_owner_message(state: &Arc<RwLock<State>>, message: &Message) -> Result<Response> {
+async fn handle_owner_message(
+    state: &Arc<RwLock<State>>,
+    statistics: &Arc<RwLock<Stats>>,
+    message: &Message,
+) -> Result<Response> {
     match handler::owner_message(Arc::clone(state), &message.content, message.mention).await? {
-        OwnerResponse::Unknown => handle_admin_message(state, message).await,
+        OwnerResponse::Unknown => handle_admin_message(state, statistics, message).await,
         resp => Ok(Response::Owner(resp)),
     }
 }

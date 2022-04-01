@@ -10,6 +10,8 @@ pub struct Dirs {
     settings_file: Utf8PathBuf,
     state_file: Utf8PathBuf,
     state_temp_file: Utf8PathBuf,
+    statistics_file: Utf8PathBuf,
+    statistics_temp_file: Utf8PathBuf,
     doc_indexes_dir: Utf8PathBuf,
     dirs: UnifiedDirs,
 }
@@ -24,6 +26,8 @@ impl Dirs {
             settings_file: dirs.config_dir().join("config.toml"),
             state_file: dirs.data_dir().join("state.json"),
             state_temp_file: dirs.data_dir().join("~temp-state.json"),
+            statistics_file: dirs.data_dir().join("statistics.json"),
+            statistics_temp_file: dirs.data_dir().join("~temp-statistics.json"),
             doc_indexes_dir: dirs.cache_dir().join("doc-indexes"),
             dirs,
         })
@@ -43,6 +47,14 @@ impl Dirs {
 
     pub fn state_temp_file(&self) -> &Utf8Path {
         &self.state_temp_file
+    }
+
+    pub fn statistics_file(&self) -> &Utf8Path {
+        &self.statistics_file
+    }
+
+    pub fn statistics_temp_file(&self) -> &Utf8Path {
+        &self.statistics_temp_file
     }
 
     pub fn doc_indexes_dir(&self) -> &Utf8Path {

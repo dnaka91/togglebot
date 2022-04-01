@@ -6,7 +6,10 @@ use anyhow::{bail, Result};
 use tokio::sync::RwLock;
 
 use crate::{
-    settings::Config, state::State, AdminResponse, AuthorId, OwnerResponse, Source, UserResponse,
+    settings::Config,
+    state::State,
+    statistics::{BuiltinCommand, Command, Stats},
+    AdminResponse, AuthorId, OwnerResponse, Source, UserResponse,
 };
 
 mod admin;
@@ -15,6 +18,8 @@ mod user;
 
 /// Convenience type alias for a [`State`] wrapped in an [`Arc`] and a [`RwLock`].
 pub type AsyncState = Arc<RwLock<State>>;
+
+pub type AsyncStats = Arc<RwLock<Stats>>;
 
 #[derive(Clone, Copy)]
 pub enum Access {
@@ -41,6 +46,7 @@ pub async fn access(config: &Config, state: AsyncState, author: &AuthorId) -> Ac
 /// Handle any user facing message and prepare a response.
 pub async fn user_message(
     state: AsyncState,
+    statistics: AsyncStats,
     content: &str,
     source: Source,
 ) -> Result<UserResponse> {
@@ -52,20 +58,79 @@ pub async fn user_message(
     };
 
     Ok(match (command.to_lowercase().as_ref(), parts.next()) {
-        ("!help" | "!bot", None) => user::help(),
-        ("!commands", None) => user::commands(state, source).await,
-        ("!links", None) => user::links(source),
-        ("!schedule", None) => user::schedule(state).await,
-        ("!crate" | "!crates", Some(name)) => user::crate_(name).await,
-        ("!doc" | "!docs", Some(path)) => user::doc(path).await,
-        ("!ban", Some(target)) => user::ban(target),
-        (name, None) => user::custom(state, source, name).await,
+        ("!help" | "!bot", None) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Help);
+            user::help()
+        }
+        ("!commands", None) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Commands);
+            user::commands(state, source).await
+        }
+        ("!links", None) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Links);
+            user::links(source)
+        }
+        ("!schedule", None) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Schedule);
+            user::schedule(state).await
+        }
+        ("!crate" | "!crates", Some(name)) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Crate);
+            user::crate_(name).await
+        }
+        ("!doc" | "!docs", Some(path)) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Doc);
+            user::doc(path).await
+        }
+        ("!ban", Some(target)) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Ban);
+            user::ban(target)
+        }
+        (name, None) => {
+            let response = user::custom(state, source, name).await;
+
+            if name.starts_with('!') {
+                let cmd = if matches!(response, UserResponse::Unknown) {
+                    Command::Unknown(name)
+                } else {
+                    Command::Custom(name)
+                };
+                statistics.write().await.increment(cmd);
+            }
+
+            response
+        }
         _ => UserResponse::Unknown,
     })
 }
 
 /// Handle admin facing messages to control the bot and prepare a response.
-pub async fn admin_message(state: AsyncState, content: &str) -> Result<AdminResponse> {
+pub async fn admin_message(
+    state: AsyncState,
+    statistics: AsyncStats,
+    content: &str,
+) -> Result<AdminResponse> {
     let mut parts = content.split_whitespace();
     let command = if let Some(cmd) = parts.next() {
         cmd
@@ -94,8 +159,9 @@ pub async fn admin_message(state: AsyncState, content: &str) -> Result<AdminResp
                 admin::custom_commands_list(state).await
             }
             ("!custom_commands" | "!custom_command", Some(action), Some(source), Some(name), _) => {
-                admin::custom_commands(state, content, action, source, name).await
+                admin::custom_commands(state, statistics, content, action, source, name).await
             }
+            ("!stats", date, None, None, None) => admin::stats(statistics, date).await,
             _ => AdminResponse::Unknown,
         },
     )

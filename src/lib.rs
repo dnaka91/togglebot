@@ -19,12 +19,15 @@ pub use tokio::sync::{
     oneshot::Sender as OneshotSender,
 };
 
+use crate::statistics::Statistics;
+
 mod dirs;
 pub mod discord;
 pub mod emojis;
 pub mod handler;
 pub mod settings;
 pub mod state;
+pub mod statistics;
 pub mod twitch;
 
 /// A queue that service connecters can use to send received messages to the handler and get back a
@@ -126,6 +129,7 @@ pub enum AdminResponse {
     Schedule(Result<()>),
     OffDays(Result<()>),
     CustomCommands(CustomCommandsResponse),
+    Statistics(Result<(bool, Statistics)>),
 }
 
 pub enum CustomCommandsResponse {

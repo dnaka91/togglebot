@@ -1,4 +1,4 @@
-//! All configuration and state loading/saving logic.
+//! All configuration loading/saving logic.
 
 use std::{collections::HashSet, num::NonZeroU64};
 
