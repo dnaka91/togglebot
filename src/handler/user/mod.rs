@@ -10,12 +10,12 @@ use crate::{CrateInfo, CrateSearch, ScheduleResponse, Source, UserResponse};
 mod doc;
 
 pub fn help() -> UserResponse {
-    info!("user: received `help` command");
+    info!("received `help` command");
     UserResponse::Help
 }
 
 pub async fn commands(state: AsyncState, source: Source) -> UserResponse {
-    info!("user: received `commands` command");
+    info!("received `commands` command");
     UserResponse::Commands(Ok(list_command_names(state, source).await))
 }
 
@@ -36,7 +36,7 @@ async fn list_command_names(state: AsyncState, source: Source) -> Vec<String> {
 }
 
 pub fn links(source: Source) -> UserResponse {
-    info!("user: received `links` command");
+    info!("received `links` command");
     UserResponse::Links(match source {
         Source::Discord => &[
             ("Website", "https://togglebit.io"),
@@ -52,7 +52,7 @@ pub fn links(source: Source) -> UserResponse {
 }
 
 pub async fn schedule(state: AsyncState) -> UserResponse {
-    info!("user: received `schedule` command");
+    info!("received `schedule` command");
 
     let state = state.read().await;
     let res = || {
@@ -82,7 +82,7 @@ pub async fn schedule(state: AsyncState) -> UserResponse {
 }
 
 pub fn ban(target: &str) -> UserResponse {
-    info!("user: received `ban` command");
+    info!("received `ban` command");
     UserResponse::Ban(target.to_owned())
 }
 
@@ -93,7 +93,7 @@ pub async fn crate_(name: &str) -> UserResponse {
         crate_: CrateInfo,
     }
 
-    info!("user: received `crate` command");
+    info!("received `crate` command");
 
     let res = async {
         let link = format!("https://crates.io/api/v1/crates/{}", name);
@@ -117,7 +117,7 @@ pub async fn crate_(name: &str) -> UserResponse {
 }
 
 pub async fn doc(path: &str) -> UserResponse {
-    info!("user: received `doc` command");
+    info!("received `doc` command");
     UserResponse::Doc(doc::find(path).await)
 }
 

@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub fn help() -> AdminResponse {
-    info!("admin: received `help` command");
+    info!("received `help` command");
     AdminResponse::Help
 }
 
@@ -24,7 +24,7 @@ pub async fn schedule(
     range_begin: &str,
     range_end: &str,
 ) -> AdminResponse {
-    info!("admin: received `schedule` command");
+    info!("received `schedule` command");
 
     let res = || async {
         update_schedule(
@@ -71,7 +71,7 @@ async fn update_schedule(state: AsyncState, field: Field, range: (Time, Time)) -
 }
 
 pub async fn off_days(state: AsyncState, action: &str, weekday: &str) -> AdminResponse {
-    info!("admin: received `off_days` command");
+    info!("received `off_days` command");
 
     let res = || async {
         update_off_days(
@@ -121,7 +121,7 @@ async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) ->
 }
 
 pub async fn custom_commands_list(state: AsyncState) -> AdminResponse {
-    info!("admin: received `custom_commands list` command");
+    info!("received `custom_commands list` command");
     AdminResponse::CustomCommands(CustomCommandsResponse::List(list_commands(state).await))
 }
 
@@ -148,7 +148,7 @@ pub async fn custom_commands(
     source: &str,
     name: &str,
 ) -> AdminResponse {
-    info!("admin: received `custom_commands` command");
+    info!("received `custom_commands` command");
 
     let content = content
         .splitn(5, char::is_whitespace)

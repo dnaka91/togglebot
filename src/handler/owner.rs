@@ -7,19 +7,19 @@ use super::AsyncState;
 use crate::{state, AdminAction, AdminsResponse, OwnerResponse};
 
 pub fn help() -> OwnerResponse {
-    info!("owner: received `help` command");
+    info!("received `help` command");
     OwnerResponse::Help
 }
 
 pub async fn admins_list(state: AsyncState) -> OwnerResponse {
-    info!("owner: received `admins list` command");
+    info!("received `admins list` command");
     OwnerResponse::Admins(AdminsResponse::List(
         state.read().await.admins.iter().copied().collect(),
     ))
 }
 
 pub async fn admins_edit(state: AsyncState, action: &str, user_id: NonZeroU64) -> OwnerResponse {
-    info!("owner: received `admins` command");
+    info!("received `admins` command");
 
     let res = || async {
         let action = action.parse()?;

@@ -44,6 +44,7 @@ pub async fn access(config: &Config, state: AsyncState, author: &AuthorId) -> Ac
 }
 
 /// Handle any user facing message and prepare a response.
+#[tracing::instrument(skip_all, name = "user")]
 pub async fn user_message(
     state: AsyncState,
     statistics: AsyncStats,
@@ -126,6 +127,7 @@ pub async fn user_message(
 }
 
 /// Handle admin facing messages to control the bot and prepare a response.
+#[tracing::instrument(skip_all, name = "admin")]
 pub async fn admin_message(
     state: AsyncState,
     statistics: AsyncStats,
@@ -168,6 +170,7 @@ pub async fn admin_message(
 }
 
 /// Handle messages only accessible to owners defined in the settings and prepare a response.
+#[tracing::instrument(skip_all, name = "owner")]
 pub async fn owner_message(
     state: AsyncState,
     content: &str,
