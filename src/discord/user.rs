@@ -60,7 +60,7 @@ pub async fn commands(
             },
         ),
         Err(e) => {
-            error!("failed listing commands: {}", e);
+            error!(error = ?e, "failed listing commands");
             "Sorry, something went wrong fetching the list of commands".to_owned()
         }
     };
@@ -146,7 +146,7 @@ pub async fn schedule(
                 .await?;
         }
         Err(e) => {
-            error!("failed creating schedule response: {}", e);
+            error!(error = ?e, "failed creating schedule response");
             http.create_message(msg.channel_id)
                 .reply(msg.id)
                 .content("Sorry, something went wrong while getting the schedule")?
@@ -227,7 +227,7 @@ pub async fn crate_(
                 .await?;
         }
         Err(e) => {
-            error!("failed searching for crate: {}", e);
+            error!(error = ?e, "failed searching for crate");
             http.create_message(msg.channel_id)
                 .reply(msg.id)
                 .content("Sorry, something went wrong looking up the crate")?
@@ -243,7 +243,7 @@ pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) ->
     let message = match res {
         Ok(link) => link,
         Err(e) => {
-            error!("failed searching for docs: {}", e);
+            error!(error = ?e, "failed searching for docs");
             "Sorry, something went wrong looking up the documentation".to_owned()
         }
     };

@@ -39,7 +39,7 @@ pub async fn start(config: &Twitch, queue: Queue, mut shutdown: Shutdown) -> Res
 
                         tokio::spawn(async move {
                             if let Err(e) = handle_server_message(queue, message, client).await {
-                                error!("error during event handling: {}", e);
+                                error!(error = ?e, "error during event handling");
                             }
                         });
                     } else {
@@ -136,7 +136,7 @@ async fn handle_commands(msg_id: String, client: Client, res: Result<Vec<String>
             },
         ),
         Err(e) => {
-            error!("failed listing commands: {}", e);
+            error!(error = ?e, "failed listing commands");
             "Sorry, something went wrong fetching the list of commands".to_owned()
         }
     };
@@ -205,7 +205,7 @@ async fn handle_schedule(
             format!("{} | {} | Timezone CET", days, time)
         }
         Err(e) => {
-            error!("failed creating schedule response: {}", e);
+            error!(error = ?e, "failed creating schedule response");
             "Sorry, something went wrong while getting the schedule".to_owned()
         }
     };
@@ -236,7 +236,7 @@ async fn handle_crate(msg_id: String, client: Client, res: Result<CrateSearch>) 
             CrateSearch::NotFound(message) => message,
         },
         Err(e) => {
-            error!("failed searching for crate: {}", e);
+            error!(error = ?e, "failed searching for crate");
             "Sorry, something went wrong looking up the crate".to_owned()
         }
     };
@@ -252,7 +252,7 @@ async fn handle_doc(msg_id: String, client: Client, res: Result<String>) -> Resu
     let message = match res {
         Ok(link) => link,
         Err(e) => {
-            error!("failed searching for docs: {}", e);
+            error!(error = ?e, "failed searching for docs");
             "Sorry, something went wrong looking up the documentation".to_owned()
         }
     };

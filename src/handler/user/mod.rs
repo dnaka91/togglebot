@@ -130,7 +130,7 @@ pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserRespon
             .get(name)
             .and_then(|content| content.get(&source))
             .map(|content| {
-                info!("user: received custom `{}` command", name);
+                info!("user: received custom `{name}` command");
                 content
             })
             .cloned()

@@ -50,7 +50,7 @@ pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Re
 
             tokio::spawn(async move {
                 if let Err(e) = handle_event(queue, event, http).await {
-                    error!("error during event handling: {}", e);
+                    error!(error = ?e, "error during event handling");
                 }
             });
         }

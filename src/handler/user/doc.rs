@@ -23,7 +23,7 @@ static LINK_CACHE: Lazy<Mutex<LruCache<String, String>>> =
 /// processing.
 pub async fn find(path: &str) -> Result<String> {
     if let Some(link) = LINK_CACHE.lock().await.get(path) {
-        debug!("loaded link for `{}` from memory cache", path);
+        debug!(%path, "loaded link from memory cache");
         return Ok(link.clone());
     }
 
@@ -35,11 +35,11 @@ pub async fn find(path: &str) -> Result<String> {
 
     let index = match index_from_file(&index_file).await {
         Ok(i) => {
-            debug!("loaded index for `{}` from file cache", path.crate_name());
+            debug!(crate = %path.crate_name(), "loaded index from file cache");
             i
         }
         Err(e) => {
-            debug!("getting fresh index because: {:?}", e);
+            debug!(reason = ?e, "getting fresh index");
             index_from_remote(&path, &index_file).await?
         }
     };
@@ -82,7 +82,7 @@ async fn index_from_remote(path: &SimplePath, file_name: &Utf8Path) -> Result<In
     let index = docsearch::search(path.crate_name(), Version::Latest).await?;
 
     if let Err(e) = save_index(&index, file_name).await {
-        warn!("failed to save index to cache: {:?}", e);
+        warn!(error = ?e, "failed to save index to cache");
     }
 
     Ok(index)
