@@ -144,6 +144,7 @@ pub enum BuiltinCommand {
 }
 
 impl BuiltinCommand {
+    /// Get the display name for this command. It does **not** include the command prefix.
     #[must_use]
     pub const fn name(&self) -> &'static str {
         match self {

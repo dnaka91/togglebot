@@ -18,6 +18,11 @@ type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 
 const CHANNEL: &str = "togglebit";
 
+/// Initialize and run the Twitch connection in a background task.
+///
+/// The given queue is used to transfer received messages for further processing, combined with a
+/// oneshot channel to listen for any possible replies to a message. The shutdown handle is used
+/// to gracefully disconnect from Twitch, before fully quitting the application.
 #[allow(clippy::missing_panics_doc)]
 pub async fn start(config: &Twitch, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
     let config = ClientConfig::new_simple(StaticLoginCredentials::new(

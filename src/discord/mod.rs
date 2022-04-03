@@ -20,6 +20,11 @@ mod admin;
 mod owner;
 mod user;
 
+/// Initiate and run the Discord bot connection in a background task.
+///
+/// It pushes messages into the given queue for processing, each message accompanied by a oneshot
+/// channel, that allows to listen for the generated reply (if any). The shutdown handler is used
+/// to gracefully shut down the connection before fully quitting the application.
 pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
     let http = Arc::new(Client::new(config.token.clone()));
 

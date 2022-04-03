@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
         )
         .init();
 
-    let config = settings::load_config()?;
+    let config = settings::load()?;
 
     let state = state::load()?;
     let state = Arc::new(RwLock::new(state));

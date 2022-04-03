@@ -18,16 +18,30 @@ mod user;
 
 /// Convenience type alias for a [`State`] wrapped in an [`Arc`] and a [`RwLock`].
 pub type AsyncState = Arc<RwLock<State>>;
-
+/// Convenience type alias for [`Stats`] wrapped in an [`Arc`] and a [`RwLock`].
 pub type AsyncStats = Arc<RwLock<Stats>>;
 
+/// Possible access levels for users, controlling access over accessible bot commands.
 #[derive(Clone, Copy)]
 pub enum Access {
+    /// Default user level, only granting access to the user commands.
     Standard,
+    /// Admin user level, allowing access to admin and user commands.
+    ///
+    /// The admin commands include management of settings for all builtin commands and custom
+    /// commands.
     Admin,
+    /// Owner user level, allowwing access to all commands (owner, admin and user).
+    ///
+    /// The owner commands give control over the admin user list.
     Owner,
 }
 
+/// Determine the access level for the author of a chat message.
+///
+/// - In **Discord** all possible access levels exist, owners defined in a pre-defined static list
+///   and admins defined in a dynamic list controlled by owners at runtime.
+/// - In **Twitch** only standard users exist, regardless of any settings.
 pub async fn access(config: &Config, state: AsyncState, author: &AuthorId) -> Access {
     match author {
         AuthorId::Discord(id) => {

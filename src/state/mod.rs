@@ -26,14 +26,26 @@ type HashMap<K, V> = std::collections::HashMap<K, V>;
 #[cfg(test)]
 type HashMap<K, V> = std::collections::HashMap<K, V, BuildHasherDefault<DefaultHasher>>;
 
+/// Main state structure holding all dynamic (runtime changeable) settings.
 #[derive(Serialize, Deserialize)]
 pub struct State {
+    /// Information for the regular streaming schedule (for the `schedule` command).
     #[serde(default)]
     pub schedule: BaseSchedule,
+    /// List of weekdays that are considered off days (for the `schedule` command).
     #[serde(default, with = "self::serde::weekdays")]
     pub off_days: HashSet<Weekday>,
+    /// Collection of all the custom commands this bot knows.
+    ///
+    /// Each command can be defined multiple times, one for each data source. That allows to have
+    /// different formatting for different services (like plain text for Twitter and Markdown for
+    /// Discord).
     #[serde(default)]
     pub custom_commands: HashMap<String, HashMap<Source, String>>,
+    /// List of user accounts that are considered admins.
+    ///
+    /// These users get access to the admin commands of the bot, mostly allowing to edit the custom
+    /// commands and adjust settings for other builtin commands.
     #[serde(default)]
     pub admins: HashSet<NonZeroU64>,
 }
@@ -52,22 +64,32 @@ impl Default for State {
     }
 }
 
+/// Format definition for schedule times.
 pub const SCHEDULE_TIME_FORMAT: &[FormatItem<'static>] =
     format_description!("[hour repr:12]:[minute][period case:lower]");
 
+/// Start and finish time ranges for the streaming schedule.
+///
+/// The time ranges are defined as two time settings. If they're the same, it is considered a
+/// specific time and displayed as a fixed time accordingly. If they differ instead, they're
+/// considered an approximate time range.
 #[derive(Serialize, Deserialize)]
 pub struct BaseSchedule {
+    /// Start time range.
     #[serde(with = "self::serde::pair_time_hms")]
     pub start: (Time, Time),
+    /// Finish time range.
     #[serde(with = "self::serde::pair_time_hms")]
     pub finish: (Time, Time),
 }
 
 impl BaseSchedule {
+    /// Format the start time range as string.
     pub fn format_start(&self) -> Result<String> {
         Self::format_range(self.start)
     }
 
+    /// Format the finish time range as string.
     pub fn format_finish(&self) -> Result<String> {
         Self::format_range(self.finish)
     }
@@ -94,6 +116,8 @@ impl Default for BaseSchedule {
     }
 }
 
+/// Load the global state (the dynamic runtime settings) of this bot and sanitize the data during
+/// the process, if needed.
 pub fn load() -> Result<State> {
     let state = match std::fs::read(DIRS.state_file()) {
         Ok(buf) => buf,
@@ -104,6 +128,7 @@ pub fn load() -> Result<State> {
     serde_json::from_slice(&state).context("failed parsing state data")
 }
 
+/// Syncronize the current in-memory state back to the file system.
 pub async fn save(state: &State) -> Result<()> {
     if cfg!(test) {
         return Ok(());
