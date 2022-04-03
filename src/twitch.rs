@@ -2,6 +2,7 @@
 
 use anyhow::Result;
 use tokio::{select, sync::oneshot};
+use tokio_shutdown::Shutdown;
 use tracing::{error, info};
 use twitch_irc::{
     login::StaticLoginCredentials,
@@ -10,8 +11,8 @@ use twitch_irc::{
 };
 
 use crate::{
-    settings::Twitch, AuthorId, CrateSearch, Message, Queue, Response, ScheduleResponse, Shutdown,
-    Source, UserResponse,
+    settings::Twitch, AuthorId, CrateSearch, Message, Queue, Response, ScheduleResponse, Source,
+    UserResponse,
 };
 
 type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
@@ -24,7 +25,7 @@ const CHANNEL: &str = "togglebit";
 /// oneshot channel to listen for any possible replies to a message. The shutdown handle is used
 /// to gracefully disconnect from Twitch, before fully quitting the application.
 #[allow(clippy::missing_panics_doc)]
-pub async fn start(config: &Twitch, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
+pub async fn start(config: &Twitch, queue: Queue, shutdown: Shutdown) -> Result<()> {
     let config = ClientConfig::new_simple(StaticLoginCredentials::new(
         config.login.clone(),
         Some(config.token.clone()),
@@ -36,7 +37,7 @@ pub async fn start(config: &Twitch, queue: Queue, mut shutdown: Shutdown) -> Res
     tokio::spawn(async move {
         loop {
             select! {
-                _ = shutdown.recv() => break,
+                _ = shutdown.handle() => break,
                 message = messages.recv() => {
                     if let Some(message) = message {
                         let client = client.clone();

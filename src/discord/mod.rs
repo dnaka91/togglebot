@@ -6,6 +6,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use tokio::sync::oneshot;
+use tokio_shutdown::Shutdown;
 use tracing::{error, info};
 use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
 use twilight_http::{request::channel::message::CreateMessage, Client};
@@ -13,7 +14,7 @@ use twilight_model::channel::Message as ChannelMessage;
 
 use crate::{
     settings::Discord, AdminResponse, AdminsResponse, AuthorId, CustomCommandsResponse, Message,
-    OwnerResponse, Queue, Response, Shutdown, Source, UserResponse,
+    OwnerResponse, Queue, Response, Source, UserResponse,
 };
 
 mod admin;
@@ -25,7 +26,7 @@ mod user;
 /// It pushes messages into the given queue for processing, each message accompanied by a oneshot
 /// channel, that allows to listen for the generated reply (if any). The shutdown handler is used
 /// to gracefully shut down the connection before fully quitting the application.
-pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Result<()> {
+pub async fn start(config: &Discord, queue: Queue, shutdown: Shutdown) -> Result<()> {
     let http = Arc::new(Client::new(config.token.clone()));
 
     let (shard, mut events) = Shard::builder(
@@ -42,7 +43,7 @@ pub async fn start(config: &Discord, queue: Queue, mut shutdown: Shutdown) -> Re
     let shard_spawn = shard.clone();
 
     tokio::spawn(async move {
-        shutdown.recv().await.ok();
+        shutdown.handle().await;
 
         info!("discord connection shutting down");
         shard_spawn.shutdown();

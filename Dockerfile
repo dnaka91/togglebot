@@ -19,7 +19,6 @@ FROM scratch
 COPY --from=builder /volume/target/release/togglebot /bin/
 COPY --from=newuser /tmp/group /tmp/passwd /etc/
 
-STOPSIGNAL SIGINT
 USER togglebot
 
 ENTRYPOINT ["/bin/togglebot"]

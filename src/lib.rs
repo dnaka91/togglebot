@@ -32,9 +32,6 @@ pub mod twitch;
 /// A queue that service connecters can use to send received messages to the handler and get back a
 /// reply to render to the user.
 pub type Queue = MpscSender<(Message, OneshotSender<Response>)>;
-/// Shutdown hook that service connecters use to be notified about a shutdown and shut down all
-/// internal machinery.
-pub type Shutdown = BroadcastReceiver<()>;
 
 /// A message that was received by a service connector. It contains all information needed by the
 /// handler to parse and act upon the message.

@@ -13,8 +13,9 @@ use togglebot::{
     statistics::{self, Stats},
     twitch, AdminResponse, Message, OwnerResponse, Response,
 };
-use tokio::sync::{broadcast, mpsc, RwLock};
-use tracing::{error, info, warn, Level};
+use tokio::sync::{mpsc, RwLock};
+use tokio_shutdown::Shutdown;
+use tracing::{error, warn, Level};
 use tracing_subscriber::{filter::Targets, prelude::*};
 
 #[tokio::main(flavor = "current_thread")]
@@ -51,20 +52,12 @@ async fn main() -> Result<()> {
         tokio::time::sleep(ONE_DAY).await;
     });
 
-    let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
-    let shutdown_rx2 = shutdown_tx.subscribe();
-
-    tokio::spawn(async move {
-        tokio::signal::ctrl_c().await.ok();
-
-        info!("bot shutting down");
-        shutdown_tx.send(()).ok();
-    });
+    let shutdown = Shutdown::new()?;
 
     let (queue_tx, mut queue_rx) = mpsc::channel(100);
 
-    discord::start(&config.discord, queue_tx.clone(), shutdown_rx).await?;
-    twitch::start(&config.twitch, queue_tx, shutdown_rx2).await?;
+    discord::start(&config.discord, queue_tx.clone(), shutdown.clone()).await?;
+    twitch::start(&config.twitch, queue_tx, shutdown).await?;
 
     while let Some((message, reply)) = queue_rx.recv().await {
         let res = async {
