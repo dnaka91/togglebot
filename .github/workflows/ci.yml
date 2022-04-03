@@ -25,6 +25,8 @@ jobs:
       - name: Configure cache
         uses: Swatinem/rust-cache@v1
       - name: Test
+        env:
+          RUST_LOG: "off"
         run: cargo test
   lint:
     name: Lint
