@@ -1,4 +1,4 @@
-//! Statistics maangement for the bot.
+//! Statistics management for the bot.
 
 use std::{collections::BTreeMap, io::ErrorKind};
 
@@ -21,6 +21,11 @@ pub struct Stats {
 impl Stats {
     /// Increment the usage counter for the given command by one.
     pub fn increment(&mut self, cmd: Command<'_>) {
+        // Don't track commands that are too long.
+        if cmd.str_len() > 50 {
+            return;
+        }
+
         let month = OffsetDateTime::now_utc().month();
         if self.current.0 != month {
             self.current.0 = month;
@@ -29,6 +34,10 @@ impl Stats {
 
         for stats in [&mut self.current.1, &mut self.total] {
             *stats.command_usage.get_counter(cmd) += 1;
+
+            // Clean up the command maps, keeping only the 50 most used.
+            limit_size(&mut stats.command_usage.custom, 50);
+            limit_size(&mut stats.command_usage.unknown, 50);
         }
     }
 
@@ -117,6 +126,16 @@ pub enum Command<'a> {
     Unknown(&'a str),
 }
 
+impl<'a> Command<'a> {
+    /// Get the string length of the command.
+    fn str_len(&self) -> usize {
+        match self {
+            Self::Builtin(_) => 0,
+            Self::Custom(v) | Self::Unknown(v) => v.len(),
+        }
+    }
+}
+
 /// One of the few pre-defined commands that are always available.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum BuiltinCommand {
@@ -181,6 +200,26 @@ pub async fn save(state: &Stats) -> Result<()> {
     fs::rename(DIRS.statistics_temp_file(), DIRS.statistics_file()).await?;
 
     Ok(())
+}
+
+/// Limit the size of the given map to a certain amount by removing entries with the least count
+/// first.
+///
+/// The size is **NOT** reduce unless the map is at the double of the set limit. That is, to reduce
+/// the overhead, as the whole map needs to be cloned to determine the smallest counters.
+fn limit_size(map: &mut BTreeMap<String, u64>, limit: usize) {
+    if map.len() < limit * 2 {
+        return;
+    }
+
+    let inverse = map
+        .iter()
+        .map(|(k, v)| (*v, k.clone()))
+        .collect::<BTreeMap<_, _>>();
+
+    for cmd in inverse.into_values().take(map.len() - 50) {
+        map.remove(&cmd);
+    }
 }
 
 #[cfg(test)]
