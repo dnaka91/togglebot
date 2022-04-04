@@ -14,6 +14,8 @@
 This is the ToggleBot bot used on [togglebit](https://github.com/togglebyte)'s Discord server and
 Twitch chat.
 
+Thank you for the great bot icon [the-gorg](https://github.com/the-gorg)!
+
 ## Build
 
 To build this project have `rust` and `cargo` available in the latest version and run `cargo build`.
