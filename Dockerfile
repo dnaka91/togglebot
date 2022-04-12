@@ -1,4 +1,4 @@
-FROM rust:1.59-alpine as builder
+FROM rust:1.60-alpine as builder
 
 WORKDIR /volume
 
