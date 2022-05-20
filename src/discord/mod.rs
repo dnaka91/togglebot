@@ -35,7 +35,8 @@ pub async fn start(config: &Discord, queue: Queue, shutdown: Shutdown) -> Result
     )
     .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
     .http_client(Arc::clone(&http))
-    .build();
+    .build()
+    .await?;
     let shard = Arc::new(shard);
 
     shard.start().await?;
