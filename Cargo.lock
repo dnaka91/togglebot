@@ -245,9 +245,9 @@ dependencies = [
 
 [[package]]
 name = "docsearch"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4181047e3f8258800d0073093ae15838bb7e815a866a23ae2b107ec3bdc643c"
+checksum = "84e6ebf52b922c349ca336cb9384b47783a9e395a7ac3fac9801bd73741972ff"
 dependencies = [
  "chumsky",
  "semver",
