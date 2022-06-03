@@ -1,5 +1,9 @@
+[advisories]
+ignore = ["RUSTSEC-2020-0071"]
+
 [licenses]
 allow = [
+    "CC0-1.0",
     "MPL-2.0",
     "OpenSSL",
 ]

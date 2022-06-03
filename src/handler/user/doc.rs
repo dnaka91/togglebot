@@ -6,7 +6,8 @@ use std::time::Duration;
 use anyhow::{bail, Result};
 use docsearch::{Index, SimplePath, Version};
 use lru_time_cache::LruCache;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
+use reqwest::redirect;
 use tokio::{fs, sync::Mutex};
 use tracing::{debug, warn};
 use unidirs::{Utf8Path, Utf8PathBuf};
@@ -79,7 +80,13 @@ async fn index_from_file(file_name: &Utf8Path) -> Result<Index> {
 /// After retrieval the index is saved to the local disk cache. Failing to do so will **not** return
 /// an error to allow getting the index independent of disk errors.
 async fn index_from_remote(path: &SimplePath, file_name: &Utf8Path) -> Result<Index> {
-    let index = docsearch::search(path.crate_name(), Version::Latest).await?;
+    let state = docsearch::start_search(path.crate_name(), Version::Latest);
+    let content = download_url(state.url()).await?;
+
+    let state = state.find_index(&content)?;
+    let content = download_url(state.url()).await?;
+
+    let index = state.transform_index(&content)?;
 
     if let Err(e) = save_index(&index, file_name).await {
         warn!(error = ?e, "failed to save index to cache");
@@ -96,4 +103,24 @@ async fn save_index(index: &Index, file_name: &Utf8Path) -> Result<()> {
     fs::write(&file_name, buf).await?;
 
     Ok(())
+}
+
+/// Download the given URL and return the content as string.
+async fn download_url(url: &str) -> Result<String> {
+    static CLIENT: OnceCell<reqwest::Client> = OnceCell::new();
+
+    let client = CLIENT.get_or_try_init(|| {
+        reqwest::Client::builder()
+            .redirect(redirect::Policy::limited(10))
+            .build()
+    })?;
+
+    client
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await
+        .map_err(Into::into)
 }
