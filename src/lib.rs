@@ -104,6 +104,8 @@ pub enum UserResponse {
     Crate(Result<CrateSearch>),
     /// Get a direct docs link to any Rust crate or stdlib item.
     Doc(Result<String>),
+    /// Get the current date, with unneeded level of detail (in UTC).
+    Today(String),
     /// Execute a custom command.
     Custom(String),
 }

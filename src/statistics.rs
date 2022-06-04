@@ -153,6 +153,8 @@ pub enum BuiltinCommand {
     Doc,
     /// Fake ban for fun.
     Ban,
+    /// Get the current date (in UTC).
+    Today,
     /// Any other command that may have existed in the past.
     ///
     /// This uses the `#[serde(other)]` configuration, so that commands can be deleted and then
@@ -174,6 +176,7 @@ impl BuiltinCommand {
             Self::Crate => "crate",
             Self::Doc => "doc",
             Self::Ban => "ban",
+            Self::Today => "today",
             Self::Deprecated => "deprecated",
         }
     }

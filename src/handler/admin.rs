@@ -204,6 +204,7 @@ const RESERVED_COMMANDS: &[&str] = &[
     "doc",
     "docs",
     "ban",
+    "today",
     // admin commands
     "admin_help",
     "admin-help",

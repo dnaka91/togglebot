@@ -104,6 +104,7 @@ async fn handle_user_message(resp: UserResponse, msg_id: String, client: Client)
         UserResponse::Ban(target) => handle_ban(msg_id, client, target).await,
         UserResponse::Crate(res) => handle_crate(msg_id, client, res).await,
         UserResponse::Doc(res) => handle_doc(msg_id, client, res).await,
+        UserResponse::Today(date) => handle_today(msg_id, client, date).await,
         UserResponse::Custom(content) => handle_custom(msg_id, client, content).await,
         UserResponse::Unknown => Ok(()),
     }
@@ -265,6 +266,14 @@ async fn handle_doc(msg_id: String, client: Client, res: Result<String>) -> Resu
 
     client
         .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
+        .await?;
+
+    Ok(())
+}
+
+async fn handle_today(msg_id: String, client: Client, date: String) -> Result<()> {
+    client
+        .say_in_response(CHANNEL.to_owned(), date, Some(msg_id))
         .await?;
 
     Ok(())

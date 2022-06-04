@@ -125,6 +125,13 @@ pub async fn user_message(
                 .increment_builtin(BuiltinCommand::Ban);
             user::ban(target)
         }
+        ("today", None) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Today);
+            user::today()
+        }
         (name, None) => {
             let response = user::custom(state, source, name).await;
 

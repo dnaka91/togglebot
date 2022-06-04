@@ -257,6 +257,16 @@ pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) ->
     Ok(())
 }
 
+pub async fn today(msg: ChannelMessage, http: Arc<Client>, date: String) -> Result<()> {
+    http.create_message(msg.channel_id)
+        .reply(msg.id)
+        .content(&date)?
+        .send()
+        .await?;
+
+    Ok(())
+}
+
 pub async fn custom(msg: ChannelMessage, http: Arc<Client>, content: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)

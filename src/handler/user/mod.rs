@@ -1,7 +1,7 @@
 use anyhow::bail;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use time::Weekday;
+use time::{OffsetDateTime, Weekday};
 use tracing::info;
 
 use super::AsyncState;
@@ -119,6 +119,35 @@ pub async fn crate_(name: &str) -> UserResponse {
 pub async fn doc(path: &str) -> UserResponse {
     info!("received `doc` command");
     UserResponse::Doc(doc::find(path).await)
+}
+
+pub fn today() -> UserResponse {
+    fn th(value: impl Into<u16>) -> &'static str {
+        match value.into() {
+            1 => "st",
+            2 => "nd",
+            3 => "rd",
+            _ => "th",
+        }
+    }
+
+    let date = OffsetDateTime::now_utc();
+    let weekday = date.weekday();
+    let month = date.month();
+    let day = date.day();
+    let day_th = th(day);
+    let year = date.year();
+    let day_of_year = date.ordinal();
+    let day_of_year_th = th(day_of_year);
+    let week_of_year = date.iso_week();
+    let week_of_year_th = th(week_of_year);
+
+    UserResponse::Today(format!(
+        "Today is {weekday}, {month} the {day}{day_th} of {year} in the UTC time zone. \
+        Did you know, this is the {day_of_year}{day_of_year_th} day of the year \
+        and we're in the {week_of_year}{week_of_year_th} week of the year. \
+        Amazing, isn't it?!"
+    ))
 }
 
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {
