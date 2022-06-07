@@ -1,8 +1,9 @@
 //! Statistics management for the bot.
 
-use std::{collections::BTreeMap, io::ErrorKind};
+use std::{hash::Hash, io::ErrorKind};
 
 use anyhow::{Context, Result};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use time::{Month, OffsetDateTime};
 use tokio::fs;
@@ -16,6 +17,9 @@ pub struct Stats {
     current: (Month, Statistics),
     /// Overall statistics through the whole lifetime of `togglebot`.
     total: Statistics,
+    /// Marker for sorting state of command usage statistics inside of [`Statistics`].
+    #[serde(skip)]
+    sorted: bool,
 }
 
 impl Stats {
@@ -39,6 +43,9 @@ impl Stats {
             limit_size(&mut stats.command_usage.custom, 50);
             limit_size(&mut stats.command_usage.unknown, 50);
         }
+
+        // Mark as unsorted, as we modified counts and have to sort again.
+        self.sorted = false;
     }
 
     /// Shorthand to increment the usage counter of a built-in command.
@@ -48,7 +55,13 @@ impl Stats {
 
     /// Get the current or total statistics.
     #[must_use]
-    pub const fn get(&self, total: bool) -> &Statistics {
+    pub fn get(&mut self, total: bool) -> &Statistics {
+        if !self.sorted {
+            self.total.command_usage.sort();
+            self.current.1.command_usage.sort();
+            self.sorted = true;
+        }
+
         if total {
             &self.total
         } else {
@@ -70,6 +83,7 @@ impl Default for Stats {
         Self {
             current: (Month::January, Statistics::default()),
             total: Statistics::default(),
+            sorted: false,
         }
     }
 }
@@ -90,11 +104,11 @@ pub struct Statistics {
 pub struct CommandUsage {
     /// Standard, built-in commands. Helps to find out which built in commands might be removed
     /// in the future due to low usage.
-    pub builtin: BTreeMap<BuiltinCommand, u64>,
+    pub builtin: IndexMap<BuiltinCommand, u64>,
     /// Custom defined commands. Allows admins to see what commands might be retired.
-    pub custom: BTreeMap<String, u64>,
+    pub custom: IndexMap<String, u64>,
     /// Unrecognized commands. Can give insight about common misspells or wished-for commands.
-    pub unknown: BTreeMap<String, u64>,
+    pub unknown: IndexMap<String, u64>,
 }
 
 impl CommandUsage {
@@ -112,6 +126,13 @@ impl CommandUsage {
                 self.unknown.entry(cmd).or_default()
             }
         }
+    }
+
+    /// Sort the statistics of all commands.
+    fn sort(&mut self) {
+        sort(&mut self.builtin);
+        sort(&mut self.custom);
+        sort(&mut self.unknown);
     }
 }
 
@@ -210,7 +231,7 @@ pub async fn save(state: &Stats) -> Result<()> {
 ///
 /// The size is **NOT** reduce unless the map is at the double of the set limit. That is, to reduce
 /// the overhead, as the whole map needs to be cloned to determine the smallest counters.
-fn limit_size(map: &mut BTreeMap<String, u64>, limit: usize) {
+fn limit_size(map: &mut IndexMap<String, u64>, limit: usize) {
     if map.len() < limit * 2 {
         return;
     }
@@ -218,11 +239,22 @@ fn limit_size(map: &mut BTreeMap<String, u64>, limit: usize) {
     let inverse = map
         .iter()
         .map(|(k, v)| (*v, k.clone()))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<IndexMap<_, _>>();
 
     for cmd in inverse.into_values().take(map.len() - 50) {
         map.remove(&cmd);
     }
+}
+
+/// Sort any index map, first descending by the value (the usage counter), then ascending by the
+/// key (which usually represents the used command).
+fn sort<K>(map: &mut IndexMap<K, u64>)
+where
+    K: Eq + Hash + Ord,
+{
+    map.sort_by(|key_a, value_a, key_b, value_b| {
+        value_a.cmp(value_b).reverse().then(key_a.cmp(key_b))
+    });
 }
 
 #[cfg(test)]

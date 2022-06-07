@@ -309,7 +309,7 @@ pub async fn stats(stats: AsyncStats, date: Option<&str>) -> AdminResponse {
             .transpose()?
             .unwrap_or_default();
 
-        Ok((total, stats.read().await.get(total).clone()))
+        Ok((total, stats.write().await.get(total).clone()))
     };
 
     AdminResponse::Statistics(res().await)
