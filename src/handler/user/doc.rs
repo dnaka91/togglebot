@@ -30,7 +30,7 @@ pub async fn find(path: &str) -> Result<String> {
 
     let path = match path.parse::<SimplePath>() {
         Ok(p) => p,
-        Err(e) => return Ok(format!("The path `{}` is invalid: {}", path, e)),
+        Err(e) => return Ok(format!("The path `{path}` is invalid: {e}")),
     };
     let index_file = index_file_name(&path);
 
@@ -52,7 +52,7 @@ pub async fn find(path: &str) -> Result<String> {
             .insert(path.into_inner(), link.clone());
         link
     } else {
-        format!("Item `{}` doesn't exist", path)
+        format!("Item `{path}` doesn't exist")
     })
 }
 

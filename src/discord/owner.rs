@@ -1,4 +1,4 @@
-use std::{num::NonZeroU64, sync::Arc};
+use std::{fmt::Write, num::NonZeroU64, sync::Arc};
 
 use anyhow::Result;
 use indoc::indoc;
@@ -39,7 +39,7 @@ pub async fn admins_list(
     let message = user_ids
         .into_iter()
         .fold(String::from("current admins are:"), |mut buf, id| {
-            buf.push_str(&format!("\n- <@{}>", id));
+            write!(buf, "\n- <@{id}>").unwrap();
             buf
         });
 
@@ -66,7 +66,7 @@ pub async fn admins_edit(
                 AdminAction::Removed => "removed from",
             },
         ),
-        Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
+        Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
     http.create_message(msg.channel_id)

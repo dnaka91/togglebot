@@ -53,7 +53,7 @@ impl FromStr for Field {
         Ok(match s {
             "start" | "begin" => Self::Start,
             "finish" | "end" => Self::Finish,
-            s => bail!("unknown field `{}`", s),
+            s => bail!("unknown field `{s}`"),
         })
     }
 }
@@ -79,7 +79,7 @@ pub async fn off_days(state: AsyncState, action: &str, weekday: &str) -> AdminRe
             action.parse()?,
             weekday
                 .parse()
-                .map_err(|_e| anyhow!("unknown weekday `{}`", weekday))?,
+                .map_err(|_e| anyhow!("unknown weekday `{weekday}`"))?,
         )
         .await
     };
@@ -99,7 +99,7 @@ impl FromStr for Action {
         Ok(match s {
             "add" => Self::Add,
             "remove" => Self::Remove,
-            s => bail!("unknown action `{}`", s),
+            s => bail!("unknown action `{s}`"),
         })
     }
 }
@@ -183,7 +183,7 @@ impl FromStr for CommandSource {
             "discord" => Self::Source(Source::Discord),
             "twitch" => Self::Source(Source::Twitch),
             "all" => Self::All,
-            _ => bail!("unkown source `{}`", s),
+            _ => bail!("unkown source `{s}`"),
         })
     }
 }
@@ -243,12 +243,11 @@ async fn update_commands(
     ensure!(
         name.chars()
             .all(|c| c == '_' || ('a'..='z').contains(&c) || ('0'..='9').contains(&c)),
-        "command names must constist of only letters, numbers and underscores",
+        "command names must consist of only letters, numbers and underscores",
     );
     ensure!(
         !RESERVED_COMMANDS.contains(&name),
-        "the command name `{}` is reserved",
-        name,
+        "the command name `{name}` is reserved",
     );
 
     let mut state = state.write().await;

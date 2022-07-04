@@ -64,7 +64,7 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
 pub async fn schedule(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -> Result<()> {
     let message = match res {
         Ok(()) => format!("{} schedule updated", emojis::OK_HAND),
-        Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
+        Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
     http.create_message(msg.channel_id)
@@ -79,7 +79,7 @@ pub async fn schedule(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -
 pub async fn off_days(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -> Result<()> {
     let message = match res {
         Ok(()) => format!("{} off days updated", emojis::OK_HAND),
-        Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
+        Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
     http.create_message(msg.channel_id)
@@ -115,7 +115,7 @@ pub async fn custom_commands_list(
                 list
             },
         ),
-        Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
+        Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
     http.create_message(msg.channel_id)
@@ -134,7 +134,7 @@ pub async fn custom_commands_edit(
 ) -> Result<()> {
     let message = match res {
         Ok(()) => format!("{} custom commands updated", emojis::OK_HAND),
-        Err(e) => format!("{} some error happened: {}", emojis::COLLISION, e),
+        Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
     http.create_message(msg.channel_id)

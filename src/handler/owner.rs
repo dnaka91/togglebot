@@ -44,7 +44,7 @@ impl FromStr for Action {
         Ok(match s {
             "add" => Self::Add,
             "remove" => Self::Remove,
-            s => bail!("unknown action `{}`", s),
+            s => bail!("unknown action `{s}`"),
         })
     }
 }

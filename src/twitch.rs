@@ -207,9 +207,9 @@ async fn handle_schedule(
                         days
                     })
             );
-            let time = format!("Starting around {}, finishing around {}", start, finish);
+            let time = format!("Starting around {start}, finishing around {finish}");
 
-            format!("{} | {} | Timezone CET", days, time)
+            format!("{days} | {time} | Timezone CET")
         }
         Err(e) => {
             error!(error = ?e, "failed creating schedule response");
@@ -228,7 +228,7 @@ async fn handle_ban(msg_id: String, client: Client, target: String) -> Result<()
     client
         .say_in_response(
             CHANNEL.to_owned(),
-            format!("{}, YOU SHALL NOT PASS!!", target),
+            format!("{target}, YOU SHALL NOT PASS!!"),
             Some(msg_id),
         )
         .await?;

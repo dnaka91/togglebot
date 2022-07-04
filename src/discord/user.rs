@@ -129,10 +129,7 @@ pub async fn schedule(
                         days
                     })
             );
-            let time = format!(
-                "starting around **{}**, finishing around **{}**",
-                start, finish
-            );
+            let time = format!("starting around **{start}**, finishing around **{finish}**");
 
             http.create_message(msg.channel_id)
                 .reply(msg.id)
@@ -161,8 +158,7 @@ pub async fn ban(msg: ChannelMessage, http: Arc<Client>, target: String) -> Resu
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(&format!(
-            "{}, **YOU SHALL NOT PASS!!**\n\n{}",
-            target, GANDALF_GIF
+            "{target}, **YOU SHALL NOT PASS!!**\n\n{GANDALF_GIF}",
         ))?
         .send()
         .await?;

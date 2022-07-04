@@ -96,7 +96,7 @@ pub async fn crate_(name: &str) -> UserResponse {
     info!("received `crate` command");
 
     let res = async {
-        let link = format!("https://crates.io/api/v1/crates/{}", name);
+        let link = format!("https://crates.io/api/v1/crates/{name}");
         let resp = reqwest::Client::builder()
             .user_agent("ToggleBot (https://github.com/dnaka91/togglebot)")
             .build()?
@@ -106,10 +106,8 @@ pub async fn crate_(name: &str) -> UserResponse {
 
         Ok(match resp.status() {
             StatusCode::OK => CrateSearch::Found(resp.json::<ApiResponse>().await?.crate_),
-            StatusCode::NOT_FOUND => {
-                CrateSearch::NotFound(format!("Crate `{}` doesn't exist", name))
-            }
-            s => bail!("unexpected status code {:?}", s),
+            StatusCode::NOT_FOUND => CrateSearch::NotFound(format!("Crate `{name}` doesn't exist")),
+            s => bail!("unexpected status code {s:?}"),
         })
     };
 
