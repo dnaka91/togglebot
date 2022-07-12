@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use anyhow::bail;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use time::{OffsetDateTime, Weekday};
 use tracing::info;
 
-use super::AsyncState;
+use super::{AsyncCommandSettings, AsyncState};
 use crate::{CrateInfo, CrateSearch, ScheduleResponse, Source, UserResponse};
 
 mod doc;
@@ -35,20 +37,9 @@ async fn list_command_names(state: AsyncState, source: Source) -> Vec<String> {
         .collect()
 }
 
-pub fn links(source: Source) -> UserResponse {
+pub fn links(settings: &AsyncCommandSettings) -> UserResponse {
     info!("received `links` command");
-    UserResponse::Links(match source {
-        Source::Discord => &[
-            ("Website", "https://togglebit.io"),
-            ("GitHub", "https://github.com/togglebyte"),
-            ("Twitch", "https://twitch.tv/togglebit"),
-        ],
-        Source::Twitch => &[
-            ("Website", "https://togglebit.io"),
-            ("GitHub", "https://github.com/togglebyte"),
-            ("Discord", "https://discord.gg/qtyDMat"),
-        ],
-    })
+    UserResponse::Links(Arc::clone(&settings.links))
 }
 
 pub async fn schedule(state: AsyncState) -> UserResponse {

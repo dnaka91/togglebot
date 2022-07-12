@@ -65,7 +65,7 @@ async fn update_schedule(state: AsyncState, field: Field, range: (Time, Time)) -
         Field::Finish => state.schedule.finish = range,
     }
 
-    state::save(&*state).await?;
+    state::save(&state).await?;
 
     Ok(())
 }
@@ -115,7 +115,7 @@ async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) ->
         }
     }
 
-    state::save(&*state).await?;
+    state::save(&state).await?;
 
     Ok(())
 }

@@ -8,7 +8,7 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings,
+    settings::{self, Commands as CommandSettings},
     state::{self, State},
     statistics::{self, Stats},
     twitch, AdminResponse, Message, OwnerResponse, Response,
@@ -32,6 +32,7 @@ async fn main() -> Result<()> {
 
     let config = settings::load()?;
 
+    let command_settings = Arc::new(config.commands);
     let state = state::load()?;
     let state = Arc::new(RwLock::new(state));
 
@@ -56,15 +57,33 @@ async fn main() -> Result<()> {
 
     let (queue_tx, mut queue_rx) = mpsc::channel(100);
 
-    discord::start(&config.discord, queue_tx.clone(), shutdown.clone()).await?;
-    twitch::start(&config.twitch, queue_tx, shutdown).await?;
+    discord::start(
+        &config.discord,
+        Arc::clone(&command_settings),
+        queue_tx.clone(),
+        shutdown.clone(),
+    )
+    .await?;
+    twitch::start(
+        &config.twitch,
+        Arc::clone(&command_settings),
+        queue_tx,
+        shutdown,
+    )
+    .await?;
 
     while let Some((message, reply)) = queue_rx.recv().await {
         let res = async {
-            match handler::access(&config, Arc::clone(&state), &message.author).await {
-                Access::Standard => handle_user_message(&state, &statistics, &message).await,
-                Access::Admin => handle_admin_message(&state, &statistics, &message).await,
-                Access::Owner => handle_owner_message(&state, &statistics, &message).await,
+            match handler::access(&config.discord, Arc::clone(&state), &message.author).await {
+                Access::Standard => {
+                    handle_user_message(&command_settings, &state, &statistics, &message).await
+                }
+                Access::Admin => {
+                    handle_admin_message(&command_settings, &state, &statistics, &message).await
+                }
+                Access::Owner => {
+                    handle_owner_message(&command_settings, &state, &statistics, &message).await
+                }
             }
         };
 
@@ -86,11 +105,13 @@ async fn main() -> Result<()> {
 }
 
 async fn handle_user_message(
+    settings: &Arc<CommandSettings>,
     state: &Arc<RwLock<State>>,
     statistics: &Arc<RwLock<Stats>>,
     message: &Message,
 ) -> Result<Response> {
     handler::user_message(
+        Arc::clone(settings),
         Arc::clone(state),
         Arc::clone(statistics),
         &message.content,
@@ -101,6 +122,7 @@ async fn handle_user_message(
 }
 
 async fn handle_admin_message(
+    settings: &Arc<CommandSettings>,
     state: &Arc<RwLock<State>>,
     statistics: &Arc<RwLock<Stats>>,
     message: &Message,
@@ -108,18 +130,19 @@ async fn handle_admin_message(
     match handler::admin_message(Arc::clone(state), Arc::clone(statistics), &message.content)
         .await?
     {
-        AdminResponse::Unknown => handle_user_message(state, statistics, message).await,
+        AdminResponse::Unknown => handle_user_message(settings, state, statistics, message).await,
         resp => Ok(Response::Admin(resp)),
     }
 }
 
 async fn handle_owner_message(
+    settings: &Arc<CommandSettings>,
     state: &Arc<RwLock<State>>,
     statistics: &Arc<RwLock<Stats>>,
     message: &Message,
 ) -> Result<Response> {
     match handler::owner_message(Arc::clone(state), &message.content, message.mention).await? {
-        OwnerResponse::Unknown => handle_admin_message(state, statistics, message).await,
+        OwnerResponse::Unknown => handle_admin_message(settings, state, statistics, message).await,
         resp => Ok(Response::Owner(resp)),
     }
 }

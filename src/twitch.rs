@@ -1,5 +1,7 @@
 //! Twitch service connector that allows to receive commands from Twitch channels.
 
+use std::{collections::HashMap, sync::Arc};
+
 use anyhow::Result;
 use tokio::{select, sync::oneshot};
 use tokio_shutdown::Shutdown;
@@ -11,13 +13,11 @@ use twitch_irc::{
 };
 
 use crate::{
-    settings::Twitch, AuthorId, CrateSearch, Message, Queue, Response, ScheduleResponse, Source,
-    UserResponse,
+    settings::{Commands as CommandSettings, Twitch as TwitchSettings},
+    AuthorId, CrateSearch, Message, Queue, Response, ScheduleResponse, Source, UserResponse,
 };
 
 type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
-
-const CHANNEL: &str = "togglebit";
 
 /// Initialize and run the Twitch connection in a background task.
 ///
@@ -25,14 +25,19 @@ const CHANNEL: &str = "togglebit";
 /// oneshot channel to listen for any possible replies to a message. The shutdown handle is used
 /// to gracefully disconnect from Twitch, before fully quitting the application.
 #[allow(clippy::missing_panics_doc)]
-pub async fn start(config: &Twitch, queue: Queue, shutdown: Shutdown) -> Result<()> {
+pub async fn start(
+    config: &TwitchSettings,
+    settings: Arc<CommandSettings>,
+    queue: Queue,
+    shutdown: Shutdown,
+) -> Result<()> {
     let config = ClientConfig::new_simple(StaticLoginCredentials::new(
         config.login.clone(),
         Some(config.token.clone()),
     ));
     let (mut messages, client) = Client::new(config);
 
-    client.join(CHANNEL.to_owned())?;
+    client.join(settings.streamer.clone())?;
 
     tokio::spawn(async move {
         loop {
@@ -40,11 +45,12 @@ pub async fn start(config: &Twitch, queue: Queue, shutdown: Shutdown) -> Result<
                 _ = shutdown.handle() => break,
                 message = messages.recv() => {
                     if let Some(message) = message {
+                        let settings = Arc::clone(&settings);
                         let client = client.clone();
                         let queue = queue.clone();
 
                         tokio::spawn(async move {
-                            if let Err(e) = handle_server_message(queue, message, client).await {
+                            if let Err(e) = handle_server_message(settings, queue, message, client).await {
                                 error!(error = ?e, "error during event handling");
                             }
                         });
@@ -61,9 +67,14 @@ pub async fn start(config: &Twitch, queue: Queue, shutdown: Shutdown) -> Result<
     Ok(())
 }
 
-async fn handle_server_message(queue: Queue, message: ServerMessage, client: Client) -> Result<()> {
+async fn handle_server_message(
+    settings: Arc<CommandSettings>,
+    queue: Queue,
+    message: ServerMessage,
+    client: Client,
+) -> Result<()> {
     match message {
-        ServerMessage::Privmsg(msg) => handle_message(queue, msg, client).await?,
+        ServerMessage::Privmsg(msg) => handle_message(settings, queue, msg, client).await?,
         ServerMessage::Join(_) => info!("twitch connection ready, listening for events"),
         _ => {}
     }
@@ -71,7 +82,12 @@ async fn handle_server_message(queue: Queue, message: ServerMessage, client: Cli
     Ok(())
 }
 
-async fn handle_message(queue: Queue, msg: PrivmsgMessage, client: Client) -> Result<()> {
+async fn handle_message(
+    settings: Arc<CommandSettings>,
+    queue: Queue,
+    msg: PrivmsgMessage,
+    client: Client,
+) -> Result<()> {
     let message = Message {
         source: Source::Twitch,
         content: msg.message_text.clone(),
@@ -84,7 +100,7 @@ async fn handle_message(queue: Queue, msg: PrivmsgMessage, client: Client) -> Re
         if let Ok(resp) = rx.await {
             match resp {
                 Response::User(user_resp) => {
-                    handle_user_message(user_resp, msg.message_id, client).await?;
+                    handle_user_message(settings, user_resp, msg.message_id, client).await?;
                 }
                 Response::Admin(_) | Response::Owner(_) => {}
             }
@@ -95,25 +111,30 @@ async fn handle_message(queue: Queue, msg: PrivmsgMessage, client: Client) -> Re
 }
 
 #[allow(clippy::match_same_arms)]
-async fn handle_user_message(resp: UserResponse, msg_id: String, client: Client) -> Result<()> {
+async fn handle_user_message(
+    settings: Arc<CommandSettings>,
+    resp: UserResponse,
+    msg_id: String,
+    client: Client,
+) -> Result<()> {
     match resp {
-        UserResponse::Help => handle_help(msg_id, client).await,
-        UserResponse::Commands(res) => handle_commands(msg_id, client, res).await,
-        UserResponse::Links(links) => handle_links(msg_id, client, links).await,
-        UserResponse::Schedule(res) => handle_schedule(msg_id, client, res).await,
-        UserResponse::Ban(target) => handle_ban(msg_id, client, target).await,
-        UserResponse::Crate(res) => handle_crate(msg_id, client, res).await,
-        UserResponse::Doc(res) => handle_doc(msg_id, client, res).await,
-        UserResponse::Today(date) => handle_today(msg_id, client, date).await,
-        UserResponse::Custom(content) => handle_custom(msg_id, client, content).await,
+        UserResponse::Help => handle_help(settings, msg_id, client).await,
+        UserResponse::Commands(res) => handle_commands(settings, msg_id, client, res).await,
+        UserResponse::Links(links) => handle_links(settings, msg_id, client, links).await,
+        UserResponse::Schedule(res) => handle_schedule(settings, msg_id, client, res).await,
+        UserResponse::Ban(target) => handle_ban(settings, msg_id, client, target).await,
+        UserResponse::Crate(res) => handle_crate(settings, msg_id, client, res).await,
+        UserResponse::Doc(res) => handle_doc(settings, msg_id, client, res).await,
+        UserResponse::Today(date) => handle_today(settings, msg_id, client, date).await,
+        UserResponse::Custom(content) => handle_custom(settings, msg_id, client, content).await,
         UserResponse::Unknown => Ok(()),
     }
 }
 
-async fn handle_help(msg_id: String, client: Client) -> Result<()> {
+async fn handle_help(settings: Arc<CommandSettings>, msg_id: String, client: Client) -> Result<()> {
     client
         .say_in_response(
-            CHANNEL.to_owned(),
+            settings.streamer.clone(),
             "Thanks for asking, I'm a bot to help answer some typical questions. \
             Try out `!commands` command to see what I can do. \
             My source code is at https://github.com/dnaka91/togglebot"
@@ -125,7 +146,12 @@ async fn handle_help(msg_id: String, client: Client) -> Result<()> {
     Ok(())
 }
 
-async fn handle_commands(msg_id: String, client: Client, res: Result<Vec<String>>) -> Result<()> {
+async fn handle_commands(
+    settings: Arc<CommandSettings>,
+    msg_id: String,
+    client: Client,
+    res: Result<Vec<String>>,
+) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().fold(
             String::from(
@@ -149,16 +175,21 @@ async fn handle_commands(msg_id: String, client: Client, res: Result<Vec<String>
     };
 
     client
-        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
+        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_links(msg_id: String, client: Client, links: &[(&str, &str)]) -> Result<()> {
+async fn handle_links(
+    settings: Arc<CommandSettings>,
+    msg_id: String,
+    client: Client,
+    links: Arc<HashMap<String, String>>,
+) -> Result<()> {
     client
         .say_in_response(
-            CHANNEL.to_owned(),
+            settings.streamer.clone(),
             links
                 .iter()
                 .enumerate()
@@ -180,6 +211,7 @@ async fn handle_links(msg_id: String, client: Client, links: &[(&str, &str)]) ->
 }
 
 async fn handle_schedule(
+    settings: Arc<CommandSettings>,
     msg_id: String,
     client: Client,
     res: Result<ScheduleResponse>,
@@ -218,16 +250,21 @@ async fn handle_schedule(
     };
 
     client
-        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
+        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_ban(msg_id: String, client: Client, target: String) -> Result<()> {
+async fn handle_ban(
+    settings: Arc<CommandSettings>,
+    msg_id: String,
+    client: Client,
+    target: String,
+) -> Result<()> {
     client
         .say_in_response(
-            CHANNEL.to_owned(),
+            settings.streamer.clone(),
             format!("{target}, YOU SHALL NOT PASS!!"),
             Some(msg_id),
         )
@@ -236,7 +273,12 @@ async fn handle_ban(msg_id: String, client: Client, target: String) -> Result<()
     Ok(())
 }
 
-async fn handle_crate(msg_id: String, client: Client, res: Result<CrateSearch>) -> Result<()> {
+async fn handle_crate(
+    settings: Arc<CommandSettings>,
+    msg_id: String,
+    client: Client,
+    res: Result<CrateSearch>,
+) -> Result<()> {
     let message = match res {
         Ok(search) => match search {
             CrateSearch::Found(info) => format!("https://lib.rs/crates/{}", info.name),
@@ -249,13 +291,18 @@ async fn handle_crate(msg_id: String, client: Client, res: Result<CrateSearch>) 
     };
 
     client
-        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
+        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_doc(msg_id: String, client: Client, res: Result<String>) -> Result<()> {
+async fn handle_doc(
+    settings: Arc<CommandSettings>,
+    msg_id: String,
+    client: Client,
+    res: Result<String>,
+) -> Result<()> {
     let message = match res {
         Ok(link) => link,
         Err(e) => {
@@ -265,23 +312,33 @@ async fn handle_doc(msg_id: String, client: Client, res: Result<String>) -> Resu
     };
 
     client
-        .say_in_response(CHANNEL.to_owned(), message, Some(msg_id))
+        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_today(msg_id: String, client: Client, date: String) -> Result<()> {
+async fn handle_today(
+    settings: Arc<CommandSettings>,
+    msg_id: String,
+    client: Client,
+    date: String,
+) -> Result<()> {
     client
-        .say_in_response(CHANNEL.to_owned(), date, Some(msg_id))
+        .say_in_response(settings.streamer.clone(), date, Some(msg_id))
         .await?;
 
     Ok(())
 }
 
-async fn handle_custom(msg_id: String, client: Client, content: String) -> Result<()> {
+async fn handle_custom(
+    settings: Arc<CommandSettings>,
+    msg_id: String,
+    client: Client,
+    content: String,
+) -> Result<()> {
     client
-        .say_in_response(CHANNEL.to_owned(), content, Some(msg_id))
+        .say_in_response(settings.streamer.clone(), content, Some(msg_id))
         .await?;
 
     Ok(())

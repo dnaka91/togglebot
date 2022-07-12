@@ -5,8 +5,9 @@
 #![allow(clippy::missing_errors_doc)]
 
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
     num::NonZeroU64,
+    sync::Arc,
 };
 
 /// Result type used throughout the whole crate.
@@ -95,8 +96,8 @@ pub enum UserResponse {
     /// List all available commands to the user.
     Commands(Result<Vec<String>>),
     /// Show a list of links to various platforms where the streamer is present.
-    Links(&'static [(&'static str, &'static str)]),
-    /// Show togglebit's current streaming schedule.
+    Links(Arc<HashMap<String, String>>),
+    /// Show the streamer's current streaming schedule.
     Schedule(Result<ScheduleResponse>),
     /// Fake ban anybody or anything.
     Ban(String),
@@ -159,7 +160,7 @@ pub enum AdminResponse {
     Unknown,
     /// Print a help message with all available admin control commands.
     Help,
-    /// Adjust togglebit's stream schedule.
+    /// Adjust the streamer's stream schedule.
     Schedule(Result<()>),
     /// Adjust streaming off-days.
     OffDays(Result<()>),

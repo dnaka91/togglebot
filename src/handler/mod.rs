@@ -6,7 +6,7 @@ use anyhow::{bail, Result};
 use tokio::sync::RwLock;
 
 use crate::{
-    settings::Config,
+    settings::{Commands as CommandSettings, Discord as DiscordSettings},
     state::State,
     statistics::{BuiltinCommand, Command, Stats},
     AdminResponse, AuthorId, OwnerResponse, Source, UserResponse,
@@ -20,6 +20,8 @@ mod user;
 pub type AsyncState = Arc<RwLock<State>>;
 /// Convenience type alias for [`Stats`] wrapped in an [`Arc`] and a [`RwLock`].
 pub type AsyncStats = Arc<RwLock<Stats>>;
+/// Convenience type alias for [`settings::Commands`] wrapped in an [`Arc`].
+pub type AsyncCommandSettings = Arc<CommandSettings>;
 
 /// Possible access levels for users, controlling access over accessible bot commands.
 #[derive(Clone, Copy)]
@@ -42,10 +44,10 @@ pub enum Access {
 /// - In **Discord** all possible access levels exist, owners defined in a pre-defined static list
 ///   and admins defined in a dynamic list controlled by owners at runtime.
 /// - In **Twitch** only standard users exist, regardless of any settings.
-pub async fn access(config: &Config, state: AsyncState, author: &AuthorId) -> Access {
+pub async fn access(settings: &DiscordSettings, state: AsyncState, author: &AuthorId) -> Access {
     match author {
         AuthorId::Discord(id) => {
-            if config.discord.owners.contains(id) {
+            if settings.owners.contains(id) {
                 Access::Owner
             } else if state.read().await.admins.contains(id) {
                 Access::Admin
@@ -60,6 +62,7 @@ pub async fn access(config: &Config, state: AsyncState, author: &AuthorId) -> Ac
 /// Handle any user facing message and prepare a response.
 #[tracing::instrument(skip_all, name = "user")]
 pub async fn user_message(
+    settings: AsyncCommandSettings,
     state: AsyncState,
     statistics: AsyncStats,
     content: &str,
@@ -95,7 +98,7 @@ pub async fn user_message(
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Links);
-            user::links(source)
+            user::links(&settings)
         }
         ("schedule", None) => {
             statistics
@@ -232,8 +235,9 @@ mod tests {
     use super::*;
     use crate::{AdminAction, AdminsResponse, CustomCommandsResponse};
 
-    fn defaults() -> (AsyncState, AsyncStats, Source) {
+    fn defaults() -> (AsyncCommandSettings, AsyncState, AsyncStats, Source) {
         (
+            Arc::new(CommandSettings::default()),
             Arc::new(RwLock::new(State::default())),
             Arc::new(RwLock::new(Stats::default())),
             Source::Discord,
@@ -242,13 +246,13 @@ mod tests {
 
     async fn run_user_message(content: &str) -> Result<UserResponse> {
         tracing_subscriber::fmt::try_init().ok();
-        let (state, statistics, source) = defaults();
-        user_message(state, statistics, content, source).await
+        let (settings, state, statistics, source) = defaults();
+        user_message(settings, state, statistics, content, source).await
     }
 
     async fn run_admin_message(content: &str) -> Result<AdminResponse> {
         tracing_subscriber::fmt::try_init().ok();
-        let (state, statistics, _) = defaults();
+        let (_, state, statistics, _) = defaults();
         admin_message(state, statistics, content).await
     }
 
@@ -257,7 +261,7 @@ mod tests {
         mention: Option<NonZeroU64>,
     ) -> Result<OwnerResponse> {
         tracing_subscriber::fmt::try_init().ok();
-        let (state, _, _) = defaults();
+        let (_, state, _, _) = defaults();
         owner_message(state, content, mention).await
     }
 
@@ -333,7 +337,7 @@ mod tests {
     async fn user_cmd_custom() {
         tracing_subscriber::fmt::try_init().ok();
 
-        let (state, statistics, source) = defaults();
+        let (settings, state, statistics, source) = defaults();
         state.write().await.custom_commands.insert(
             "hi".to_owned(),
             [(Source::Discord, "hello".to_owned())]
@@ -341,7 +345,7 @@ mod tests {
                 .collect(),
         );
 
-        match user_message(state, statistics, "!hi", source)
+        match user_message(settings, state, statistics, "!hi", source)
             .await
             .unwrap()
         {

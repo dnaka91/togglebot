@@ -13,8 +13,9 @@ use twilight_http::{request::channel::message::CreateMessage, Client};
 use twilight_model::channel::Message as ChannelMessage;
 
 use crate::{
-    settings::Discord, AdminResponse, AdminsResponse, AuthorId, CustomCommandsResponse, Message,
-    OwnerResponse, Queue, Response, Source, UserResponse,
+    settings::{Commands as CommandSettings, Discord as DiscordSettings},
+    AdminResponse, AdminsResponse, AuthorId, CustomCommandsResponse, Message, OwnerResponse, Queue,
+    Response, Source, UserResponse,
 };
 
 mod admin;
@@ -26,7 +27,12 @@ mod user;
 /// It pushes messages into the given queue for processing, each message accompanied by a oneshot
 /// channel, that allows to listen for the generated reply (if any). The shutdown handler is used
 /// to gracefully shut down the connection before fully quitting the application.
-pub async fn start(config: &Discord, queue: Queue, shutdown: Shutdown) -> Result<()> {
+pub async fn start(
+    config: &DiscordSettings,
+    settings: Arc<CommandSettings>,
+    queue: Queue,
+    shutdown: Shutdown,
+) -> Result<()> {
     let http = Arc::new(Client::new(config.token.clone()));
 
     let (shard, mut events) = Shard::builder(
@@ -52,11 +58,12 @@ pub async fn start(config: &Discord, queue: Queue, shutdown: Shutdown) -> Result
 
     tokio::spawn(async move {
         while let Some(event) = events.next().await {
-            let http = http.clone();
+            let settings = Arc::clone(&settings);
+            let http = Arc::clone(&http);
             let queue = queue.clone();
 
             tokio::spawn(async move {
-                if let Err(e) = handle_event(queue, event, http).await {
+                if let Err(e) = handle_event(settings, queue, event, http).await {
                     error!(error = ?e, "error during event handling");
                 }
             });
@@ -66,9 +73,14 @@ pub async fn start(config: &Discord, queue: Queue, shutdown: Shutdown) -> Result
     Ok(())
 }
 
-async fn handle_event(queue: Queue, event: Event, http: Arc<Client>) -> Result<()> {
+async fn handle_event(
+    settings: Arc<CommandSettings>,
+    queue: Queue,
+    event: Event,
+    http: Arc<Client>,
+) -> Result<()> {
     match event {
-        Event::MessageCreate(msg) => handle_message(queue, msg.0, http).await?,
+        Event::MessageCreate(msg) => handle_message(settings, queue, msg.0, http).await?,
         Event::Ready(_) => info!("discord connection ready, listening for events"),
         _ => {}
     }
@@ -76,7 +88,12 @@ async fn handle_event(queue: Queue, event: Event, http: Arc<Client>) -> Result<(
     Ok(())
 }
 
-async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
+async fn handle_message(
+    settings: Arc<CommandSettings>,
+    queue: Queue,
+    msg: ChannelMessage,
+    http: Arc<Client>,
+) -> Result<()> {
     if msg.author.bot {
         // Ignore bots and our own messages.
         return Ok(());
@@ -97,7 +114,9 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) ->
     if queue.send((message, tx)).await.is_ok() {
         if let Ok(resp) = rx.await {
             match resp {
-                Response::User(user_resp) => handle_user_message(user_resp, msg, http).await?,
+                Response::User(user_resp) => {
+                    handle_user_message(settings, user_resp, msg, http).await?;
+                }
                 Response::Admin(admin_resp) => handle_admin_message(admin_resp, msg, http).await?,
                 Response::Owner(owner_resp) => handle_owner_message(owner_resp, msg, http).await?,
             }
@@ -108,15 +127,16 @@ async fn handle_message(queue: Queue, msg: ChannelMessage, http: Arc<Client>) ->
 }
 
 async fn handle_user_message(
+    settings: Arc<CommandSettings>,
     resp: UserResponse,
     msg: ChannelMessage,
     http: Arc<Client>,
 ) -> Result<()> {
     match resp {
         UserResponse::Help => user::help(msg, http).await,
-        UserResponse::Commands(res) => user::commands(msg, http, res).await,
+        UserResponse::Commands(res) => user::commands(settings, msg, http, res).await,
         UserResponse::Links(links) => user::links(msg, http, links).await,
-        UserResponse::Schedule(res) => user::schedule(msg, http, res).await,
+        UserResponse::Schedule(res) => user::schedule(settings, msg, http, res).await,
         UserResponse::Ban(target) => user::ban(msg, http, target).await,
         UserResponse::Crate(res) => user::crate_(msg, http, res).await,
         UserResponse::Doc(res) => user::doc(msg, http, res).await,

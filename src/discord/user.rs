@@ -1,7 +1,7 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
-use indoc::indoc;
+use indoc::{formatdoc, indoc};
 use time::{format_description::FormatItem, macros::format_description, UtcOffset};
 use tracing::error;
 use twilight_http::Client;
@@ -9,7 +9,7 @@ use twilight_model::channel::Message as ChannelMessage;
 use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
 use super::ExecModelExt;
-use crate::{CrateSearch, ScheduleResponse};
+use crate::{settings::Commands as CommandSettings, CrateSearch, ScheduleResponse};
 
 /// Gandalf's famous "You shall not pass!" scene.
 const GANDALF_GIF: &str =
@@ -31,24 +31,27 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
 }
 
 pub async fn commands(
+    settings: Arc<CommandSettings>,
     msg: ChannelMessage,
     http: Arc<Client>,
     res: Result<Vec<String>>,
 ) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().enumerate().fold(
-            String::from(indoc! {"
+            formatdoc! {"
                     Available commands:
                     `!help` (or `!bot`) gives a short info about this bot.
                     `!ahelp` gives a list of admin commands (if you're an admin).
-                    `!links` gives you a list of links to sites where **togglebit** is present.
-                    `!schedule` tells you the Twitch streaming schedule of **togglebit**.
+                    `!links` gives you a list of links to sites where **{0}** is present.
+                    `!schedule` tells you the Twitch streaming schedule of **{0}**.
                     `!crate(s)` get the link for any existing crate.
                     `!doc(s)` get the link for any element of any crate (or stdlib).
                     `!ban` refuse anything with the power of Gandalf.
 
                     Further custom commands:
-                "}),
+                ",
+                settings.streamer,
+            },
             |mut list, (i, name)| {
                 if i > 0 {
                     list.push_str(", ");
@@ -74,7 +77,11 @@ pub async fn commands(
     Ok(())
 }
 
-pub async fn links(msg: ChannelMessage, http: Arc<Client>, links: &[(&str, &str)]) -> Result<()> {
+pub async fn links(
+    msg: ChannelMessage,
+    http: Arc<Client>,
+    links: Arc<HashMap<String, String>>,
+) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(
@@ -100,6 +107,7 @@ pub async fn links(msg: ChannelMessage, http: Arc<Client>, links: &[(&str, &str)
 }
 
 pub async fn schedule(
+    settings: Arc<CommandSettings>,
     msg: ChannelMessage,
     http: Arc<Client>,
     res: Result<ScheduleResponse>,
@@ -133,7 +141,7 @@ pub async fn schedule(
 
             http.create_message(msg.channel_id)
                 .reply(msg.id)
-                .content("Here is togglebit's stream schedule:")?
+                .content(&format!("Here is {}'s stream schedule:", settings.streamer))?
                 .embeds(&[EmbedBuilder::new()
                     .field(EmbedFieldBuilder::new("Days", days))
                     .field(EmbedFieldBuilder::new("Time", time))
