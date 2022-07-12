@@ -136,7 +136,6 @@ async fn handle_user_message(
         UserResponse::Help => user::help(msg, http).await,
         UserResponse::Commands(res) => user::commands(settings, msg, http, res).await,
         UserResponse::Links(links) => user::links(msg, http, links).await,
-        UserResponse::Schedule(res) => user::schedule(settings, msg, http, res).await,
         UserResponse::Ban(target) => user::ban(msg, http, target).await,
         UserResponse::Crate(res) => user::crate_(msg, http, res).await,
         UserResponse::Doc(res) => user::doc(msg, http, res).await,
@@ -153,8 +152,6 @@ async fn handle_admin_message(
 ) -> Result<()> {
     match resp {
         AdminResponse::Help => admin::help(msg, http).await,
-        AdminResponse::Schedule(res) => admin::schedule(msg, http, res).await,
-        AdminResponse::OffDays(res) => admin::off_days(msg, http, res).await,
         AdminResponse::CustomCommands(resp) => match resp {
             CustomCommandsResponse::List(res) => admin::custom_commands_list(msg, http, res).await,
             CustomCommandsResponse::Edit(res) => admin::custom_commands_edit(msg, http, res).await,

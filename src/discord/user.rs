@@ -9,7 +9,7 @@ use twilight_model::channel::Message as ChannelMessage;
 use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
 use super::ExecModelExt;
-use crate::{settings::Commands as CommandSettings, CrateSearch, ScheduleResponse};
+use crate::{settings::Commands as CommandSettings, CrateSearch};
 
 /// Gandalf's famous "You shall not pass!" scene.
 const GANDALF_GIF: &str =
@@ -43,7 +43,6 @@ pub async fn commands(
                     `!help` (or `!bot`) gives a short info about this bot.
                     `!ahelp` gives a list of admin commands (if you're an admin).
                     `!links` gives you a list of links to sites where **{0}** is present.
-                    `!schedule` tells you the Twitch streaming schedule of **{0}**.
                     `!crate(s)` get the link for any existing crate.
                     `!doc(s)` get the link for any element of any crate (or stdlib).
                     `!ban` refuse anything with the power of Gandalf.
@@ -106,62 +105,6 @@ pub async fn links(
     Ok(())
 }
 
-pub async fn schedule(
-    settings: Arc<CommandSettings>,
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    res: Result<ScheduleResponse>,
-) -> Result<()> {
-    match res {
-        Ok(ScheduleResponse {
-            start,
-            finish,
-            off_days,
-        }) => {
-            let last_off_day = off_days.len() - 1;
-            let days = format!(
-                "Every day, except {}",
-                off_days
-                    .into_iter()
-                    .enumerate()
-                    .fold(String::new(), |mut days, (i, day)| {
-                        if i == last_off_day {
-                            days.push_str(" and ");
-                        } else if i > 0 {
-                            days.push_str(", ");
-                        }
-
-                        days.push_str("**");
-                        days.push_str(&day);
-                        days.push_str("**");
-                        days
-                    })
-            );
-            let time = format!("starting around **{start}**, finishing around **{finish}**");
-
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content(&format!("Here is {}'s stream schedule:", settings.streamer))?
-                .embeds(&[EmbedBuilder::new()
-                    .field(EmbedFieldBuilder::new("Days", days))
-                    .field(EmbedFieldBuilder::new("Time", time))
-                    .field(EmbedFieldBuilder::new("Timezone", "CET"))
-                    .build()])?
-                .send()
-                .await?;
-        }
-        Err(e) => {
-            error!(error = ?e, "failed creating schedule response");
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content("Sorry, something went wrong while getting the schedule")?
-                .send()
-                .await?;
-        }
-    }
-
-    Ok(())
-}
 pub async fn ban(msg: ChannelMessage, http: Arc<Client>, target: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)

@@ -3,88 +3,15 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, bail, ensure, Result};
-use time::{Time, Weekday};
+use anyhow::{bail, ensure, Result};
 use tracing::info;
 
 use super::{AsyncState, AsyncStats};
-use crate::{
-    state::{self, SCHEDULE_TIME_FORMAT},
-    AdminResponse, CustomCommandsResponse, Source,
-};
+use crate::{state, AdminResponse, CustomCommandsResponse, Source};
 
 pub fn help() -> AdminResponse {
     info!("received `help` command");
     AdminResponse::Help
-}
-
-pub async fn schedule(
-    state: AsyncState,
-    field: &str,
-    range_begin: &str,
-    range_end: &str,
-) -> AdminResponse {
-    info!("received `schedule` command");
-
-    let res = || async {
-        update_schedule(
-            state,
-            field.parse()?,
-            (
-                Time::parse(range_begin, &SCHEDULE_TIME_FORMAT)?,
-                Time::parse(range_end, &SCHEDULE_TIME_FORMAT)?,
-            ),
-        )
-        .await
-    };
-
-    AdminResponse::Schedule(res().await)
-}
-
-enum Field {
-    Start,
-    Finish,
-}
-
-impl FromStr for Field {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "start" | "begin" => Self::Start,
-            "finish" | "end" => Self::Finish,
-            s => bail!("unknown field `{s}`"),
-        })
-    }
-}
-
-async fn update_schedule(state: AsyncState, field: Field, range: (Time, Time)) -> Result<()> {
-    let mut state = state.write().await;
-    match field {
-        Field::Start => state.schedule.start = range,
-        Field::Finish => state.schedule.finish = range,
-    }
-
-    state::save(&state).await?;
-
-    Ok(())
-}
-
-pub async fn off_days(state: AsyncState, action: &str, weekday: &str) -> AdminResponse {
-    info!("received `off_days` command");
-
-    let res = || async {
-        update_off_days(
-            state,
-            action.parse()?,
-            weekday
-                .parse()
-                .map_err(|_e| anyhow!("unknown weekday `{weekday}`"))?,
-        )
-        .await
-    };
-
-    AdminResponse::OffDays(res().await)
 }
 
 enum Action {
@@ -102,22 +29,6 @@ impl FromStr for Action {
             s => bail!("unknown action `{s}`"),
         })
     }
-}
-
-async fn update_off_days(state: AsyncState, action: Action, weekday: Weekday) -> Result<()> {
-    let mut state = state.write().await;
-    match action {
-        Action::Add => {
-            state.off_days.insert(weekday);
-        }
-        Action::Remove => {
-            state.off_days.remove(&weekday);
-        }
-    }
-
-    state::save(&state).await?;
-
-    Ok(())
 }
 
 pub async fn custom_commands_list(state: AsyncState) -> AdminResponse {
@@ -198,7 +109,6 @@ const RESERVED_COMMANDS: &[&str] = &[
     "bot",
     "commands",
     "links",
-    "schedule",
     "crate",
     "crates",
     "doc",
@@ -210,8 +120,6 @@ const RESERVED_COMMANDS: &[&str] = &[
     "admin-help",
     "adminhelp",
     "ahelp",
-    "edit_schedule",
-    "off_days",
     "custom_commands",
     "custom_command",
     "stats",

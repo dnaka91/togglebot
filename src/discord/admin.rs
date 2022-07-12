@@ -25,18 +25,6 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             you're an owner yourself.**
 
             ```
-            !edit_schedule set [start|finish] <HH:MM[am|pm]> <HH:MM[am|pm]>
-            ```
-            Update the current schedule for either `start` or `finish` with the given \
-            range in 12-hour format like `07:00am 08:00am`.
-
-            ```
-            !off_days [add|remove] <weekday>
-            ```
-            Update the off days by `add`ing or `remove`ing a single weekday like \
-            `Mon` or `tuesday`.
-
-            ```
             !custom_command(s) [add|remove] [all|discord|twitch] <name> <content>
             ```
             Add or remove a custom command that has fixed content and can be anything. \
@@ -55,36 +43,6 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             Get statistics about command usage, either for the **current month** or the \
             overall counters for **all time**.
         "})?
-        .send()
-        .await?;
-
-    Ok(())
-}
-
-pub async fn schedule(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -> Result<()> {
-    let message = match res {
-        Ok(()) => format!("{} schedule updated", emojis::OK_HAND),
-        Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
-    };
-
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)?
-        .send()
-        .await?;
-
-    Ok(())
-}
-
-pub async fn off_days(msg: ChannelMessage, http: Arc<Client>, res: Result<()>) -> Result<()> {
-    let message = match res {
-        Ok(()) => format!("{} off days updated", emojis::OK_HAND),
-        Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
-    };
-
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)?
         .send()
         .await?;
 

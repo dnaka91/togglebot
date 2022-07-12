@@ -3,11 +3,11 @@ use std::sync::Arc;
 use anyhow::bail;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use time::{OffsetDateTime, Weekday};
+use time::OffsetDateTime;
 use tracing::info;
 
 use super::{AsyncCommandSettings, AsyncState};
-use crate::{CrateInfo, CrateSearch, ScheduleResponse, Source, UserResponse};
+use crate::{CrateInfo, CrateSearch, Source, UserResponse};
 
 mod doc;
 
@@ -40,36 +40,6 @@ async fn list_command_names(state: AsyncState, source: Source) -> Vec<String> {
 pub fn links(settings: &AsyncCommandSettings) -> UserResponse {
     info!("received `links` command");
     UserResponse::Links(Arc::clone(&settings.links))
-}
-
-pub async fn schedule(state: AsyncState) -> UserResponse {
-    info!("received `schedule` command");
-
-    let state = state.read().await;
-    let res = || {
-        Ok(ScheduleResponse {
-            start: state.schedule.format_start()?,
-            finish: state.schedule.format_finish()?,
-            off_days: state
-                .off_days
-                .iter()
-                .map(|weekday| {
-                    match weekday {
-                        Weekday::Monday => "Monday",
-                        Weekday::Tuesday => "Tuesday",
-                        Weekday::Wednesday => "Wednesday",
-                        Weekday::Thursday => "Thursday",
-                        Weekday::Friday => "Friday",
-                        Weekday::Saturday => "Saturday",
-                        Weekday::Sunday => "Sunday",
-                    }
-                    .to_owned()
-                })
-                .collect(),
-        })
-    };
-
-    UserResponse::Schedule(res())
 }
 
 pub fn ban(target: &str) -> UserResponse {

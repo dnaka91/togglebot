@@ -14,7 +14,7 @@ use twitch_irc::{
 
 use crate::{
     settings::{Commands as CommandSettings, Twitch as TwitchSettings},
-    AuthorId, CrateSearch, Message, Queue, Response, ScheduleResponse, Source, UserResponse,
+    AuthorId, CrateSearch, Message, Queue, Response, Source, UserResponse,
 };
 
 type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
@@ -121,7 +121,6 @@ async fn handle_user_message(
         UserResponse::Help => handle_help(settings, msg_id, client).await,
         UserResponse::Commands(res) => handle_commands(settings, msg_id, client, res).await,
         UserResponse::Links(links) => handle_links(settings, msg_id, client, links).await,
-        UserResponse::Schedule(res) => handle_schedule(settings, msg_id, client, res).await,
         UserResponse::Ban(target) => handle_ban(settings, msg_id, client, target).await,
         UserResponse::Crate(res) => handle_crate(settings, msg_id, client, res).await,
         UserResponse::Doc(res) => handle_doc(settings, msg_id, client, res).await,
@@ -157,7 +156,7 @@ async fn handle_commands(
             String::from(
                 "Available commands: \
                 !help (or !bot), \
-                !links, !schedule, \
+                !links, \
                 !crate(s), \
                 !doc(s), \
                 !ban",
@@ -205,52 +204,6 @@ async fn handle_links(
                 }),
             Some(msg_id),
         )
-        .await?;
-
-    Ok(())
-}
-
-async fn handle_schedule(
-    settings: Arc<CommandSettings>,
-    msg_id: String,
-    client: Client,
-    res: Result<ScheduleResponse>,
-) -> Result<()> {
-    let message = match res {
-        Ok(ScheduleResponse {
-            start,
-            finish,
-            off_days,
-        }) => {
-            let last_off_day = off_days.len() - 1;
-            let days = format!(
-                "Every day, except {}",
-                off_days
-                    .into_iter()
-                    .enumerate()
-                    .fold(String::new(), |mut days, (i, day)| {
-                        if i == last_off_day {
-                            days.push_str(" and ");
-                        } else if i > 0 {
-                            days.push_str(", ");
-                        }
-
-                        days.push_str(&day);
-                        days
-                    })
-            );
-            let time = format!("Starting around {start}, finishing around {finish}");
-
-            format!("{days} | {time} | Timezone CET")
-        }
-        Err(e) => {
-            error!(error = ?e, "failed creating schedule response");
-            "Sorry, something went wrong while getting the schedule".to_owned()
-        }
-    };
-
-    client
-        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
         .await?;
 
     Ok(())

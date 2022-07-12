@@ -100,13 +100,6 @@ pub async fn user_message(
                 .increment_builtin(BuiltinCommand::Links);
             user::links(&settings)
         }
-        ("schedule", None) => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Schedule);
-            user::schedule(state).await
-        }
         ("crate" | "crates", Some(name)) => {
             statistics
                 .write()
@@ -178,12 +171,6 @@ pub async fn admin_message(
         ) {
             ("admin_help" | "admin-help" | "adminhelp" | "ahelp", None, None, None, None) => {
                 admin::help()
-            }
-            ("edit_schedule", Some("set"), Some(field), Some(range_begin), Some(range_end)) => {
-                admin::schedule(state, field, range_begin, range_end).await
-            }
-            ("off_days", Some(action), Some(weekday), None, None) => {
-                admin::off_days(state, action, weekday).await
             }
             ("custom_commands" | "custom_command", Some("list"), None, None, None) => {
                 admin::custom_commands_list(state).await
@@ -299,15 +286,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn user_cmd_schedule() {
-        match run_user_message("!schedule").await.unwrap() {
-            UserResponse::Schedule(Ok(_)) => {}
-            UserResponse::Schedule(Err(e)) => panic!("{e:?}"),
-            res => panic!("unexpected response: {res:?}"),
-        }
-    }
-
-    #[tokio::test]
     async fn user_cmd_ban() {
         match run_user_message("!ban me").await.unwrap() {
             UserResponse::Ban(target) => assert_eq!("me", target),
@@ -368,27 +346,6 @@ mod tests {
             run_admin_message("!ahelp").await,
             Ok(AdminResponse::Help)
         ));
-    }
-
-    #[tokio::test]
-    async fn admin_cmd_edit_schedule() {
-        match run_admin_message("!edit_schedule set start 08:00am 09:00am")
-            .await
-            .unwrap()
-        {
-            AdminResponse::Schedule(Ok(())) => {}
-            AdminResponse::Schedule(Err(e)) => panic!("{e:?}"),
-            res => panic!("unexpected response: {res:?}"),
-        }
-    }
-
-    #[tokio::test]
-    async fn admin_cmd_off_days() {
-        match run_admin_message("!off_days add Sunday").await.unwrap() {
-            AdminResponse::OffDays(Ok(())) => {}
-            AdminResponse::OffDays(Err(e)) => panic!("{e:?}"),
-            res => panic!("unexpected response: {res:?}"),
-        }
     }
 
     #[tokio::test]

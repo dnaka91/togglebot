@@ -166,8 +166,6 @@ pub enum BuiltinCommand {
     Commands,
     /// Several social media links.
     Links,
-    /// Current stream schedule.
-    Schedule,
     /// Rust crate info lookup.
     Crate,
     /// Rust crate docs lookup.
@@ -193,7 +191,6 @@ impl BuiltinCommand {
             Self::Help => "help",
             Self::Commands => "commands",
             Self::Links => "links",
-            Self::Schedule => "schedule",
             Self::Crate => "crate",
             Self::Doc => "doc",
             Self::Ban => "ban",

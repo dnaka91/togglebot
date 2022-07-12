@@ -97,8 +97,6 @@ pub enum UserResponse {
     Commands(Result<Vec<String>>),
     /// Show a list of links to various platforms where the streamer is present.
     Links(Arc<HashMap<String, String>>),
-    /// Show the streamer's current streaming schedule.
-    Schedule(Result<ScheduleResponse>),
     /// Fake ban anybody or anything.
     Ban(String),
     /// Lookup details about a single Rust crate.
@@ -109,17 +107,6 @@ pub enum UserResponse {
     Today(String),
     /// Execute a custom command.
     Custom(String),
-}
-
-/// Response details for the streaming schedule.
-#[cfg_attr(test, derive(Debug))]
-pub struct ScheduleResponse {
-    /// Pre-formatted streaming start time.
-    pub start: String,
-    /// Pre-formatted streaming finish time.
-    pub finish: String,
-    /// Streaming off-days.
-    pub off_days: Vec<String>,
 }
 
 /// Result of a crate search, either it was found, providing the details, or it wasn't giving some
@@ -160,10 +147,6 @@ pub enum AdminResponse {
     Unknown,
     /// Print a help message with all available admin control commands.
     Help,
-    /// Adjust the streamer's stream schedule.
-    Schedule(Result<()>),
-    /// Adjust streaming off-days.
-    OffDays(Result<()>),
     /// Configure custom user commands.
     CustomCommands(CustomCommandsResponse),
     /// Show statistics about user commands.
