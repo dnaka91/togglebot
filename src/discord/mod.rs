@@ -40,9 +40,7 @@ pub async fn start(
         Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES | Intents::MESSAGE_CONTENT,
     )
     .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
-    .http_client(Arc::clone(&http))
-    .build()
-    .await?;
+    .build();
     let shard = Arc::new(shard);
 
     shard.start().await?;
