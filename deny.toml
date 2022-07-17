@@ -10,6 +10,7 @@ allow = [
 allow-osi-fsf-free = "both"
 exceptions = [
     { allow = ["AGPL-3.0"], name = "togglebot", version = "*" },
+    { allow = ["Unicode-DFS-2016"], name = "unicode-ident", version = "*" },
 ]
 
 [[licenses.clarify]]
