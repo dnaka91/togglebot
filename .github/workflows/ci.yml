@@ -21,7 +21,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Configure cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Test
         env:
           RUST_LOG: "off"
@@ -43,7 +43,7 @@ jobs:
         with:
           components: clippy
       - name: Configure cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       - name: Run clippy
         run: cargo clippy -- -D warnings
   cargo-deny:
