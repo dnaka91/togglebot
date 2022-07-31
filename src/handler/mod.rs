@@ -128,6 +128,20 @@ pub async fn user_message(
                 .increment_builtin(BuiltinCommand::Today);
             user::today()
         }
+        ("encipher", Some(text)) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Encipher);
+            user::encipher(text)
+        }
+        ("decipher", Some(text)) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::Decipher);
+            user::decipher(text)
+        }
         (name, None) => {
             let response = user::custom(state, source, name).await;
 

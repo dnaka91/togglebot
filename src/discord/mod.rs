@@ -137,8 +137,10 @@ async fn handle_user_message(
         UserResponse::Ban(target) => user::ban(msg, http, target).await,
         UserResponse::Crate(res) => user::crate_(msg, http, res).await,
         UserResponse::Doc(res) => user::doc(msg, http, res).await,
-        UserResponse::Today(date) => user::today(msg, http, date).await,
-        UserResponse::Custom(content) => user::custom(msg, http, content).await,
+        UserResponse::Today(content)
+        | UserResponse::Encipher(content)
+        | UserResponse::Decipher(content)
+        | UserResponse::Custom(content) => user::string_reply(msg, http, content).await,
         UserResponse::Unknown => Ok(()),
     }
 }

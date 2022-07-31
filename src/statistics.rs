@@ -174,6 +174,10 @@ pub enum BuiltinCommand {
     Ban,
     /// Get the current date (in UTC).
     Today,
+    /// Encrypt text with top-notch cryptography.
+    Encipher,
+    /// Decrypt previously encrypted text with top-notch cryptography.
+    Decipher,
     /// Any other command that may have existed in the past.
     ///
     /// This uses the `#[serde(other)]` configuration, so that commands can be deleted and then
@@ -195,6 +199,8 @@ impl BuiltinCommand {
             Self::Doc => "doc",
             Self::Ban => "ban",
             Self::Today => "today",
+            Self::Encipher => "encipher",
+            Self::Decipher => "decipher",
             Self::Deprecated => "deprecated",
         }
     }

@@ -115,6 +115,8 @@ const RESERVED_COMMANDS: &[&str] = &[
     "docs",
     "ban",
     "today",
+    "encipher",
+    "decipher",
     // admin commands
     "admin_help",
     "admin-help",

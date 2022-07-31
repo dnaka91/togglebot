@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::bail;
+use cienli::ciphers::rot::{Rot, RotType};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use time::OffsetDateTime;
@@ -90,6 +91,8 @@ pub fn today() -> UserResponse {
         }
     }
 
+    info!("received `today` command");
+
     let date = OffsetDateTime::now_utc();
     let weekday = date.weekday();
     let month = date.month();
@@ -107,6 +110,16 @@ pub fn today() -> UserResponse {
         and we're in the {week_of_year}{week_of_year_th} week of the year. \
         Amazing, isn't it?!"
     ))
+}
+
+pub fn encipher(text: &str) -> UserResponse {
+    info!("received `encipher` command");
+    UserResponse::Encipher(Rot::new(text, RotType::Rot13).encipher())
+}
+
+pub fn decipher(text: &str) -> UserResponse {
+    info!("received `decipher` command");
+    UserResponse::Encipher(Rot::new(text, RotType::Rot13).decipher())
 }
 
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {

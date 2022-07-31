@@ -124,8 +124,10 @@ async fn handle_user_message(
         UserResponse::Ban(target) => handle_ban(settings, msg_id, client, target).await,
         UserResponse::Crate(res) => handle_crate(settings, msg_id, client, res).await,
         UserResponse::Doc(res) => handle_doc(settings, msg_id, client, res).await,
-        UserResponse::Today(date) => handle_today(settings, msg_id, client, date).await,
-        UserResponse::Custom(content) => handle_custom(settings, msg_id, client, content).await,
+        UserResponse::Today(text)
+        | UserResponse::Encipher(text)
+        | UserResponse::Decipher(text)
+        | UserResponse::Custom(text) => handle_string_reply(settings, msg_id, client, text).await,
         UserResponse::Unknown => Ok(()),
     }
 }
@@ -157,9 +159,12 @@ async fn handle_commands(
                 "Available commands: \
                 !help (or !bot), \
                 !links, \
+                !ban, \
                 !crate(s), \
                 !doc(s), \
-                !ban",
+                !today, \
+                !encipher, \
+                !decipher",
             ),
             |mut list, name| {
                 list.push_str(", !");
@@ -271,20 +276,7 @@ async fn handle_doc(
     Ok(())
 }
 
-async fn handle_today(
-    settings: Arc<CommandSettings>,
-    msg_id: String,
-    client: Client,
-    date: String,
-) -> Result<()> {
-    client
-        .say_in_response(settings.streamer.clone(), date, Some(msg_id))
-        .await?;
-
-    Ok(())
-}
-
-async fn handle_custom(
+async fn handle_string_reply(
     settings: Arc<CommandSettings>,
     msg_id: String,
     client: Client,

@@ -43,9 +43,12 @@ pub async fn commands(
                     `!help` (or `!bot`) gives a short info about this bot.
                     `!ahelp` gives a list of admin commands (if you're an admin).
                     `!links` gives you a list of links to sites where **{0}** is present.
+                    `!ban` refuse anything with the power of Gandalf.
                     `!crate(s)` get the link for any existing crate.
                     `!doc(s)` get the link for any element of any crate (or stdlib).
-                    `!ban` refuse anything with the power of Gandalf.
+                    `!today` get details about the current day.
+                    `!encipher` encrypt a message with top-notch cryptography.
+                    `!decipher` decrypt a message with top-notch cryptography.
 
                     Further custom commands:
                 ",
@@ -204,17 +207,7 @@ pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) ->
     Ok(())
 }
 
-pub async fn today(msg: ChannelMessage, http: Arc<Client>, date: String) -> Result<()> {
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&date)?
-        .send()
-        .await?;
-
-    Ok(())
-}
-
-pub async fn custom(msg: ChannelMessage, http: Arc<Client>, content: String) -> Result<()> {
+pub async fn string_reply(msg: ChannelMessage, http: Arc<Client>, content: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
         .content(&content)?
