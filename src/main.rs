@@ -8,20 +8,23 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, Commands as CommandSettings},
+    settings::{self, Commands as CommandSettings, Jaeger},
     state::{self, State},
     statistics::{self, Stats},
     twitch, AdminResponse, Message, OwnerResponse, Response,
 };
 use tokio::sync::{mpsc, RwLock};
 use tokio_shutdown::Shutdown;
-use tracing::{error, warn, Level};
-use tracing_subscriber::{filter::Targets, prelude::*};
+use tracing::{error, warn, Level, Subscriber};
+use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
+    let config = settings::load()?;
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
+        .with(config.tracing.jaeger.map(init_tracing).transpose()?)
         .with(
             Targets::new()
                 .with_target(env!("CARGO_CRATE_NAME"), Level::TRACE)
@@ -29,8 +32,6 @@ async fn main() -> Result<()> {
                 .with_default(Level::WARN),
         )
         .init();
-
-    let config = settings::load()?;
 
     let command_settings = Arc::new(config.commands);
     let state = state::load()?;
@@ -104,6 +105,27 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+fn init_tracing<S>(settings: Jaeger) -> Result<impl Layer<S>>
+where
+    for<'span> S: Subscriber + LookupSpan<'span>,
+{
+    use opentelemetry::global;
+    use opentelemetry::runtime;
+    use opentelemetry_jaeger::Propagator;
+
+    global::set_text_map_propagator(Propagator::new());
+    global::set_error_handler(|error| {
+        error!(target: "opentracing", %error);
+    })?;
+
+    let tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name(env!("CARGO_CRATE_NAME"))
+        .with_agent_endpoint((settings.host, settings.port.unwrap_or(6831)))
+        .install_batch(runtime::Tokio)?;
+
+    Ok(tracing_opentelemetry::layer().with_tracer(tracer))
+}
+
 async fn handle_user_message(
     settings: &Arc<CommandSettings>,
     state: &Arc<RwLock<State>>,
@@ -111,6 +133,7 @@ async fn handle_user_message(
     message: &Message,
 ) -> Result<Response> {
     handler::user_message(
+        message.span.clone(),
         Arc::clone(settings),
         Arc::clone(state),
         Arc::clone(statistics),
@@ -127,8 +150,13 @@ async fn handle_admin_message(
     statistics: &Arc<RwLock<Stats>>,
     message: &Message,
 ) -> Result<Response> {
-    match handler::admin_message(Arc::clone(state), Arc::clone(statistics), &message.content)
-        .await?
+    match handler::admin_message(
+        message.span.clone(),
+        Arc::clone(state),
+        Arc::clone(statistics),
+        &message.content,
+    )
+    .await?
     {
         AdminResponse::Unknown => handle_user_message(settings, state, statistics, message).await,
         resp => Ok(Response::Admin(resp)),
@@ -141,7 +169,14 @@ async fn handle_owner_message(
     statistics: &Arc<RwLock<Stats>>,
     message: &Message,
 ) -> Result<Response> {
-    match handler::owner_message(Arc::clone(state), &message.content, message.mention).await? {
+    match handler::owner_message(
+        message.span.clone(),
+        Arc::clone(state),
+        &message.content,
+        message.mention,
+    )
+    .await?
+    {
         OwnerResponse::Unknown => handle_admin_message(settings, state, statistics, message).await,
         resp => Ok(Response::Owner(resp)),
     }

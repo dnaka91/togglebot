@@ -1,16 +1,18 @@
 use std::{num::NonZeroU64, str::FromStr};
 
 use anyhow::{bail, Result};
-use tracing::info;
+use tracing::{info, instrument};
 
 use super::AsyncState;
 use crate::{state, AdminAction, AdminsResponse, OwnerResponse};
 
+#[instrument(skip_all)]
 pub fn help() -> OwnerResponse {
     info!("received `help` command");
     OwnerResponse::Help
 }
 
+#[instrument(skip_all)]
 pub async fn admins_list(state: AsyncState) -> OwnerResponse {
     info!("received `admins list` command");
     OwnerResponse::Admins(AdminsResponse::List(
@@ -18,6 +20,7 @@ pub async fn admins_list(state: AsyncState) -> OwnerResponse {
     ))
 }
 
+#[instrument(skip_all)]
 pub async fn admins_edit(state: AsyncState, action: &str, user_id: NonZeroU64) -> OwnerResponse {
     info!("received `admins` command");
 
@@ -31,7 +34,7 @@ pub async fn admins_edit(state: AsyncState, action: &str, user_id: NonZeroU64) -
     OwnerResponse::Admins(AdminsResponse::Edit(res().await))
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum Action {
     Add,
     Remove,
@@ -49,6 +52,7 @@ impl FromStr for Action {
     }
 }
 
+#[instrument(skip(state))]
 async fn update_admins(state: AsyncState, action: Action, user_id: NonZeroU64) -> Result<()> {
     let mut state = state.write().await;
 

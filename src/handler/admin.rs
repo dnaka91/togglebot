@@ -4,16 +4,18 @@ use std::{
 };
 
 use anyhow::{bail, ensure, Result};
-use tracing::info;
+use tracing::{info, instrument};
 
 use super::{AsyncState, AsyncStats};
 use crate::{state, AdminResponse, CustomCommandsResponse, Source};
 
+#[instrument(skip_all)]
 pub fn help() -> AdminResponse {
     info!("received `help` command");
     AdminResponse::Help
 }
 
+#[derive(Debug)]
 enum Action {
     Add,
     Remove,
@@ -31,6 +33,7 @@ impl FromStr for Action {
     }
 }
 
+#[instrument(skip_all)]
 pub async fn custom_commands_list(state: AsyncState) -> AdminResponse {
     info!("received `custom_commands list` command");
     AdminResponse::CustomCommands(CustomCommandsResponse::List(list_commands(state).await))
@@ -51,6 +54,7 @@ async fn list_commands(state: AsyncState) -> Result<BTreeMap<String, BTreeSet<So
         .collect())
 }
 
+#[instrument(skip_all)]
 pub async fn custom_commands(
     state: AsyncState,
     statistics: AsyncStats,
@@ -81,6 +85,7 @@ pub async fn custom_commands(
     AdminResponse::CustomCommands(CustomCommandsResponse::Edit(res().await))
 }
 
+#[derive(Debug)]
 enum CommandSource {
     Source(Source),
     All,
@@ -134,6 +139,7 @@ const RESERVED_COMMANDS: &[&str] = &[
     "admin",
 ];
 
+#[instrument(skip(state, statistics))]
 async fn update_commands(
     state: AsyncState,
     statistics: AsyncStats,
@@ -205,6 +211,7 @@ async fn update_commands(
     Ok(())
 }
 
+#[instrument(skip(stats))]
 pub async fn stats(stats: AsyncStats, date: Option<&str>) -> AdminResponse {
     let res = || async {
         let total = date

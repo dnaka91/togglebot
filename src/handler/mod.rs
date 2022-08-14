@@ -4,6 +4,7 @@ use std::{num::NonZeroU64, sync::Arc};
 
 use anyhow::{bail, Result};
 use tokio::sync::RwLock;
+use tracing::Span;
 
 use crate::{
     settings::{Commands as CommandSettings, Discord as DiscordSettings},
@@ -60,8 +61,9 @@ pub async fn access(settings: &DiscordSettings, state: AsyncState, author: &Auth
 }
 
 /// Handle any user facing message and prepare a response.
-#[tracing::instrument(skip_all, name = "user")]
+#[tracing::instrument(parent = span, skip_all, name = "user")]
 pub async fn user_message(
+    span: Span,
     settings: AsyncCommandSettings,
     state: AsyncState,
     statistics: AsyncStats,
@@ -159,8 +161,9 @@ pub async fn user_message(
 }
 
 /// Handle admin facing messages to control the bot and prepare a response.
-#[tracing::instrument(skip_all, name = "admin")]
+#[tracing::instrument(parent = span, skip_all, name = "admin")]
 pub async fn admin_message(
+    span: Span,
     state: AsyncState,
     statistics: AsyncStats,
     content: &str,
@@ -199,8 +202,9 @@ pub async fn admin_message(
 }
 
 /// Handle messages only accessible to owners defined in the settings and prepare a response.
-#[tracing::instrument(skip_all, name = "owner")]
+#[tracing::instrument(parent = span, skip_all, name = "owner")]
 pub async fn owner_message(
+    span: Span,
     state: AsyncState,
     content: &str,
     mention: Option<NonZeroU64>,
@@ -248,13 +252,21 @@ mod tests {
     async fn run_user_message(content: &str) -> Result<UserResponse> {
         tracing_subscriber::fmt::try_init().ok();
         let (settings, state, statistics, source) = defaults();
-        user_message(settings, state, statistics, content, source).await
+        user_message(
+            Span::current(),
+            settings,
+            state,
+            statistics,
+            content,
+            source,
+        )
+        .await
     }
 
     async fn run_admin_message(content: &str) -> Result<AdminResponse> {
         tracing_subscriber::fmt::try_init().ok();
         let (_, state, statistics, _) = defaults();
-        admin_message(state, statistics, content).await
+        admin_message(Span::current(), state, statistics, content).await
     }
 
     async fn run_owner_message(
@@ -263,7 +275,7 @@ mod tests {
     ) -> Result<OwnerResponse> {
         tracing_subscriber::fmt::try_init().ok();
         let (_, state, _, _) = defaults();
-        owner_message(state, content, mention).await
+        owner_message(Span::current(), state, content, mention).await
     }
 
     #[tokio::test]
@@ -337,7 +349,7 @@ mod tests {
                 .collect(),
         );
 
-        match user_message(settings, state, statistics, "!hi", source)
+        match user_message(Span::current(), settings, state, statistics, "!hi", source)
             .await
             .unwrap()
         {

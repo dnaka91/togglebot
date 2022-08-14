@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use tokio::{select, sync::oneshot};
 use tokio_shutdown::Shutdown;
-use tracing::{error, info};
+use tracing::{error, info, Span, instrument};
 use twitch_irc::{
     login::StaticLoginCredentials,
     message::{PrivmsgMessage, ServerMessage},
@@ -82,6 +82,7 @@ async fn handle_server_message(
     Ok(())
 }
 
+#[instrument(skip_all)]
 async fn handle_message(
     settings: Arc<CommandSettings>,
     queue: Queue,
@@ -89,6 +90,7 @@ async fn handle_message(
     client: Client,
 ) -> Result<()> {
     let message = Message {
+        span:Span::current(),
         source: Source::Twitch,
         content: msg.message_text.clone(),
         author: AuthorId::Twitch(msg.sender.id),

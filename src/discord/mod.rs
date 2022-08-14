@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use futures_util::StreamExt;
 use tokio::sync::oneshot;
 use tokio_shutdown::Shutdown;
-use tracing::{error, info};
+use tracing::{error, info, instrument, Span};
 use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
 use twilight_http::{request::channel::message::CreateMessage, Client};
 use twilight_model::channel::Message as ChannelMessage;
@@ -86,6 +86,7 @@ async fn handle_event(
     Ok(())
 }
 
+#[instrument(skip_all)]
 async fn handle_message(
     settings: Arc<CommandSettings>,
     queue: Queue,
@@ -98,6 +99,7 @@ async fn handle_message(
     }
 
     let message = Message {
+        span: Span::current(),
         source: Source::Discord,
         content: msg.content.clone(),
         author: AuthorId::Discord(msg.author.id.into()),

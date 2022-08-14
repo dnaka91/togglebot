@@ -5,18 +5,20 @@ use cienli::ciphers::rot::{Rot, RotType};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use time::OffsetDateTime;
-use tracing::info;
+use tracing::{info, instrument};
 
 use super::{AsyncCommandSettings, AsyncState};
 use crate::{CrateInfo, CrateSearch, Source, UserResponse};
 
 mod doc;
 
+#[instrument(skip_all)]
 pub fn help() -> UserResponse {
     info!("received `help` command");
     UserResponse::Help
 }
 
+#[instrument(skip_all)]
 pub async fn commands(state: AsyncState, source: Source) -> UserResponse {
     info!("received `commands` command");
     UserResponse::Commands(Ok(list_command_names(state, source).await))
@@ -38,16 +40,19 @@ async fn list_command_names(state: AsyncState, source: Source) -> Vec<String> {
         .collect()
 }
 
+#[instrument(skip_all)]
 pub fn links(settings: &AsyncCommandSettings) -> UserResponse {
     info!("received `links` command");
     UserResponse::Links(Arc::clone(&settings.links))
 }
 
+#[instrument(skip_all)]
 pub fn ban(target: &str) -> UserResponse {
     info!("received `ban` command");
     UserResponse::Ban(target.to_owned())
 }
 
+#[instrument(skip_all, name = "crate")]
 pub async fn crate_(name: &str) -> UserResponse {
     #[derive(Deserialize)]
     struct ApiResponse {
@@ -76,11 +81,13 @@ pub async fn crate_(name: &str) -> UserResponse {
     UserResponse::Crate(res.await)
 }
 
+#[instrument(skip_all)]
 pub async fn doc(path: &str) -> UserResponse {
     info!("received `doc` command");
     UserResponse::Doc(doc::find(path).await)
 }
 
+#[instrument(skip_all)]
 pub fn today() -> UserResponse {
     fn th(value: impl Into<u16>) -> &'static str {
         match value.into() {
@@ -112,16 +119,19 @@ pub fn today() -> UserResponse {
     ))
 }
 
+#[instrument(skip_all)]
 pub fn encipher(text: &str) -> UserResponse {
     info!("received `encipher` command");
     UserResponse::Encipher(Rot::new(text, RotType::Rot13).encipher())
 }
 
+#[instrument(skip_all)]
 pub fn decipher(text: &str) -> UserResponse {
     info!("received `decipher` command");
     UserResponse::Encipher(Rot::new(text, RotType::Rot13).decipher())
 }
 
+#[instrument(skip_all)]
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {
     state
         .read()

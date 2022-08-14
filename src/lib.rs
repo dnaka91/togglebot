@@ -18,6 +18,7 @@ pub use tokio::sync::{
     broadcast::Receiver as BroadcastReceiver, mpsc::Sender as MpscSender,
     oneshot::Sender as OneshotSender,
 };
+use tracing::Span;
 
 use crate::statistics::Statistics;
 
@@ -38,6 +39,8 @@ pub type Queue = MpscSender<(Message, OneshotSender<Response>)>;
 /// handler to parse and act upon the message.
 #[derive(Debug)]
 pub struct Message {
+    /// Tracing span to keep track of the origin of the message.
+    pub span: Span,
     /// Tells what service connector the message came from.
     pub source: Source,
     /// The whole message content.
