@@ -8,14 +8,14 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, Commands as CommandSettings, Jaeger},
+    settings::{self, Commands as CommandSettings, Jaeger, Levels, LogStyle, Logging},
     state::{self, State},
     statistics::{self, Stats},
     twitch, Message, Response,
 };
 use tokio::sync::{mpsc, RwLock};
 use tokio_shutdown::Shutdown;
-use tracing::{error, warn, Level, Subscriber};
+use tracing::{error, warn, Subscriber};
 use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
 
 #[tokio::main(flavor = "current_thread")]
@@ -23,14 +23,9 @@ async fn main() -> Result<()> {
     let config = settings::load()?;
 
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
+        .with(config.tracing.logging.map(init_logging))
         .with(config.tracing.jaeger.map(init_tracing).transpose()?)
-        .with(
-            Targets::new()
-                .with_target(env!("CARGO_CRATE_NAME"), Level::TRACE)
-                .with_target("docsearch", Level::TRACE)
-                .with_default(Level::WARN),
-        )
+        .with(init_targets(config.tracing.levels))
         .init();
 
     let command_settings = Arc::new(config.commands);
@@ -105,6 +100,20 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::needless_pass_by_value)]
+fn init_logging<S>(settings: Logging) -> impl Layer<S>
+where
+    for<'span> S: Subscriber + LookupSpan<'span>,
+{
+    let layer = tracing_subscriber::fmt::layer();
+
+    match settings.style {
+        LogStyle::Default => layer.boxed(),
+        LogStyle::Compact => layer.compact().boxed(),
+        LogStyle::Pretty => layer.pretty().boxed(),
+    }
+}
+
 fn init_tracing<S>(settings: Jaeger) -> Result<impl Layer<S>>
 where
     for<'span> S: Subscriber + LookupSpan<'span>,
@@ -123,6 +132,13 @@ where
         .install_batch(runtime::Tokio)?;
 
     Ok(tracing_opentelemetry::layer().with_tracer(tracer))
+}
+
+fn init_targets(settings: Levels) -> Targets {
+    Targets::new()
+        .with_default(settings.default)
+        .with_target(env!("CARGO_CRATE_NAME"), settings.togglebot)
+        .with_targets(settings.targets)
 }
 
 async fn handle_user_message(
