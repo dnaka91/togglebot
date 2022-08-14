@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use futures_util::StreamExt;
 use tokio::sync::oneshot;
 use tokio_shutdown::Shutdown;
-use tracing::{error, info, instrument, Span};
+use tracing::{error, info, info_span, instrument, Instrument, Span};
 use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
 use twilight_http::{request::channel::message::CreateMessage, Client};
 use twilight_model::channel::Message as ChannelMessage;
@@ -86,7 +86,7 @@ async fn handle_event(
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, name = "discord message", fields(source = %Source::Discord))]
 async fn handle_message(
     settings: Arc<CommandSettings>,
     queue: Queue,
@@ -98,29 +98,42 @@ async fn handle_message(
         return Ok(());
     }
 
-    let message = Message {
-        span: Span::current(),
-        source: Source::Discord,
-        content: msg.content.clone(),
-        author: AuthorId::Discord(msg.author.id.into()),
-        mention: msg
-            .mentions
-            .first()
-            .filter(|mention| !mention.bot)
-            .map(|mention| mention.id.into()),
-    };
-    let (tx, rx) = oneshot::channel();
+    let response = async {
+        let message = Message {
+            span: Span::current(),
+            source: Source::Discord,
+            content: msg.content.clone(),
+            author: AuthorId::Discord(msg.author.id.into()),
+            mention: msg
+                .mentions
+                .first()
+                .filter(|mention| !mention.bot)
+                .map(|mention| mention.id.into()),
+        };
 
-    if queue.send((message, tx)).await.is_ok() {
-        if let Ok(resp) = rx.await {
+        let (tx, rx) = oneshot::channel();
+
+        if queue.send((message, tx)).await.is_ok() {
+            Some(rx.await)
+        } else {
+            None
+        }
+    }
+    .instrument(info_span!("handle"))
+    .await;
+
+    if let Some(Ok(resp)) = response {
+        async {
             match resp {
                 Response::User(user_resp) => {
-                    handle_user_message(settings, user_resp, msg, http).await?;
+                    handle_user_message(settings, user_resp, msg, http).await
                 }
-                Response::Admin(admin_resp) => handle_admin_message(admin_resp, msg, http).await?,
-                Response::Owner(owner_resp) => handle_owner_message(owner_resp, msg, http).await?,
+                Response::Admin(admin_resp) => handle_admin_message(admin_resp, msg, http).await,
+                Response::Owner(owner_resp) => handle_owner_message(owner_resp, msg, http).await,
             }
         }
+        .instrument(info_span!("reply"))
+        .await?;
     }
 
     Ok(())

@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use tokio::{select, sync::oneshot};
 use tokio_shutdown::Shutdown;
-use tracing::{error, info, Span, instrument};
+use tracing::{error, info, info_span, instrument, Instrument, Span};
 use twitch_irc::{
     login::StaticLoginCredentials,
     message::{PrivmsgMessage, ServerMessage},
@@ -82,31 +82,43 @@ async fn handle_server_message(
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[instrument(skip_all, name = "twitch message", fields(source = %Source::Twitch))]
 async fn handle_message(
     settings: Arc<CommandSettings>,
     queue: Queue,
     msg: PrivmsgMessage,
     client: Client,
 ) -> Result<()> {
-    let message = Message {
-        span:Span::current(),
-        source: Source::Twitch,
-        content: msg.message_text.clone(),
-        author: AuthorId::Twitch(msg.sender.id),
-        mention: None,
-    };
-    let (tx, rx) = oneshot::channel();
+    let response = async {
+        let message = Message {
+            span: Span::current(),
+            source: Source::Twitch,
+            content: msg.message_text.clone(),
+            author: AuthorId::Twitch(msg.sender.id),
+            mention: None,
+        };
+        let (tx, rx) = oneshot::channel();
 
-    if queue.send((message, tx)).await.is_ok() {
-        if let Ok(resp) = rx.await {
+        if queue.send((message, tx)).await.is_ok() {
+            Some(rx.await)
+        } else {
+            None
+        }
+    }
+    .instrument(info_span!("handle"))
+    .await;
+
+    if let Some(Ok(resp)) = response {
+        async {
             match resp {
                 Response::User(user_resp) => {
-                    handle_user_message(settings, user_resp, msg.message_id, client).await?;
+                    handle_user_message(settings, user_resp, msg.message_id, client).await
                 }
-                Response::Admin(_) | Response::Owner(_) => {}
+                Response::Admin(_) | Response::Owner(_) => Ok(()),
             }
         }
+        .instrument(info_span!("reply"))
+        .await?;
     }
 
     Ok(())

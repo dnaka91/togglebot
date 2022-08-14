@@ -6,6 +6,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
+    fmt::{self, Display},
     num::NonZeroU64,
     sync::Arc,
 };
@@ -58,6 +59,15 @@ pub enum Source {
     Discord,
     /// Twitch source <https://twitch.tv>.
     Twitch,
+}
+
+impl Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Discord => "Discord",
+            Self::Twitch => "Twitch",
+        })
+    }
 }
 
 /// Unique identifier of the message author, one variant for each service the message might come
