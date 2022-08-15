@@ -1,4 +1,4 @@
-FROM rust:1.62 as builder
+FROM rust:1.63.0 as builder
 
 WORKDIR /volume
 
