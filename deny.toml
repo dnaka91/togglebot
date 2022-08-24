@@ -1,5 +1,8 @@
 [advisories]
-ignore = ["RUSTSEC-2020-0071"]
+ignore = [
+    "RUSTSEC-2020-0071",
+    "RUSTSEC-2021-0139",
+]
 
 [licenses]
 allow = [
@@ -30,9 +33,6 @@ license-files = [
 ]
 
 [bans]
-skip = [
-    { name = "ordered-float", version = "=1.1.1" },
-]
 skip-tree = [
     { name = "twitch-irc", depth = 4 },
 ]
