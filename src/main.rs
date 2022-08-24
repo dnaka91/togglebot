@@ -8,7 +8,7 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, Commands as CommandSettings, Jaeger, Levels, LogStyle, Logging},
+    settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging, Otlp},
     state::{self, State},
     statistics::{self, Stats},
     twitch, Message, Response,
@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     tracing_subscriber::registry()
         .with(config.tracing.logging.map(init_logging))
-        .with(config.tracing.jaeger.map(init_tracing).transpose()?)
+        .with(config.tracing.otlp.map(init_tracing).transpose()?)
         .with(init_targets(config.tracing.levels))
         .init();
 
@@ -114,21 +114,32 @@ where
     }
 }
 
-fn init_tracing<S>(settings: Jaeger) -> Result<impl Layer<S>>
+fn init_tracing<S>(settings: Otlp) -> Result<impl Layer<S>>
 where
     for<'span> S: Subscriber + LookupSpan<'span>,
 {
-    use opentelemetry::{global, runtime};
-    use opentelemetry_jaeger::Propagator;
+    use opentelemetry::{
+        global, runtime,
+        sdk::{trace, Resource},
+    };
+    use opentelemetry_otlp::WithExportConfig;
+    use opentelemetry_semantic_conventions::resource;
 
-    global::set_text_map_propagator(Propagator::new());
     global::set_error_handler(|error| {
         error!(target: "opentracing", %error);
     })?;
 
-    let tracer = opentelemetry_jaeger::new_pipeline()
-        .with_service_name(env!("CARGO_CRATE_NAME"))
-        .with_agent_endpoint((settings.host, settings.port.unwrap_or(6831)))
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .tonic()
+                .with_endpoint(settings.endpoint),
+        )
+        .with_trace_config(trace::config().with_resource(Resource::new([
+            resource::SERVICE_NAME.string(env!("CARGO_CRATE_NAME")),
+            resource::SERVICE_VERSION.string(env!("CARGO_PKG_VERSION")),
+        ])))
         .install_batch(runtime::Tokio)?;
 
     Ok(tracing_opentelemetry::layer().with_tracer(tracer))

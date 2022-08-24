@@ -64,9 +64,9 @@ pub struct Tracing {
     /// Logging details for **stdout**.
     #[serde(default)]
     pub logging: Option<Logging>,
-    /// Connection details for **Jaeger**.
+    /// Connection details for **OTLP** compatible collectors.
     #[serde(default)]
-    pub jaeger: Option<Jaeger>,
+    pub otlp: Option<Otlp>,
 }
 
 /// Configuration for different logging levels of various targets.
@@ -141,14 +141,11 @@ pub enum LogStyle {
     Pretty,
 }
 
-/// Details to connect and report tracing data to a **Jaeger** instance.
+/// Details to connect and report tracing data to a **OTLP** compatible instance.
 #[derive(Deserialize)]
-pub struct Jaeger {
-    /// Hostname of the instance.
-    pub host: String,
-    /// Optional alternative port (default is `6831`).
-    #[serde(default)]
-    pub port: Option<u16>,
+pub struct Otlp {
+    /// URL of the instance's endpoint, including the port.
+    pub endpoint: String,
 }
 
 /// Load the global bot configuration.
