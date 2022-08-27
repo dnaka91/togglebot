@@ -126,7 +126,7 @@ where
     use opentelemetry_semantic_conventions::resource;
 
     global::set_error_handler(|error| {
-        error!(target: "opentracing", %error);
+        error!(target: "opentelemetry", %error);
     })?;
 
     let tracer = opentelemetry_otlp::new_pipeline()
