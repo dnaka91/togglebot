@@ -236,7 +236,9 @@ fn is_owner_command(content: &str) -> bool {
 
 fn get_command(content: &str) -> Option<String> {
     content
-        .split_once(char::is_whitespace)
-        .and_then(|(cmd, _)| cmd.strip_prefix('!'))
+        .split(char::is_whitespace)
+        .next()
+        .unwrap_or(content)
+        .strip_prefix('!')
         .map(str::to_lowercase)
 }
