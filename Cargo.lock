@@ -1592,7 +1592,7 @@ dependencies = [
 [[package]]
 name = "tracing-quiver"
 version = "0.1.0"
-source = "git+https://github.com/dnaka91/archer.git#99e3c22b6910f83d7dbafaceba52537c95dff8c1"
+source = "git+https://github.com/dnaka91/archer.git#4692f0b56acb827f5d17641e8f60840802f472f9"
 dependencies = [
  "once_cell",
  "quanta",
