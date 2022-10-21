@@ -1,5 +1,4 @@
 #![deny(rust_2018_idioms, clippy::all, clippy::pedantic)]
-#![warn(clippy::nursery)]
 #![allow(clippy::map_err_ignore)]
 
 use std::{sync::Arc, time::Duration};
@@ -8,23 +7,32 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging, Otlp},
+    settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging, Quiver},
     state::{self, State},
     statistics::{self, Stats},
     twitch, Message, Response,
 };
 use tokio::sync::{mpsc, RwLock};
 use tokio_shutdown::Shutdown;
-use tracing::{error, warn, Subscriber};
+use tracing::{error, Subscriber};
+use tracing_quiver::Handle;
 use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let config = settings::load()?;
 
+    let (quiver, handle) = match config.tracing.quiver.map(init_tracing) {
+        Some(tracing) => {
+            let (quiver, handle) = tracing.await?;
+            (Some(quiver), Some(handle))
+        }
+        None => (None, None),
+    };
+
     tracing_subscriber::registry()
         .with(config.tracing.logging.map(init_logging))
-        .with(config.tracing.otlp.map(init_tracing).transpose()?)
+        .with(quiver)
         .with(init_targets(config.tracing.levels))
         .init();
 
@@ -97,6 +105,10 @@ async fn main() -> Result<()> {
         error!(error = ?e, "failed saving statistics to file system");
     }
 
+    if let Some(handle) = handle {
+        handle.shutdown(Duration::from_secs(5)).await;
+    }
+
     Ok(())
 }
 
@@ -114,35 +126,17 @@ where
     }
 }
 
-fn init_tracing<S>(settings: Otlp) -> Result<impl Layer<S>>
+async fn init_tracing<S>(settings: Quiver) -> Result<(impl Layer<S>, Handle)>
 where
     for<'span> S: Subscriber + LookupSpan<'span>,
 {
-    use opentelemetry::{
-        global, runtime,
-        sdk::{trace, Resource},
-    };
-    use opentelemetry_otlp::WithExportConfig;
-    use opentelemetry_semantic_conventions::resource;
-
-    global::set_error_handler(|error| {
-        error!(target: "opentelemetry", %error);
-    })?;
-
-    let tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(settings.endpoint),
-        )
-        .with_trace_config(trace::config().with_resource(Resource::new([
-            resource::SERVICE_NAME.string(env!("CARGO_CRATE_NAME")),
-            resource::SERVICE_VERSION.string(env!("CARGO_PKG_VERSION")),
-        ])))
-        .install_batch(runtime::Tokio)?;
-
-    Ok(tracing_opentelemetry::layer().with_tracer(tracer))
+    tracing_quiver::builder()
+        .with_server_addr(settings.address)
+        .with_server_cert(settings.certificate)
+        .with_resource(env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))
+        .build()
+        .await
+        .map_err(Into::into)
 }
 
 fn init_targets(settings: Levels) -> Targets {

@@ -148,13 +148,12 @@ async fn handle_user_message(
 
 async fn handle_help(settings: Arc<CommandSettings>, msg_id: String, client: Client) -> Result<()> {
     client
-        .say_in_response(
-            settings.streamer.clone(),
+        .say_in_reply_to(
+            &(&settings.streamer, &msg_id),
             "Thanks for asking, I'm a bot to help answer some typical questions. \
             Try out `!commands` command to see what I can do. \
             My source code is at https://github.com/dnaka91/togglebot"
                 .to_owned(),
-            Some(msg_id),
         )
         .await?;
 
@@ -193,7 +192,7 @@ async fn handle_commands(
     };
 
     client
-        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
+        .say_in_reply_to(&(&settings.streamer, &msg_id), message)
         .await?;
 
     Ok(())
@@ -206,8 +205,8 @@ async fn handle_links(
     links: Arc<HashMap<String, String>>,
 ) -> Result<()> {
     client
-        .say_in_response(
-            settings.streamer.clone(),
+        .say_in_reply_to(
+            &(&settings.streamer, &msg_id),
             links
                 .iter()
                 .enumerate()
@@ -221,7 +220,6 @@ async fn handle_links(
                     list.push_str(url);
                     list
                 }),
-            Some(msg_id),
         )
         .await?;
 
@@ -235,10 +233,9 @@ async fn handle_ban(
     target: String,
 ) -> Result<()> {
     client
-        .say_in_response(
-            settings.streamer.clone(),
+        .say_in_reply_to(
+            &(&settings.streamer, &msg_id),
             format!("{target}, YOU SHALL NOT PASS!!"),
-            Some(msg_id),
         )
         .await?;
 
@@ -263,7 +260,7 @@ async fn handle_crate(
     };
 
     client
-        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
+        .say_in_reply_to(&(&settings.streamer, &msg_id), message)
         .await?;
 
     Ok(())
@@ -284,7 +281,7 @@ async fn handle_doc(
     };
 
     client
-        .say_in_response(settings.streamer.clone(), message, Some(msg_id))
+        .say_in_reply_to(&(&settings.streamer, &msg_id), message)
         .await?;
 
     Ok(())
@@ -297,7 +294,7 @@ async fn handle_string_reply(
     content: String,
 ) -> Result<()> {
     client
-        .say_in_response(settings.streamer.clone(), content, Some(msg_id))
+        .say_in_reply_to(&(&settings.streamer, &msg_id), content)
         .await?;
 
     Ok(())

@@ -1,11 +1,11 @@
 [advisories]
 ignore = [
     "RUSTSEC-2020-0071",
-    "RUSTSEC-2021-0139",
 ]
 
 [licenses]
 allow = [
+    "BSD-2-Clause",
     "CC0-1.0",
     "MPL-2.0",
     "OpenSSL",
@@ -33,6 +33,13 @@ license-files = [
 ]
 
 [bans]
-skip-tree = [
-    { name = "twitch-irc", depth = 4 },
+skip = [
+    { name = "rustls-pemfile", version = "=0.2.1" },
+    { name = "time", version = "=0.1.43" },
+    { name = "wasi", version = "=0.10.2" },
+]
+
+[sources]
+allow-git = [
+    "https://github.com/dnaka91/archer.git",
 ]

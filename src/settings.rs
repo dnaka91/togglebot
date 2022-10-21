@@ -2,6 +2,7 @@
 
 use std::{
     collections::{HashMap, HashSet},
+    net::SocketAddr,
     num::NonZeroU64,
     sync::Arc,
 };
@@ -64,9 +65,9 @@ pub struct Tracing {
     /// Logging details for **stdout**.
     #[serde(default)]
     pub logging: Option<Logging>,
-    /// Connection details for **OTLP** compatible collectors.
+    /// Connection details for **Archer** collectors.
     #[serde(default)]
-    pub otlp: Option<Otlp>,
+    pub quiver: Option<Quiver>,
 }
 
 /// Configuration for different logging levels of various targets.
@@ -141,11 +142,14 @@ pub enum LogStyle {
     Pretty,
 }
 
-/// Details to connect and report tracing data to a **OTLP** compatible instance.
+/// Details to connect and report tracing data to a **Archer** instance, using its custom _Quiver_
+/// protocol for communication.
 #[derive(Deserialize)]
-pub struct Otlp {
-    /// URL of the instance's endpoint, including the port.
-    pub endpoint: String,
+pub struct Quiver {
+    /// Socket address of the server.
+    pub address: SocketAddr,
+    /// Server certificate, to verify the connection.
+    pub certificate: String,
 }
 
 /// Load the global bot configuration.
