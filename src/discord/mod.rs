@@ -206,6 +206,6 @@ impl<'a> ExecModelExt for CreateMessage<'a> {
     type Value = ChannelMessage;
 
     async fn send(self) -> Result<Self::Value> {
-        self.exec().await?.model().await.map_err(Into::into)
+        self.await?.model().await.map_err(Into::into)
     }
 }
