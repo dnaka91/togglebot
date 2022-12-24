@@ -153,8 +153,6 @@ async fn handle_user_message(
         UserResponse::Crate(res) => user::crate_(msg, http, res).await,
         UserResponse::Doc(res) => user::doc(msg, http, res).await,
         UserResponse::Today(content)
-        | UserResponse::Encipher(content)
-        | UserResponse::Decipher(content)
         | UserResponse::Custom(content) => user::string_reply(msg, http, content).await,
         UserResponse::Unknown => Ok(()),
     }

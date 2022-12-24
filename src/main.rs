@@ -7,7 +7,7 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging, Quiver},
+    settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging, Archer},
     state::{self, State},
     statistics::{self, Stats},
     twitch, Message, Response,
@@ -15,24 +15,24 @@ use togglebot::{
 use tokio::sync::{mpsc, RwLock};
 use tokio_shutdown::Shutdown;
 use tracing::{error, Subscriber};
-use tracing_quiver::Handle;
+use tracing_archer::Handle;
 use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let config = settings::load()?;
 
-    let (quiver, handle) = match config.tracing.quiver.map(init_tracing) {
+    let (tracing, handle) = match config.tracing.archer.map(init_tracing) {
         Some(tracing) => {
-            let (quiver, handle) = tracing.await?;
-            (Some(quiver), Some(handle))
+            let (tracing, handle) = tracing.await?;
+            (Some(tracing), Some(handle))
         }
         None => (None, None),
     };
 
     tracing_subscriber::registry()
         .with(config.tracing.logging.map(init_logging))
-        .with(quiver)
+        .with(tracing)
         .with(init_targets(config.tracing.levels))
         .init();
 
@@ -126,11 +126,11 @@ where
     }
 }
 
-async fn init_tracing<S>(settings: Quiver) -> Result<(impl Layer<S>, Handle)>
+async fn init_tracing<S>(settings: Archer) -> Result<(impl Layer<S>, Handle)>
 where
     for<'span> S: Subscriber + LookupSpan<'span>,
 {
-    tracing_quiver::builder()
+    tracing_archer::builder()
         .with_server_addr(settings.address)
         .with_server_cert(settings.certificate)
         .with_resource(env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))

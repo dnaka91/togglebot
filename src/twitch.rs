@@ -139,8 +139,6 @@ async fn handle_user_message(
         UserResponse::Crate(res) => handle_crate(settings, msg_id, client, res).await,
         UserResponse::Doc(res) => handle_doc(settings, msg_id, client, res).await,
         UserResponse::Today(text)
-        | UserResponse::Encipher(text)
-        | UserResponse::Decipher(text)
         | UserResponse::Custom(text) => handle_string_reply(settings, msg_id, client, text).await,
         UserResponse::Unknown => Ok(()),
     }
@@ -175,9 +173,7 @@ async fn handle_commands(
                 !ban, \
                 !crate(s), \
                 !doc(s), \
-                !today, \
-                !encipher, \
-                !decipher",
+                !today",
             ),
             |mut list, name| {
                 list.push_str(", !");

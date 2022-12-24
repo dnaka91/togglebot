@@ -118,10 +118,6 @@ pub enum UserResponse {
     Doc(Result<String>),
     /// Get the current date, with unneeded level of detail (in UTC).
     Today(String),
-    /// Encrypt a message with top-notch cryptography.
-    Encipher(String),
-    /// Decrypt a message previously encrypted with top-notch cryptography.
-    Decipher(String),
     /// Execute a custom command.
     Custom(String),
 }

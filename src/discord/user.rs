@@ -47,8 +47,6 @@ pub async fn commands(
                     `!crate(s)` get the link for any existing crate.
                     `!doc(s)` get the link for any element of any crate (or stdlib).
                     `!today` get details about the current day.
-                    `!encipher` encrypt a message with top-notch cryptography.
-                    `!decipher` decrypt a message with top-notch cryptography.
 
                     Further custom commands:
                 ",

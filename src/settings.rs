@@ -2,7 +2,6 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    net::SocketAddr,
     num::NonZeroU64,
     sync::Arc,
 };
@@ -67,7 +66,7 @@ pub struct Tracing {
     pub logging: Option<Logging>,
     /// Connection details for **Archer** collectors.
     #[serde(default)]
-    pub quiver: Option<Quiver>,
+    pub archer: Option<Archer>,
 }
 
 /// Configuration for different logging levels of various targets.
@@ -142,12 +141,12 @@ pub enum LogStyle {
     Pretty,
 }
 
-/// Details to connect and report tracing data to a **Archer** instance, using its custom _Quiver_
-/// protocol for communication.
+/// Details to connect and report tracing data to a **Archer** instance, using its custom protocol
+/// for communication.
 #[derive(Deserialize)]
-pub struct Quiver {
+pub struct Archer {
     /// Socket address of the server.
-    pub address: SocketAddr,
+    pub address: String,
     /// Server certificate, to verify the connection.
     pub certificate: String,
 }

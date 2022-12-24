@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::bail;
-use cienli::ciphers::rot::{Rot, RotType};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use time::OffsetDateTime;
@@ -117,18 +116,6 @@ pub fn today() -> UserResponse {
         and we're in the {week_of_year}{week_of_year_th} week of the year. \
         Amazing, isn't it?!"
     ))
-}
-
-#[instrument(skip_all)]
-pub fn encipher(text: &str) -> UserResponse {
-    info!("received `encipher` command");
-    UserResponse::Encipher(Rot::new(text, RotType::Rot13).encipher())
-}
-
-#[instrument(skip_all)]
-pub fn decipher(text: &str) -> UserResponse {
-    info!("received `decipher` command");
-    UserResponse::Encipher(Rot::new(text, RotType::Rot13).decipher())
 }
 
 #[instrument(skip_all)]
