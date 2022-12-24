@@ -7,7 +7,7 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging, Archer},
+    settings::{self, Archer, Commands as CommandSettings, Levels, LogStyle, Logging},
     state::{self, State},
     statistics::{self, Stats},
     twitch, Message, Response,

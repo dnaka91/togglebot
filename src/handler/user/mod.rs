@@ -111,10 +111,9 @@ pub fn today() -> UserResponse {
     let week_of_year_th = th(week_of_year);
 
     UserResponse::Today(format!(
-        "Today is {weekday}, {month} the {day}{day_th} of {year} in the UTC time zone. \
-        Did you know, this is the {day_of_year}{day_of_year_th} day of the year \
-        and we're in the {week_of_year}{week_of_year_th} week of the year. \
-        Amazing, isn't it?!"
+        "Today is {weekday}, {month} the {day}{day_th} of {year} in the UTC time zone. Did you \
+         know, this is the {day_of_year}{day_of_year_th} day of the year and we're in the \
+         {week_of_year}{week_of_year_th} week of the year. Amazing, isn't it?!"
     ))
 }
 
