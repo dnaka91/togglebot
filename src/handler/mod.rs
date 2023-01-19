@@ -210,11 +210,7 @@ pub async fn owner_message(
             ("owner_help" | "owner-help" | "ownerhelp" | "ohelp", None, None) => owner::help(),
             ("admins" | "admin", Some("list"), None) => owner::admins_list(state).await,
             ("admins" | "admin", Some(action), Some(_)) => {
-                if let Some(mention) = mention {
-                    owner::admins_edit(state, action, mention).await
-                } else {
-                    OwnerResponse::Unknown
-                }
+                owner::admins_edit(state, action, mention).await
             }
             _ => OwnerResponse::Unknown,
         },

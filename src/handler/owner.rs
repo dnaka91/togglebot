@@ -1,6 +1,6 @@
 use std::{num::NonZeroU64, str::FromStr};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use tracing::{info, instrument};
 
 use super::AsyncState;
@@ -21,11 +21,16 @@ pub async fn admins_list(state: AsyncState) -> OwnerResponse {
 }
 
 #[instrument(skip_all)]
-pub async fn admins_edit(state: AsyncState, action: &str, user_id: NonZeroU64) -> OwnerResponse {
+pub async fn admins_edit(
+    state: AsyncState,
+    action: &str,
+    user_id: Option<NonZeroU64>,
+) -> OwnerResponse {
     info!("received `admins` command");
 
     let res = || async {
         let action = action.parse()?;
+        let user_id = user_id.context("no user ID, is the user in the channel?")?;
         update_admins(state, action, user_id).await?;
 
         Ok(action.into())
