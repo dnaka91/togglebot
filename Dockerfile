@@ -1,4 +1,4 @@
-FROM rust:1.64 as builder
+FROM rust:1.66 as builder
 
 WORKDIR /volume
 
@@ -15,7 +15,7 @@ COPY src/ src/
 
 RUN touch src/main.rs && cargo build --release --target x86_64-unknown-linux-musl
 
-FROM alpine:3.16 as newuser
+FROM alpine:3.17 as newuser
 
 RUN echo "togglebot:x:1000:" > /tmp/group && \
     echo "togglebot:x:1000:1000::/dev/null:/sbin/nologin" > /tmp/passwd
