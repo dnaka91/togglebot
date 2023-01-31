@@ -153,12 +153,12 @@ pub struct Archer {
 
 /// Load the global bot configuration.
 pub fn load() -> Result<Config> {
-    let buf = std::fs::read(DIRS.config_file()).context("failed reading config file")?;
-    toml::from_slice(&buf).context("failed parsing settings")
+    let buf = std::fs::read_to_string(DIRS.config_file()).context("failed reading config file")?;
+    toml::from_str(&buf).context("failed parsing settings")
 }
 
 mod de {
-    use std::{collections::HashMap, fmt, hash::Hash, marker::PhantomData};
+    use std::{borrow::Cow, collections::HashMap, fmt, hash::Hash, marker::PhantomData};
 
     use serde::de::{self, DeserializeOwned, Deserializer, Visitor};
     use tracing::level_filters::LevelFilter;
@@ -217,7 +217,7 @@ mod de {
         {
             let mut map = HashMap::with_capacity(access.size_hint().unwrap_or(0));
 
-            while let Some((key, value)) = access.next_entry::<K, &'_ str>()? {
+            while let Some((key, value)) = access.next_entry::<K, Cow<'_, str>>()? {
                 let value = value.parse().map_err(de::Error::custom)?;
                 map.insert(key, value);
             }
