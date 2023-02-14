@@ -4,11 +4,10 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use futures_util::StreamExt;
 use tokio::sync::oneshot;
 use tokio_shutdown::Shutdown;
 use tracing::{error, info, info_span, instrument, Instrument, Span};
-use twilight_gateway::{Event, EventTypeFlags, Intents, Shard};
+use twilight_gateway::{Event, EventTypeFlags, Intents, Shard, ShardId};
 use twilight_http::{request::channel::message::CreateMessage, Client};
 use twilight_model::channel::Message as ChannelMessage;
 
@@ -35,37 +34,44 @@ pub async fn start(
 ) -> Result<()> {
     let http = Arc::new(Client::new(config.token.clone()));
 
-    let (shard, mut events) = Shard::builder(
-        config.token.clone(),
-        Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES | Intents::MESSAGE_CONTENT,
-    )
-    .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
-    .build();
-    let shard = Arc::new(shard);
-
-    shard.start().await?;
-
-    let shard_spawn = shard.clone();
+    let mut shard = Shard::with_config(
+        ShardId::ONE,
+        twilight_gateway::Config::builder(
+            config.token.clone(),
+            Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES | Intents::MESSAGE_CONTENT,
+        )
+        .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
+        .build(),
+    );
 
     tokio::spawn(async move {
-        shutdown.handle().await;
+        loop {
+            tokio::select! {
+                _ = shutdown.handle() => break,
+                res = shard.next_event() => match res {
+                    Ok(event) => {
+                        let settings = Arc::clone(&settings);
+                        let http = Arc::clone(&http);
+                        let queue = queue.clone();
+
+                        tokio::spawn(async move {
+                            if let Err(e) = handle_event(settings, queue, event, http).await {
+                                error!(error = ?e, "error during event handling");
+                            }
+                        });
+                    }
+                    Err(e) => {
+                        error!(error = ?e, "error receiving event");
+                        if e.is_fatal() {
+                            error!("error is fatal");
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         info!("discord connection shutting down");
-        shard_spawn.shutdown();
-    });
-
-    tokio::spawn(async move {
-        while let Some(event) = events.next().await {
-            let settings = Arc::clone(&settings);
-            let http = Arc::clone(&http);
-            let queue = queue.clone();
-
-            tokio::spawn(async move {
-                if let Err(e) = handle_event(settings, queue, event, http).await {
-                    error!(error = ?e, "error during event handling");
-                }
-            });
-        }
     });
 
     Ok(())
