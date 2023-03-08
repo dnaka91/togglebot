@@ -117,6 +117,26 @@ pub fn today() -> UserResponse {
     ))
 }
 
+pub fn ftoc(fahrenheit: &str) -> UserResponse {
+    UserResponse::FahrenheitToCelsius(match fahrenheit.parse::<f64>() {
+        Ok(fahrenheit) => {
+            let celsius = (fahrenheit - 32.0) / 1.8;
+            format!("{fahrenheit:.1}°F => {celsius:.1}°C")
+        }
+        Err(_) => "that doesn't appear to be a number?!".to_owned(),
+    })
+}
+
+pub fn ctof(celsius: &str) -> UserResponse {
+    UserResponse::CelsiusToFahrenheit(match celsius.parse::<f64>() {
+        Ok(celsius) => {
+            let fahrenheit = celsius * 1.8 + 32.0;
+            format!("{celsius:.1}°C => {fahrenheit:.1}°F")
+        }
+        Err(_) => "that doesn't appear to be a number?!".to_owned(),
+    })
+}
+
 #[instrument(skip_all)]
 pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {
     state

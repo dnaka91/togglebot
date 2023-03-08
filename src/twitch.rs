@@ -138,9 +138,10 @@ async fn handle_user_message(
         UserResponse::Ban(target) => handle_ban(settings, msg_id, client, target).await,
         UserResponse::Crate(res) => handle_crate(settings, msg_id, client, res).await,
         UserResponse::Doc(res) => handle_doc(settings, msg_id, client, res).await,
-        UserResponse::Today(text) | UserResponse::Custom(text) => {
-            handle_string_reply(settings, msg_id, client, text).await
-        }
+        UserResponse::Today(text)
+        | UserResponse::FahrenheitToCelsius(text)
+        | UserResponse::CelsiusToFahrenheit(text)
+        | UserResponse::Custom(text) => handle_string_reply(settings, msg_id, client, text).await,
         UserResponse::Unknown => Ok(()),
     }
 }
@@ -168,7 +169,8 @@ async fn handle_commands(
     let message = match res {
         Ok(names) => names.into_iter().fold(
             String::from(
-                "Available commands: !help (or !bot), !links, !ban, !crate(s), !doc(s), !today",
+                "Available commands: !help (or !bot), !links, !ban, !crate(s), !doc(s), !today, \
+                 !ftoc, !ctof",
             ),
             |mut list, name| {
                 list.push_str(", !");

@@ -130,6 +130,20 @@ pub async fn user_message(
                 .increment_builtin(BuiltinCommand::Today);
             user::today()
         }
+        ("ftoc", Some(fahrenheit)) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::FahrenheitToCelsius);
+            user::ftoc(fahrenheit)
+        }
+        ("ctof", Some(celsius)) => {
+            statistics
+                .write()
+                .await
+                .increment_builtin(BuiltinCommand::CelsiusToFahrenheit);
+            user::ctof(celsius)
+        }
         (name, None) => {
             let response = user::custom(state, source, name).await;
 
@@ -315,6 +329,42 @@ mod tests {
         match run_user_message("!doc anyhow").await.unwrap() {
             UserResponse::Doc(Ok(_)) => {}
             UserResponse::Doc(Err(e)) => panic!("{e:?}"),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_ftoc() {
+        match run_user_message("!ftoc 350").await.unwrap() {
+            UserResponse::FahrenheitToCelsius(msg) => assert_eq!("350.0°F => 176.7°C", msg),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_ftoc_invalid() {
+        match run_user_message("!ftoc test").await.unwrap() {
+            UserResponse::FahrenheitToCelsius(msg) => {
+                assert_eq!("that doesn't appear to be a number?!", msg);
+            }
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_ctof() {
+        match run_user_message("!ctof 176.67").await.unwrap() {
+            UserResponse::CelsiusToFahrenheit(msg) => assert_eq!("176.7°C => 350.0°F", msg),
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn user_cmd_ctof_invalid() {
+        match run_user_message("!ctof test").await.unwrap() {
+            UserResponse::CelsiusToFahrenheit(msg) => {
+                assert_eq!("that doesn't appear to be a number?!", msg);
+            }
             res => panic!("unexpected response: {res:?}"),
         }
     }

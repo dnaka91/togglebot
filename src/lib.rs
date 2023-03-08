@@ -118,6 +118,10 @@ pub enum UserResponse {
     Doc(Result<String>),
     /// Get the current date, with unneeded level of detail (in UTC).
     Today(String),
+    /// Convert Fahrenheit degrees to Celsius degrees.
+    FahrenheitToCelsius(String),
+    /// Convert Celsius degrees to Fahrenheit degrees.
+    CelsiusToFahrenheit(String),
     /// Execute a custom command.
     Custom(String),
 }

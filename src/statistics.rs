@@ -174,6 +174,10 @@ pub enum BuiltinCommand {
     Ban,
     /// Get the current date (in UTC).
     Today,
+    /// Convert Fahrenheit degrees to Celsius degrees.
+    FahrenheitToCelsius,
+    /// Convert Celsius degrees to Fahrenheit degrees.
+    CelsiusToFahrenheit,
     /// Any other command that may have existed in the past.
     ///
     /// This uses the `#[serde(other)]` configuration, so that commands can be deleted and then
@@ -195,6 +199,8 @@ impl BuiltinCommand {
             Self::Doc => "doc",
             Self::Ban => "ban",
             Self::Today => "today",
+            Self::FahrenheitToCelsius => "ftoc",
+            Self::CelsiusToFahrenheit => "ctof",
             Self::Deprecated => "deprecated",
         }
     }

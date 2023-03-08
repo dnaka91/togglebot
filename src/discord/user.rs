@@ -47,6 +47,8 @@ pub async fn commands(
                     `!crate(s)` get the link for any existing crate.
                     `!doc(s)` get the link for any element of any crate (or stdlib).
                     `!today` get details about the current day.
+                    `!ftoc` convert Fahrenheit to Celsius.
+                    `!ctof` convert Celsius to Fahrenheit.
 
                     Further custom commands:
                 ",
