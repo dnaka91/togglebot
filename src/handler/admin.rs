@@ -153,12 +153,12 @@ async fn update_commands(
         "command names must not start with an `!`",
     );
     ensure!(
-        name.starts_with(|c| ('a'..='z').contains(&c)),
+        name.starts_with(|c: char| c.is_ascii_lowercase()),
         "command names must start with a lowercase letter",
     );
     ensure!(
         name.chars()
-            .all(|c| c == '_' || ('a'..='z').contains(&c) || ('0'..='9').contains(&c)),
+            .all(|c| c == '_' || c.is_ascii_lowercase() || c.is_ascii_digit()),
         "command names must consist of only letters, numbers and underscores",
     );
     ensure!(
