@@ -5,29 +5,29 @@ authors = ["Dominik Nakamura <dnaka91@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.70"
-async-trait = "0.1.67"
+anyhow = "1.0.71"
+async-trait = "0.1.68"
 docsearch = "0.3.2"
-indexmap = { version = "1.9.2", features = ["serde-1"] }
+indexmap = { version = "1.9.3", features = ["serde-1"] }
 indoc = "2.0.1"
 lru_time_cache = "0.11.11"
 once_cell = "1.17.1"
-reqwest = { version = "0.11.15", default-features = false, features = ["gzip", "json", "rustls-tls"] }
-serde = { version = "1.0.158", features = ["derive", "rc"] }
-serde_json = "1.0.94"
-time = { version = "0.3.20", features = ["formatting", "macros", "parsing", "serde-human-readable", "serde-well-known"] }
-tokio = { version = "1.26.0", features = ["fs", "macros", "rt", "sync"] }
+reqwest = { version = "0.11.18", default-features = false, features = ["gzip", "json", "rustls-tls"] }
+serde = { version = "1.0.163", features = ["derive", "rc"] }
+serde_json = "1.0.96"
+time = { version = "0.3.21", features = ["formatting", "macros", "parsing", "serde-human-readable", "serde-well-known"] }
+tokio = { version = "1.28.1", features = ["fs", "macros", "rt", "sync"] }
 tokio-shutdown = "0.1.3"
 toml = "0.7.3"
 tracing = "0.1.37"
 tracing-archer = { git = "https://github.com/dnaka91/archer.git" }
-tracing-subscriber = "0.3.16"
-twilight-gateway = { version = "0.15.1", default-features = false, features = ["rustls-webpki-roots", "zlib-stock"] }
-twilight-http = { version = "0.15.1", default-features = false, features = ["rustls-webpki-roots"] }
-twilight-model = "0.15.1"
-twilight-util = { version = "0.15.1", features = ["builder"] }
+tracing-subscriber = "0.3.17"
+twilight-gateway = { version = "0.15.2", default-features = false, features = ["rustls-webpki-roots", "zlib-stock"] }
+twilight-http = { version = "0.15.2", default-features = false, features = ["rustls-webpki-roots"] }
+twilight-model = "0.15.2"
+twilight-util = { version = "0.15.2", features = ["builder"] }
 twitch-irc = { version = "5.0.0", default-features = false, features = ["transport-tcp-rustls-webpki-roots"] }
-unidirs = "0.1.0"
+unidirs = "0.1.1"
 
 [dev-dependencies]
 pretty_assertions = "1.3.0"

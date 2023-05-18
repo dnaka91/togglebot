@@ -122,17 +122,17 @@ pub async fn stats(
 
             message.push_str("\n\n**Built-in**");
             for (cmd, count) in stats.command_usage.builtin {
-                let _ = write!(&mut message, "\n`{}`: {count}", cmd.name());
+                write!(&mut message, "\n`{}`: {count}", cmd.name()).ok();
             }
 
             message.push_str("\n\n**Custom**");
             for (cmd, count) in stats.command_usage.custom {
-                let _ = write!(&mut message, "\n`{cmd}`: {count}");
+                write!(&mut message, "\n`{cmd}`: {count}").ok();
             }
 
             message.push_str("\n\n**Unknown**");
             for (cmd, count) in stats.command_usage.unknown {
-                let _ = write!(&mut message, "\n`{cmd}`: {count}");
+                write!(&mut message, "\n`{cmd}`: {count}").ok();
             }
 
             message

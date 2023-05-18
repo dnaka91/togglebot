@@ -35,9 +35,16 @@ license-files = [
 [bans]
 skip = [
     { name = "base64", version = "=0.13.1" },
-    { name = "time", version = "=0.1.43" },
-    { name = "wasi", version = "=0.10.2" },
-    { name = "windows-sys", version = "=0.42.0" },
+    { name = "hyper-rustls", version = "=0.23.2" },
+    { name = "rustls", version = "=0.20.8" },
+    { name = "socket2", version = "=0.4.9" },
+    { name = "syn", version = "=1.0.109" },
+    { name = "time", version = "=0.1.45" },
+    { name = "tokio-rustls", version = "=0.23.4" },
+    { name = "wasi", version = "=0.11.0" },
+]
+skip-tree = [
+    { name = "windows-sys", version = "=0.45.0", depth = 3 },
 ]
 
 [sources]

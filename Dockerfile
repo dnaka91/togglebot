@@ -1,11 +1,11 @@
-FROM rust:1.68 as builder
+FROM rust:1.69 as builder
 
 WORKDIR /volume
 
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends musl-tools=1.2.2-1 && \
+    apt-get install -y --no-install-recommends musl-tools && \
     rustup target add x86_64-unknown-linux-musl && \
     cargo init --bin
 
