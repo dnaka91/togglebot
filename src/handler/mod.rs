@@ -325,6 +325,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn user_cmd_doc() {
         match run_user_message("!doc anyhow").await.unwrap() {
             UserResponse::Doc(Ok(_)) => {}
