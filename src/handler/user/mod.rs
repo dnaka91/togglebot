@@ -89,7 +89,7 @@ pub async fn doc(path: &str) -> UserResponse {
 #[instrument(skip_all)]
 pub fn today() -> UserResponse {
     fn th(value: impl Into<u16>) -> &'static str {
-        match value.into() {
+        match value.into() % 10 {
             1 => "st",
             2 => "nd",
             3 => "rd",
