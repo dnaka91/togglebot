@@ -1,6 +1,8 @@
 //! Implementation for the rust doc search command that is rather complex and lives in its own
 //! module.
 
+#![allow(dead_code)]
+
 use std::time::Duration;
 
 use anyhow::{bail, Result};
