@@ -18,7 +18,7 @@ use tracing::{error, Subscriber};
 use tracing_archer::Handle;
 use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> Result<()> {
     let config = settings::load()?;
 
