@@ -49,7 +49,7 @@ pub fn load() -> Result<State> {
     serde_json::from_slice(&state).context("failed parsing state data")
 }
 
-/// Syncronize the current in-memory state back to the file system.
+/// Synchronize the current in-memory state back to the file system.
 pub async fn save(state: &State) -> Result<()> {
     if cfg!(test) {
         return Ok(());

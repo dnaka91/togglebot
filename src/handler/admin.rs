@@ -99,7 +99,7 @@ impl FromStr for CommandSource {
             "discord" => Self::Source(Source::Discord),
             "twitch" => Self::Source(Source::Twitch),
             "all" => Self::All,
-            _ => bail!("unkown source `{s}`"),
+            _ => bail!("unknown source `{s}`"),
         })
     }
 }
