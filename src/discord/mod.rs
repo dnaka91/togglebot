@@ -84,7 +84,7 @@ async fn handle_event(
     http: Arc<Client>,
 ) -> Result<()> {
     match event {
-        Event::MessageCreate(msg) => handle_message(settings, queue, msg.0, http).await?,
+        Event::MessageCreate(msg) => Box::pin(handle_message(settings, queue, msg.0, http)).await?,
         Event::Ready(_) => info!("discord connection ready, listening for events"),
         _ => {}
     }
