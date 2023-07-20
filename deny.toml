@@ -38,7 +38,6 @@ skip = [
     { name = "hashbrown", version = "=0.12.3" },
     { name = "hyper-rustls", version = "=0.23.2" },
     { name = "indexmap", version = "=1.9.3" },
-    { name = "miniz_oxide", version = "=0.6.2" },
     { name = "rustls", version = "=0.20.8" },
     { name = "socket2", version = "=0.4.9" },
     { name = "syn", version = "=1.0.109" },
