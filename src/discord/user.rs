@@ -160,10 +160,7 @@ pub async fn crate_(
                         .field(EmbedFieldBuilder::new("Repository", info.repository))
                         .field(EmbedFieldBuilder::new(
                             "More information",
-                            format!(
-                                "https://lib.rs/crates/{0} or\nhttps://crates.io/crates/{0}",
-                                info.name
-                            ),
+                            format!("https://crates.io/crates/{0}", info.name),
                         ))
                         .build(),
                 ),

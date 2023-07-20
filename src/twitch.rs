@@ -243,7 +243,7 @@ async fn handle_crate(
 ) -> Result<()> {
     let message = match res {
         Ok(search) => match search {
-            CrateSearch::Found(info) => format!("https://lib.rs/crates/{}", info.name),
+            CrateSearch::Found(info) => format!("https://crates.io/crates/{}", info.name),
             CrateSearch::NotFound(message) => message,
         },
         Err(e) => {
