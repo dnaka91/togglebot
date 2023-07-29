@@ -81,13 +81,9 @@ pub async fn crate_(name: &str) -> UserResponse {
 }
 
 #[instrument(skip_all)]
-pub async fn doc(_path: &str) -> UserResponse {
+pub async fn doc(path: &str) -> UserResponse {
     info!("received `doc` command");
-    // TODO: this command currently doesn't work due to changes in the search index format
-    // UserResponse::Doc(doc::find(path).await)
-    UserResponse::Doc(Ok("Sorry, this command currently doesn't work. It's \
-                          complicated"
-        .to_owned()))
+    UserResponse::Doc(doc::find(path).await)
 }
 
 #[instrument(skip_all)]
