@@ -25,7 +25,7 @@ type Client = TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>;
 /// oneshot channel to listen for any possible replies to a message. The shutdown handle is used
 /// to gracefully disconnect from Twitch, before fully quitting the application.
 #[allow(clippy::missing_panics_doc)]
-pub async fn start(
+pub fn start(
     config: &TwitchSettings,
     settings: Arc<CommandSettings>,
     queue: Queue,

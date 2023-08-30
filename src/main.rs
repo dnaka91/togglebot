@@ -66,15 +66,13 @@ async fn main() -> Result<()> {
         Arc::clone(&command_settings),
         queue_tx.clone(),
         shutdown.clone(),
-    )
-    .await?;
+    )?;
     twitch::start(
         &config.twitch,
         Arc::clone(&command_settings),
         queue_tx,
         shutdown,
-    )
-    .await?;
+    )?;
 
     while let Some((message, reply)) = queue_rx.recv().await {
         let res = async {
