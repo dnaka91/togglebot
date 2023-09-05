@@ -15,7 +15,7 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Configure cache
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Rust (nightly)
         uses: dtolnay/rust-toolchain@nightly
         with:
@@ -55,7 +55,7 @@ jobs:
     continue-on-error: ${{ matrix.checks == 'advisories' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Check ${{ matrix.checks }}
@@ -72,7 +72,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Generate Docker metadata
         id: meta
         uses: docker/metadata-action@v4
