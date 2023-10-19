@@ -42,7 +42,7 @@ pub fn start(
     tokio::spawn(async move {
         loop {
             select! {
-                _ = shutdown.handle() => break,
+                () = shutdown.handle() => break,
                 message = messages.recv() => {
                     if let Some(message) = message {
                         let settings = Arc::clone(&settings);

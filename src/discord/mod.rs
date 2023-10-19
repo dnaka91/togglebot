@@ -47,7 +47,7 @@ pub fn start(
     tokio::spawn(async move {
         loop {
             tokio::select! {
-                _ = shutdown.handle() => break,
+                () = shutdown.handle() => break,
                 res = shard.next_event() => match res {
                     Ok(event) => {
                         let settings = Arc::clone(&settings);
