@@ -32,9 +32,8 @@ license-files = [
 [bans]
 skip = [
     { name = "base64", version = "0.13" },
-    { name = "hashbrown", version = "0.12" },
+    { name = "bitflags", version = "1" },
     { name = "hyper-rustls", version = "0.23" },
-    { name = "indexmap", version = "1" },
     { name = "ring", version = "0.16" },
     { name = "rustls", version = "0.20" },
     { name = "socket2", version = "0.4" },
