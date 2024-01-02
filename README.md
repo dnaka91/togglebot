@@ -4,8 +4,8 @@
 [![Twitch][twitch-img]][twitch-url]
 [![Discord][discord-img]][discord-url]
 
-[build-img]: https://img.shields.io/github/workflow/status/dnaka91/togglebot/CI/main?style=for-the-badge
-[build-url]: https://github.com/dnaka91/togglebot/actions?query=workflow%3ACI
+[build-img]: https://img.shields.io/github/actions/workflow/status/dnaka91/togglebot/ci.yml?branch=main&style=for-the-badge
+[build-url]: https://github.com/dnaka91/togglebot/actions/workflows/ci.yml
 [twitch-img]: https://img.shields.io/badge/twitch-togglebit-9146ff?style=for-the-badge&logo=twitch&logoColor=white
 [twitch-url]: https://twitch.tv/togglebit
 [discord-img]: https://img.shields.io/badge/discord-togglebit-7289da?style=for-the-badge&logo=discord&logoColor=white
