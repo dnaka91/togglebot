@@ -33,5 +33,5 @@ unidirs = "0.1.1"
 pretty_assertions = "1.4.0"
 
 [profile.release]
-lto = true
+lto = "thin"
 strip = true
