@@ -2,8 +2,6 @@ FROM rust:1.75 as builder
 
 WORKDIR /volume
 
-ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
-
 RUN apt-get update && \
     apt-get install -y --no-install-recommends musl-tools && \
     rustup target add x86_64-unknown-linux-musl && \
