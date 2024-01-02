@@ -3,7 +3,6 @@ ignore = ["RUSTSEC-2023-0065"]
 
 [licenses]
 allow = [
-    "BSD-2-Clause",
     "MPL-2.0",
     "OpenSSL",
 ]
@@ -36,7 +35,6 @@ skip = [
     { name = "hyper-rustls", version = "0.23" },
     { name = "ring", version = "0.16" },
     { name = "rustls", version = "0.20" },
-    { name = "socket2", version = "0.4" },
     { name = "spin", version = "0.5" },
     { name = "syn", version = "1" },
     { name = "tokio-rustls", version = "0.23" },
