@@ -13,23 +13,23 @@ pub struct Dirs {
     statistics_file: Utf8PathBuf,
     statistics_temp_file: Utf8PathBuf,
     doc_indexes_dir: Utf8PathBuf,
-    dirs: UnifiedDirs,
+    base: UnifiedDirs,
 }
 
 impl Dirs {
     fn new() -> Result<Self> {
-        let dirs = UnifiedDirs::simple("rocks", "dnaka91", env!("CARGO_PKG_NAME"))
+        let base = UnifiedDirs::simple("rocks", "dnaka91", env!("CARGO_PKG_NAME"))
             .default()
             .context("failed finding project directories")?;
 
         Ok(Self {
-            settings_file: dirs.config_dir().join("config.toml"),
-            state_file: dirs.data_dir().join("state.json"),
-            state_temp_file: dirs.data_dir().join("~temp-state.json"),
-            statistics_file: dirs.data_dir().join("statistics.json"),
-            statistics_temp_file: dirs.data_dir().join("~temp-statistics.json"),
-            doc_indexes_dir: dirs.cache_dir().join("doc-indexes"),
-            dirs,
+            settings_file: base.config_dir().join("config.toml"),
+            state_file: base.data_dir().join("state.json"),
+            state_temp_file: base.data_dir().join("~temp-state.json"),
+            statistics_file: base.data_dir().join("statistics.json"),
+            statistics_temp_file: base.data_dir().join("~temp-statistics.json"),
+            doc_indexes_dir: base.cache_dir().join("doc-indexes"),
+            base,
         })
     }
 
@@ -38,7 +38,7 @@ impl Dirs {
     }
 
     pub fn data_dir(&self) -> &Utf8Path {
-        self.dirs.data_dir()
+        self.base.data_dir()
     }
 
     pub fn state_file(&self) -> &Utf8Path {
