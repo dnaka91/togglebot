@@ -73,7 +73,7 @@ impl Stats {
     /// is deleted.
     pub fn erase_custom(&mut self, name: &str) {
         for stats in [&mut self.current.1, &mut self.total] {
-            stats.command_usage.custom.remove(name);
+            stats.command_usage.custom.shift_remove(name);
         }
     }
 }
@@ -244,9 +244,11 @@ fn limit_size(map: &mut IndexMap<String, u64>, limit: usize) {
         .map(|(k, v)| (*v, k.clone()))
         .collect::<IndexMap<_, _>>();
 
-    for cmd in inverse.into_values().take(map.len() - 50) {
-        map.remove(&cmd);
+    for cmd in inverse.into_values().take(map.len() - limit) {
+        map.swap_remove(&cmd);
     }
+
+    sort(map);
 }
 
 /// Sort any index map, first descending by the value (the usage counter), then ascending by the
