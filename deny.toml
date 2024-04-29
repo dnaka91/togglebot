@@ -1,12 +1,16 @@
 [advisories]
-ignore = ["RUSTSEC-2023-0065"]
+version = 2
 
 [licenses]
+version = 2
 allow = [
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
     "MPL-2.0",
     "OpenSSL",
 ]
-allow-osi-fsf-free = "both"
 exceptions = [
     { allow = ["AGPL-3.0"], name = "togglebot", version = "*" },
     { allow = ["Unicode-DFS-2016"], name = "unicode-ident", version = "*" },
@@ -30,20 +34,21 @@ license-files = [
 
 [bans]
 skip = [
-    { name = "base64", version = "0.13" },
+    { name = "base64", version = "0.21" },
     { name = "bitflags", version = "1" },
-    { name = "hyper-rustls", version = "0.23" },
-    { name = "ring", version = "0.16" },
-    { name = "rustls", version = "0.20" },
-    { name = "spin", version = "0.5" },
+    { name = "rustls", version = "0.22" },
+    { name = "rustls-webpki", version = "0.101" },
     { name = "syn", version = "1" },
-    { name = "tokio-rustls", version = "0.23" },
-    { name = "untrusted", version = "0.7" },
     { name = "wasi", version = "0.11" },
-    { name = "webpki-roots", version = "0.22" },
+    { name = "winnow", version = "0.5" },
+]
+skip-tree = [
+    { name = "twitch-irc", version = "5", depth = 2 },
+    { name = "windows-sys", version = "0.48", depth = 3 },
 ]
 
 [sources]
 allow-git = [
     "https://github.com/dnaka91/archer.git",
+    "https://github.com/quinn-rs/quinn.git",
 ]

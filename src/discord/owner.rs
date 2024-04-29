@@ -24,7 +24,7 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             !admin(s) list
             ```
             List all currently configured admin users.
-        "})?
+        "})
         .send()
         .await?;
 
@@ -45,7 +45,7 @@ pub async fn admins_list(
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&message)?
+        .content(&message)
         .send()
         .await?;
 
@@ -71,7 +71,7 @@ pub async fn admins_edit(
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&message)?
+        .content(&message)
         .send()
         .await?;
 

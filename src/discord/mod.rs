@@ -7,7 +7,9 @@ use async_trait::async_trait;
 use tokio::sync::oneshot;
 use tokio_shutdown::Shutdown;
 use tracing::{error, info, info_span, instrument, Instrument, Span};
-use twilight_gateway::{Event, EventTypeFlags, Intents, Shard, ShardId};
+use twilight_gateway::{
+    error::ReceiveMessageErrorType, Event, EventTypeFlags, Intents, Shard, ShardId, StreamExt,
+};
 use twilight_http::{request::channel::message::CreateMessage, Client};
 use twilight_model::channel::Message as ChannelMessage;
 
@@ -36,20 +38,18 @@ pub fn start(
 
     let mut shard = Shard::with_config(
         ShardId::ONE,
-        twilight_gateway::Config::builder(
+        twilight_gateway::Config::new(
             config.token.clone(),
             Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES | Intents::MESSAGE_CONTENT,
-        )
-        .event_types(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE)
-        .build(),
+        ),
     );
 
     tokio::spawn(async move {
         loop {
             tokio::select! {
                 () = shutdown.handle() => break,
-                res = shard.next_event() => match res {
-                    Ok(event) => {
+                res = shard.next_event(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE) => match res {
+                    Some(Ok(event)) => {
                         let settings = Arc::clone(&settings);
                         let http = Arc::clone(&http);
                         let queue = queue.clone();
@@ -60,13 +60,14 @@ pub fn start(
                             }
                         });
                     }
-                    Err(e) => {
+                    Some(Err(e)) => {
                         error!(error = ?e, "error receiving event");
-                        if e.is_fatal() {
+                        if matches!(e.kind(), ReceiveMessageErrorType::WebSocket) {
                             error!("error is fatal");
                             break;
                         }
                     }
+                    None => break,
                 }
             }
         }

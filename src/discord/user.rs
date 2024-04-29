@@ -23,7 +23,7 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             Try out the `!commands` command to see what I can do.
 
             My source code is at <https://github.com/dnaka91/togglebot>
-        "})?
+        "})
         .send()
         .await?;
 
@@ -72,7 +72,7 @@ pub async fn commands(
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&message)?
+        .content(&message)
         .send()
         .await?;
 
@@ -101,7 +101,7 @@ pub async fn links(
                     list.push('>');
                     list
                 }),
-        )?
+        )
         .send()
         .await?;
 
@@ -113,7 +113,7 @@ pub async fn ban(msg: ChannelMessage, http: Arc<Client>, target: String) -> Resu
         .reply(msg.id)
         .content(&format!(
             "{target}, **YOU SHALL NOT PASS!!**\n\n{GANDALF_GIF}",
-        ))?
+        ))
         .send()
         .await?;
 
@@ -168,8 +168,8 @@ pub async fn crate_(
             };
             http.create_message(msg.channel_id)
                 .reply(msg.id)
-                .content(&content)?
-                .embeds(&[embed])?
+                .content(&content)
+                .embeds(&[embed])
                 .send()
                 .await?;
         }
@@ -177,7 +177,7 @@ pub async fn crate_(
             error!(error = ?e, "failed searching for crate");
             http.create_message(msg.channel_id)
                 .reply(msg.id)
-                .content("Sorry, something went wrong looking up the crate")?
+                .content("Sorry, something went wrong looking up the crate")
                 .send()
                 .await?;
         }
@@ -197,7 +197,7 @@ pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) ->
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&message)?
+        .content(&message)
         .send()
         .await?;
 
@@ -207,7 +207,7 @@ pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) ->
 pub async fn string_reply(msg: ChannelMessage, http: Arc<Client>, content: String) -> Result<()> {
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&content)?
+        .content(&content)
         .send()
         .await?;
 

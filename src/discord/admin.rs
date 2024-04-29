@@ -42,7 +42,7 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             ```
             Get statistics about command usage, either for the **current month** or the \
             overall counters for **all time**.
-        "})?
+        "})
         .send()
         .await?;
 
@@ -78,7 +78,7 @@ pub async fn custom_commands_list(
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&message)?
+        .content(&message)
         .send()
         .await?;
 
@@ -97,7 +97,7 @@ pub async fn custom_commands_edit(
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&message)?
+        .content(&message)
         .send()
         .await?;
 
@@ -144,7 +144,7 @@ pub async fn stats(
 
     http.create_message(msg.channel_id)
         .reply(msg.id)
-        .content(&message)?
+        .content(&message)
         .send()
         .await?;
 
