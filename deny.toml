@@ -50,5 +50,4 @@ skip-tree = [
 [sources]
 allow-git = [
     "https://github.com/dnaka91/archer.git",
-    "https://github.com/quinn-rs/quinn.git",
 ]
