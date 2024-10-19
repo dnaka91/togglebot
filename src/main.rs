@@ -71,30 +71,36 @@ async fn main() -> Result<()> {
         &config.twitch,
         Arc::clone(&command_settings),
         queue_tx,
-        shutdown,
+        shutdown.clone(),
     )?;
 
-    while let Some((message, reply)) = queue_rx.recv().await {
-        let res = async {
-            match handler::access(&config.discord, Arc::clone(&state), &message.author).await {
-                Access::Standard => {
-                    handle_user_message(&command_settings, &state, &statistics, message).await
-                }
-                Access::Admin => {
-                    handle_admin_message(&command_settings, &state, &statistics, message).await
-                }
-                Access::Owner => {
-                    handle_owner_message(&command_settings, &state, &statistics, message).await
-                }
-            }
-        };
+    loop {
+        tokio::select! {
+            () = shutdown.handle() => break,
+            item = queue_rx.recv() => {
+                let Some((message, reply)) = item else { break };
+                let res = async {
+                    match handler::access(&config.discord, Arc::clone(&state), &message.author).await {
+                        Access::Standard => {
+                            handle_user_message(&command_settings, &state, &statistics, message).await
+                        }
+                        Access::Admin => {
+                            handle_admin_message(&command_settings, &state, &statistics, message).await
+                        }
+                        Access::Owner => {
+                            handle_owner_message(&command_settings, &state, &statistics, message).await
+                        }
+                    }
+                };
 
-        match res.await {
-            Ok(resp) => {
-                reply.send(resp).ok();
-            }
-            Err(e) => {
-                error!(error = ?e, "error during event handling");
+                match res.await {
+                    Ok(resp) => {
+                        reply.send(resp).ok();
+                    }
+                    Err(e) => {
+                        error!(error = ?e, "error during event handling");
+                    }
+                }
             }
         }
     }

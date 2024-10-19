@@ -145,10 +145,7 @@ pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserRespon
         .custom_commands
         .get(name)
         .and_then(|content| content.get(&source))
-        .map(|content| {
-            info!("user: received custom `{name}` command");
-            content
-        })
+        .inspect(|_| info!("user: received custom `{name}` command"))
         .cloned()
         .map_or(UserResponse::Unknown, UserResponse::Custom)
 }

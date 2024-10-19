@@ -1,17 +1,15 @@
 //! Discord service connector that allows to receive commands from Discord servers.
 
-use std::sync::Arc;
+use std::{
+    fmt::{self, Display},
+    sync::Arc,
+};
 
 use anyhow::Result;
-use async_trait::async_trait;
+use poise::serenity_prelude::{self as serenity, UserId};
 use tokio::sync::oneshot;
 use tokio_shutdown::Shutdown;
 use tracing::{error, info, info_span, instrument, Instrument, Span};
-use twilight_gateway::{
-    error::ReceiveMessageErrorType, Event, EventTypeFlags, Intents, Shard, ShardId, StreamExt,
-};
-use twilight_http::{request::channel::message::CreateMessage, Client};
-use twilight_model::channel::Message as ChannelMessage;
 
 use crate::{
     settings::{Commands as CommandSettings, Discord as DiscordSettings},
@@ -22,6 +20,354 @@ use crate::{
 mod admin;
 mod owner;
 mod user;
+
+type Context<'a> = poise::ApplicationContext<'a, State, anyhow::Error>;
+
+// --------------------------------------------
+// OWNERS
+// --------------------------------------------
+
+#[allow(clippy::unused_async)]
+#[poise::command(
+    slash_command,
+    owners_only,
+    category = "Owner",
+    subcommands("admins_add", "admins_remove", "admins_list")
+)]
+async fn admins(_: Context<'_>) -> Result<()> {
+    Ok(())
+}
+
+/// Add a user to/from the admin list.
+///
+/// An admin has access to most of the bot-controlling commands.
+#[poise::command(slash_command, owners_only, category = "Owner", rename = "add")]
+async fn admins_add(ctx: Context<'_>, user: UserId) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!admins add @{user}"),
+            author: ctx.author().id,
+            mention: Some(user),
+        },
+    )
+    .await
+}
+
+/// Remove a user to/from the admin list.
+///
+/// An admin has access to most of the bot-controlling commands.
+#[poise::command(slash_command, owners_only, category = "Owner", rename = "remove")]
+async fn admins_remove(ctx: Context<'_>, user: UserId) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!admins remove @{user}"),
+            author: ctx.author().id,
+            mention: Some(user),
+        },
+    )
+    .await
+}
+
+/// List all currently configured admin users.
+#[poise::command(slash_command, owners_only, category = "Owner", rename = "list")]
+async fn admins_list(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: "!admins list".to_owned(),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+// --------------------------------------------
+// ADMINS
+// --------------------------------------------
+
+/// Show information about available owner commands. **Only available if you're an owner yourself.**
+#[poise::command(slash_command, category = "Admin")]
+async fn ohelp(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: "!help".to_owned(),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+#[allow(clippy::unused_async)]
+#[poise::command(
+    slash_command,
+    category = "Owner",
+    subcommands(
+        "custom_commands_add",
+        "custom_commands_remove",
+        "custom_commands_list"
+    )
+)]
+async fn custom_commands(_: Context<'_>) -> Result<()> {
+    Ok(())
+}
+
+#[derive(poise::ChoiceParameter)]
+enum Target {
+    /// Everywhere (Discord and Twitch).
+    All,
+    /// Only Discord.
+    Discord,
+    /// Only Twitch.
+    Twitch,
+}
+
+impl Display for Target {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::All => "all",
+            Self::Discord => "discord",
+            Self::Twitch => "twitch",
+        })
+    }
+}
+
+/// Add a custom command that has fixed content and can be anything.
+///
+/// The command can be modified for all sources or individually. Command names must start with a
+/// lowercase letter, only consist of lowercase letters, numbers and underscores and must not start
+/// with the `!`.
+#[poise::command(slash_command, category = "Owner", rename = "add")]
+async fn custom_commands_add(
+    ctx: Context<'_>,
+    target: Target,
+    name: String,
+    content: String,
+) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!custom_commands add {target} {name} {content}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Remove a custom command that has fixed content and can be anything.
+///
+/// The command can be modified for all sources or individually. Command names must start with a
+/// lowercase letter, only consist of lowercase letters, numbers and underscores and must not start
+/// with the `!`.
+#[poise::command(slash_command, category = "Owner", rename = "remove")]
+async fn custom_commands_remove(
+    ctx: Context<'_>,
+    target: Target,
+    name: String,
+    content: String,
+) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!custom_commands remove {target} {name} {content}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// List all currently available custom commands.
+#[poise::command(slash_command, category = "Owner", rename = "list")]
+async fn custom_commands_list(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: "!custom_commands list".to_owned(),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+#[derive(poise::ChoiceParameter)]
+enum Time {
+    Current,
+    Total,
+}
+
+impl Display for Time {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Current => "current",
+            Self::Total => "total",
+        })
+    }
+}
+
+/// Get statistics about command usage.
+///
+/// Either for the **current month** or the overall counters for **all time**.
+#[poise::command(slash_command, category = "Owner")]
+async fn stats(ctx: Context<'_>, time: Time) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!stats {time}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+// --------------------------------------------
+// USERS
+// --------------------------------------------
+
+/// Gives a list of admin commands (if you're an admin).
+#[poise::command(slash_command, category = "User")]
+async fn ahelp(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: "!ahelp".to_owned(),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Gives a short info about this bot.
+#[poise::command(slash_command, aliases("bot"), category = "User")]
+async fn help(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: "!help".to_owned(),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// List all available commands of the bot.
+#[poise::command(slash_command, category = "User")]
+async fn commands(ctx: Context<'_>, command: Option<String>) -> Result<()> {
+    poise::builtins::help(
+        ctx.into(),
+        command.as_deref(),
+        poise::builtins::HelpConfiguration::default(),
+    )
+    .await
+    .map_err(Into::into)
+}
+
+/// Gives you a list of links to sites where the streamer is present.
+#[poise::command(slash_command, category = "User")]
+async fn links(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: "!links".to_owned(),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Refuse anything with the power of Gandalf.
+#[poise::command(slash_command, category = "User")]
+async fn ban(ctx: Context<'_>, target: String) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!ban {target}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Get the link for any existing crate.
+#[poise::command(slash_command, category = "User")]
+async fn crates(ctx: Context<'_>, name: String) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!crates {name}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Get the link for any element of any crate (or stdlib).
+#[poise::command(slash_command, category = "User")]
+async fn docs(ctx: Context<'_>, path: String) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!docs {path}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Get details about the current day.
+#[poise::command(slash_command, category = "User")]
+async fn today(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: "!today".to_owned(),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Convert Fahrenheit to Celsius.
+#[poise::command(slash_command, category = "User")]
+async fn ftoc(ctx: Context<'_>, fahrenheit: f64) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!ftoc {fahrenheit}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
+
+/// Convert Celsius to Fahrenheit.
+#[poise::command(slash_command, category = "User")]
+async fn ctof(ctx: Context<'_>, celsius: f64) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: format!("!ctof {celsius}"),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
 
 /// Initiate and run the Discord bot connection in a background task.
 ///
@@ -34,88 +380,97 @@ pub fn start(
     queue: Queue,
     shutdown: Shutdown,
 ) -> Result<()> {
-    let http = Arc::new(Client::new(config.token.clone()));
-
-    let mut shard = Shard::with_config(
-        ShardId::ONE,
-        twilight_gateway::Config::new(
-            config.token.clone(),
-            Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES | Intents::MESSAGE_CONTENT,
-        ),
-    );
+    let token = config.token.clone();
+    let framework = poise::Framework::builder()
+        .options(poise::FrameworkOptions {
+            commands: vec![
+                // owners
+                admins(),
+                // admins
+                ohelp(),
+                custom_commands(),
+                stats(),
+                // users
+                ahelp(),
+                help(),
+                commands(),
+                links(),
+                ban(),
+                crates(),
+                docs(),
+                today(),
+                ftoc(),
+                ctof(),
+            ],
+            ..Default::default()
+        })
+        .setup(|ctx, _ready, framework| {
+            Box::pin(async move {
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                anyhow::Ok(State { settings, queue })
+            })
+        })
+        .build();
 
     tokio::spawn(async move {
-        loop {
-            tokio::select! {
-                () = shutdown.handle() => break,
-                res = shard.next_event(EventTypeFlags::READY | EventTypeFlags::MESSAGE_CREATE) => match res {
-                    Some(Ok(event)) => {
-                        let settings = Arc::clone(&settings);
-                        let http = Arc::clone(&http);
-                        let queue = queue.clone();
+        let mut client =
+            match serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
+                .framework(framework)
+                .await
+            {
+                Ok(client) => client,
+                Err(e) => {
+                    error!(?e, "failed creating discord client");
+                    return;
+                }
+            };
 
-                        tokio::spawn(async move {
-                            if let Err(e) = handle_event(settings, queue, event, http).await {
-                                error!(error = ?e, "error during event handling");
-                            }
-                        });
-                    }
-                    Some(Err(e)) => {
-                        error!(error = ?e, "error receiving event");
-                        if matches!(e.kind(), ReceiveMessageErrorType::WebSocket) {
-                            error!("error is fatal");
-                            break;
-                        }
-                    }
-                    None => break,
+        info!("discord connection ready, listening for events");
+
+        tokio::select! {
+            () = shutdown.handle() => {}
+            res = client.start() => {
+                if let Err(e) = res {
+                    error!(error = ?e, "failed running discord client");
                 }
             }
         }
 
+        client.shard_manager.shutdown_all().await;
         info!("discord connection shutting down");
     });
 
     Ok(())
 }
 
-async fn handle_event(
+#[derive(Clone)]
+struct State {
     settings: Arc<CommandSettings>,
     queue: Queue,
-    event: Event,
-    http: Arc<Client>,
-) -> Result<()> {
-    match event {
-        Event::MessageCreate(msg) => Box::pin(handle_message(settings, queue, msg.0, http)).await?,
-        Event::Ready(_) => info!("discord connection ready, listening for events"),
-        _ => {}
-    }
+}
 
-    Ok(())
+struct SerenityMessage {
+    content: String,
+    author: UserId,
+    mention: Option<UserId>,
 }
 
 #[instrument(skip_all, name = "discord message", fields(source = %Source::Discord))]
-async fn handle_message(
-    settings: Arc<CommandSettings>,
-    queue: Queue,
-    msg: ChannelMessage,
-    http: Arc<Client>,
-) -> Result<()> {
-    if msg.author.bot {
+async fn handle_message(ctx: Context<'_>, msg: SerenityMessage) -> Result<()> {
+    if ctx.author().bot {
         // Ignore bots and our own messages.
         return Ok(());
     }
+
+    let queue = ctx.data().queue.clone();
 
     let response = async {
         let message = Message {
             span: Span::current(),
             source: Source::Discord,
             content: msg.content.clone(),
-            author: AuthorId::Discord(msg.author.id.into()),
-            mention: msg
-                .mentions
-                .first()
-                .filter(|mention| !mention.bot)
-                .map(|mention| mention.id.into()),
+            author: AuthorId::Discord(msg.author.into()),
+            mention: msg.mention.map(Into::into),
         };
 
         let (tx, rx) = oneshot::channel();
@@ -132,11 +487,9 @@ async fn handle_message(
     if let Some(Ok(resp)) = response {
         async {
             match resp {
-                Response::User(user_resp) => {
-                    handle_user_message(settings, user_resp, msg, http).await
-                }
-                Response::Admin(admin_resp) => handle_admin_message(admin_resp, msg, http).await,
-                Response::Owner(owner_resp) => handle_owner_message(owner_resp, msg, http).await,
+                Response::User(user_resp) => handle_user_message(user_resp, ctx).await,
+                Response::Admin(admin_resp) => handle_admin_message(admin_resp, ctx).await,
+                Response::Owner(owner_resp) => handle_owner_message(owner_resp, ctx).await,
             }
         }
         .instrument(info_span!("reply"))
@@ -146,73 +499,41 @@ async fn handle_message(
     Ok(())
 }
 
-async fn handle_user_message(
-    settings: Arc<CommandSettings>,
-    resp: UserResponse,
-    msg: ChannelMessage,
-    http: Arc<Client>,
-) -> Result<()> {
+async fn handle_user_message(resp: UserResponse, ctx: Context<'_>) -> Result<()> {
     match resp {
-        UserResponse::Help => user::help(msg, http).await,
-        UserResponse::Commands(res) => user::commands(settings, msg, http, res).await,
-        UserResponse::Links(links) => user::links(msg, http, links).await,
-        UserResponse::Ban(target) => user::ban(msg, http, target).await,
-        UserResponse::Crate(res) => user::crate_(msg, http, res).await,
-        UserResponse::Doc(res) => user::doc(msg, http, res).await,
+        UserResponse::Help => user::help(ctx).await,
+        UserResponse::Commands(res) => user::commands(ctx, res).await,
+        UserResponse::Links(links) => user::links(ctx, links).await,
+        UserResponse::Ban(target) => user::ban(ctx, target).await,
+        UserResponse::Crate(res) => user::crate_(ctx, res).await,
+        UserResponse::Doc(res) => user::doc(ctx, res).await,
         UserResponse::Today(content)
         | UserResponse::FahrenheitToCelsius(content)
         | UserResponse::CelsiusToFahrenheit(content)
-        | UserResponse::Custom(content) => user::string_reply(msg, http, content).await,
+        | UserResponse::Custom(content) => user::string_reply(ctx, content).await,
         UserResponse::Unknown => Ok(()),
     }
 }
 
-async fn handle_admin_message(
-    resp: AdminResponse,
-    msg: ChannelMessage,
-    http: Arc<Client>,
-) -> Result<()> {
+async fn handle_admin_message(resp: AdminResponse, ctx: Context<'_>) -> Result<()> {
     match resp {
-        AdminResponse::Help => admin::help(msg, http).await,
+        AdminResponse::Help => admin::help(ctx).await,
         AdminResponse::CustomCommands(resp) => match resp {
-            CustomCommandsResponse::List(res) => admin::custom_commands_list(msg, http, res).await,
-            CustomCommandsResponse::Edit(res) => admin::custom_commands_edit(msg, http, res).await,
+            CustomCommandsResponse::List(res) => admin::custom_commands_list(ctx, res).await,
+            CustomCommandsResponse::Edit(res) => admin::custom_commands_edit(ctx, res).await,
         },
-        AdminResponse::Statistics(res) => admin::stats(msg, http, res).await,
+        AdminResponse::Statistics(res) => admin::stats(ctx, res).await,
         AdminResponse::Unknown => Ok(()),
     }
 }
 
-async fn handle_owner_message(
-    resp: OwnerResponse,
-    msg: ChannelMessage,
-    http: Arc<Client>,
-) -> Result<()> {
+async fn handle_owner_message(resp: OwnerResponse, ctx: Context<'_>) -> Result<()> {
     match resp {
-        OwnerResponse::Help => owner::help(msg, http).await,
+        OwnerResponse::Help => owner::help(ctx).await,
         OwnerResponse::Admins(resp) => match resp {
-            AdminsResponse::List(res) => owner::admins_list(msg, http, res).await,
-            AdminsResponse::Edit(res) => owner::admins_edit(msg, http, res).await,
+            AdminsResponse::List(res) => owner::admins_list(ctx, res).await,
+            AdminsResponse::Edit(res) => owner::admins_edit(ctx, res).await,
         },
         OwnerResponse::Unknown => Ok(()),
-    }
-}
-
-/// Simple trait that combines the new `value.exec().await?.model.await` chain into a simple
-/// method call.
-#[async_trait]
-trait ExecModelExt {
-    type Value;
-
-    /// Send the command by calling `exec()` and `model()`.
-    async fn send(self) -> Result<Self::Value>;
-}
-
-#[async_trait]
-impl<'a> ExecModelExt for CreateMessage<'a> {
-    type Value = ChannelMessage;
-
-    async fn send(self) -> Result<Self::Value> {
-        self.await?.model().await.map_err(Into::into)
     }
 }

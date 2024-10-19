@@ -36,7 +36,10 @@ license-files = [
 skip = [
     { name = "base64", version = "0.21" },
     { name = "bitflags", version = "1" },
+    { name = "hashbrown", version = "0.14" },
+    { name = "http", version = "0.2" },
     { name = "rustls", version = "0.22" },
+    { name = "rustls-pemfile", version = "1" },
     { name = "rustls-webpki", version = "0.101" },
     { name = "syn", version = "1" },
     { name = "wasi", version = "0.11" },

@@ -1,17 +1,14 @@
-use std::{fmt::Write, num::NonZeroU64, sync::Arc};
+use std::{fmt::Write, num::NonZeroU64};
 
 use anyhow::Result;
 use indoc::indoc;
-use twilight_http::Client;
-use twilight_model::channel::Message as ChannelMessage;
+use poise::{serenity_prelude::CreateAllowedMentions, CreateReply};
 
-use super::ExecModelExt;
+use super::Context;
 use crate::{emojis, AdminAction};
 
-pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(indoc! {"
+pub async fn help(ctx: Context<'_>) -> Result<()> {
+    ctx.reply(indoc! {"
             Hey there, I support the following owner commands:
 
             ```
@@ -25,17 +22,11 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             ```
             List all currently configured admin users.
         "})
-        .send()
         .await?;
-
     Ok(())
 }
 
-pub async fn admins_list(
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    user_ids: Vec<NonZeroU64>,
-) -> Result<()> {
+pub async fn admins_list(ctx: Context<'_>, user_ids: Vec<NonZeroU64>) -> Result<()> {
     let message = user_ids
         .into_iter()
         .fold(String::from("current admins are:"), |mut buf, id| {
@@ -43,20 +34,18 @@ pub async fn admins_list(
             buf
         });
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)
-        .send()
-        .await?;
+    ctx.send(
+        CreateReply::default()
+            .reply(true)
+            .content(message)
+            .allowed_mentions(CreateAllowedMentions::new()),
+    )
+    .await?;
 
     Ok(())
 }
 
-pub async fn admins_edit(
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    res: Result<AdminAction>,
-) -> Result<()> {
+pub async fn admins_edit(ctx: Context<'_>, res: Result<AdminAction>) -> Result<()> {
     let message = match res {
         Ok(action) => format!(
             "{} user {} admin list",
@@ -69,11 +58,7 @@ pub async fn admins_edit(
         Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)
-        .send()
-        .await?;
+    ctx.reply(message).await?;
 
     Ok(())
 }

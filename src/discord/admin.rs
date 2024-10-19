@@ -1,21 +1,16 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write,
-    sync::Arc,
 };
 
 use anyhow::Result;
 use indoc::indoc;
-use twilight_http::Client;
-use twilight_model::channel::Message as ChannelMessage;
 
-use super::ExecModelExt;
+use super::Context;
 use crate::{emojis, statistics::Statistics, Source};
 
-pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(indoc! {"
+pub async fn help(ctx: Context<'_>) -> Result<()> {
+    ctx.reply(indoc! {"
             Hey there, I support the following admin commands:
 
             ```
@@ -43,15 +38,13 @@ pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
             Get statistics about command usage, either for the **current month** or the \
             overall counters for **all time**.
         "})
-        .send()
         .await?;
 
     Ok(())
 }
 
 pub async fn custom_commands_list(
-    msg: ChannelMessage,
-    http: Arc<Client>,
+    ctx: Context<'_>,
     res: Result<BTreeMap<String, BTreeSet<Source>>>,
 ) -> Result<()> {
     let message = match res {
@@ -76,39 +69,23 @@ pub async fn custom_commands_list(
         Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)
-        .send()
-        .await?;
+    ctx.reply(message).await?;
 
     Ok(())
 }
 
-pub async fn custom_commands_edit(
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    res: Result<()>,
-) -> Result<()> {
+pub async fn custom_commands_edit(ctx: Context<'_>, res: Result<()>) -> Result<()> {
     let message = match res {
         Ok(()) => format!("{} custom commands updated", emojis::OK_HAND),
         Err(e) => format!("{} some error happened: {e}", emojis::COLLISION),
     };
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)
-        .send()
-        .await?;
+    ctx.reply(message).await?;
 
     Ok(())
 }
 
-pub async fn stats(
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    res: Result<(bool, Statistics)>,
-) -> Result<()> {
+pub async fn stats(ctx: Context<'_>, res: Result<(bool, Statistics)>) -> Result<()> {
     let message = match res {
         Ok((total, stats)) => {
             let mut message = format!(
@@ -142,11 +119,7 @@ pub async fn stats(
         }
     };
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)
-        .send()
-        .await?;
+    ctx.reply(message).await?;
 
     Ok(())
 }

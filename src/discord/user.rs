@@ -2,40 +2,30 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
 use indoc::{formatdoc, indoc};
+use poise::{serenity_prelude::CreateEmbed, CreateReply};
 use time::{format_description::FormatItem, macros::format_description, UtcOffset};
 use tracing::error;
-use twilight_http::Client;
-use twilight_model::channel::Message as ChannelMessage;
-use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
-use super::ExecModelExt;
-use crate::{settings::Commands as CommandSettings, CrateSearch};
+use super::Context;
+use crate::CrateSearch;
 
 /// Gandalf's famous "You shall not pass!" scene.
 const GANDALF_GIF: &str =
     "https://tenor.com/view/you-shall-not-pass-lotr-do-not-enter-not-allowed-scream-gif-16729885";
 
-pub async fn help(msg: ChannelMessage, http: Arc<Client>) -> Result<()> {
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(indoc! {"
+pub async fn help(ctx: Context<'_>) -> Result<()> {
+    ctx.reply(indoc! {"
             Thanks for asking, I'm a bot to help answer some typical questions.
             Try out the `!commands` command to see what I can do.
 
             My source code is at <https://github.com/dnaka91/togglebot>
         "})
-        .send()
         .await?;
 
     Ok(())
 }
 
-pub async fn commands(
-    settings: Arc<CommandSettings>,
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    res: Result<Vec<String>>,
-) -> Result<()> {
+pub async fn commands(ctx: Context<'_>, res: Result<Vec<String>>) -> Result<()> {
     let message = match res {
         Ok(names) => names.into_iter().enumerate().fold(
             formatdoc! {"
@@ -52,7 +42,7 @@ pub async fn commands(
 
                     Further custom commands:
                 ",
-                settings.streamer,
+                ctx.data().settings.streamer,
             },
             |mut list, (i, name)| {
                 if i > 0 {
@@ -70,61 +60,43 @@ pub async fn commands(
         }
     };
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)
-        .send()
-        .await?;
+    ctx.reply(message).await?;
 
     Ok(())
 }
 
-pub async fn links(
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    links: Arc<HashMap<String, String>>,
-) -> Result<()> {
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(
-            &links
-                .iter()
-                .enumerate()
-                .fold(String::new(), |mut list, (i, (name, url))| {
-                    if i > 0 {
-                        list.push('\n');
-                    }
+pub async fn links(ctx: Context<'_>, links: Arc<HashMap<String, String>>) -> Result<()> {
+    ctx.reply(
+        links
+            .iter()
+            .enumerate()
+            .fold(String::new(), |mut list, (i, (name, url))| {
+                if i > 0 {
+                    list.push('\n');
+                }
 
-                    list.push_str(name);
-                    list.push_str(": <");
-                    list.push_str(url);
-                    list.push('>');
-                    list
-                }),
-        )
-        .send()
-        .await?;
+                list.push_str(name);
+                list.push_str(": <");
+                list.push_str(url);
+                list.push('>');
+                list
+            }),
+    )
+    .await?;
 
     Ok(())
 }
 
-pub async fn ban(msg: ChannelMessage, http: Arc<Client>, target: String) -> Result<()> {
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&format!(
-            "{target}, **YOU SHALL NOT PASS!!**\n\n{GANDALF_GIF}",
-        ))
-        .send()
-        .await?;
+pub async fn ban(ctx: Context<'_>, target: String) -> Result<()> {
+    ctx.reply(&format!(
+        "{target}, **YOU SHALL NOT PASS!!**\n\n{GANDALF_GIF}",
+    ))
+    .await?;
 
     Ok(())
 }
 
-pub async fn crate_(
-    msg: ChannelMessage,
-    http: Arc<Client>,
-    res: Result<CrateSearch>,
-) -> Result<()> {
+pub async fn crate_(ctx: Context<'_>, res: Result<CrateSearch>) -> Result<()> {
     const FORMAT: &[FormatItem<'static>] =
         format_description!("[year]-[month]-[day] [hour]:[minute] UTC");
 
@@ -133,14 +105,15 @@ pub async fn crate_(
             let (content, embed) = match search {
                 CrateSearch::Found(info) => (
                     String::new(),
-                    EmbedBuilder::new()
+                    CreateEmbed::new()
                         .title(format!("{} (v{})", info.name, info.newest_version))
                         .description(info.description)
-                        .field(EmbedFieldBuilder::new(
+                        .field(
                             "Last update",
                             info.updated_at.to_offset(UtcOffset::UTC).format(&FORMAT)?,
-                        ))
-                        .field(EmbedFieldBuilder::new(
+                            true,
+                        )
+                        .field(
                             "Downloads",
                             if info.downloads > 1_000_000 {
                                 format!("{}+M", info.downloads / 1_000_000)
@@ -149,36 +122,36 @@ pub async fn crate_(
                             } else {
                                 info.downloads.to_string()
                             },
-                        ))
-                        .field(EmbedFieldBuilder::new(
+                            true,
+                        )
+                        .field(
                             "Documentation",
                             info.documentation.unwrap_or(format!(
                                 "https://docs.rs/{0}/{1}/{0}",
                                 info.name, info.newest_version
                             )),
-                        ))
-                        .field(EmbedFieldBuilder::new("Repository", info.repository))
-                        .field(EmbedFieldBuilder::new(
+                            true,
+                        )
+                        .field("Repository", info.repository, true)
+                        .field(
                             "More information",
                             format!("https://crates.io/crates/{0}", info.name),
-                        ))
-                        .build(),
+                            true,
+                        ),
                 ),
-                CrateSearch::NotFound(message) => (message, EmbedBuilder::new().build()),
+                CrateSearch::NotFound(message) => (message, CreateEmbed::new()),
             };
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content(&content)
-                .embeds(&[embed])
-                .send()
-                .await?;
+            ctx.send(
+                CreateReply::default()
+                    .reply(true)
+                    .content(content)
+                    .embed(embed),
+            )
+            .await?;
         }
         Err(e) => {
             error!(error = ?e, "failed searching for crate");
-            http.create_message(msg.channel_id)
-                .reply(msg.id)
-                .content("Sorry, something went wrong looking up the crate")
-                .send()
+            ctx.reply("Sorry, something went wrong looking up the crate")
                 .await?;
         }
     }
@@ -186,7 +159,7 @@ pub async fn crate_(
     Ok(())
 }
 
-pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) -> Result<()> {
+pub async fn doc(ctx: Context<'_>, res: Result<String>) -> Result<()> {
     let message = match res {
         Ok(link) => link,
         Err(e) => {
@@ -195,21 +168,12 @@ pub async fn doc(msg: ChannelMessage, http: Arc<Client>, res: Result<String>) ->
         }
     };
 
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&message)
-        .send()
-        .await?;
+    ctx.reply(message).await?;
 
     Ok(())
 }
 
-pub async fn string_reply(msg: ChannelMessage, http: Arc<Client>, content: String) -> Result<()> {
-    http.create_message(msg.channel_id)
-        .reply(msg.id)
-        .content(&content)
-        .send()
-        .await?;
-
+pub async fn string_reply(ctx: Context<'_>, content: String) -> Result<()> {
+    ctx.reply(content).await?;
     Ok(())
 }

@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn ser_default() {
-        let output = serde_json::to_value(&State::default()).unwrap();
+        let output = serde_json::to_value(State::default()).unwrap();
         let expect = json! {{
             "custom_commands": {},
             "admins": []
