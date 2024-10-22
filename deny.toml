@@ -60,8 +60,3 @@ skip-tree = [
     { name = "windows-sys", version = "0.48", depth = 3 },
     { name = "windows-sys", version = "0.52", depth = 3 },
 ]
-
-[sources]
-allow-git = [
-    "https://github.com/dnaka91/archer.git",
-]

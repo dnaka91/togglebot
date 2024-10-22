@@ -22,7 +22,6 @@ tokio-shutdown = "0.1.4"
 tokio-tungstenite = { version = "0.24.0", features = ["rustls-tls-webpki-roots"] }
 toml = "0.8.19"
 tracing = "0.1.40"
-tracing-archer = { git = "https://github.com/dnaka91/archer.git" }
 tracing-subscriber = "0.3.18"
 twitch_api = { version = "0.7.0-rc.8", features = ["eventsub", "helix", "reqwest"] }
 unidirs = "0.1.1"

@@ -21,7 +21,7 @@ mod user;
 pub type AsyncState = Arc<RwLock<State>>;
 /// Convenience type alias for [`Stats`] wrapped in an [`Arc`] and a [`RwLock`].
 pub type AsyncStats = Arc<RwLock<Stats>>;
-/// Convenience type alias for [`settings::Commands`] wrapped in an [`Arc`].
+/// Convenience type alias for [`CommandSettings`] wrapped in an [`Arc`].
 pub type AsyncCommandSettings = Arc<CommandSettings>;
 
 /// Possible access levels for users, controlling access over accessible bot commands.

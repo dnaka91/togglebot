@@ -7,7 +7,7 @@ use anyhow::Result;
 use togglebot::{
     discord,
     handler::{self, Access},
-    settings::{self, Archer, Commands as CommandSettings, Levels, LogStyle, Logging},
+    settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging},
     state::{self, State},
     statistics::{self, Stats},
     twitch, Message, Response,
@@ -15,24 +15,14 @@ use togglebot::{
 use tokio::sync::{mpsc, RwLock};
 use tokio_shutdown::Shutdown;
 use tracing::{error, Subscriber};
-use tracing_archer::Handle;
 use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = settings::load()?;
 
-    let (tracing, handle) = match config.tracing.archer.map(init_tracing) {
-        Some(tracing) => {
-            let (tracing, handle) = tracing.await?;
-            (Some(tracing), Some(handle))
-        }
-        None => (None, None),
-    };
-
     tracing_subscriber::registry()
         .with(config.tracing.logging.map(init_logging))
-        .with(tracing)
         .with(init_targets(config.tracing.levels))
         .init();
 
@@ -112,10 +102,6 @@ async fn main() -> Result<()> {
         error!(error = ?e, "failed saving statistics to file system");
     }
 
-    if let Some(handle) = handle {
-        handle.shutdown(Duration::from_secs(5)).await;
-    }
-
     Ok(())
 }
 
@@ -131,19 +117,6 @@ where
         LogStyle::Compact => layer.compact().boxed(),
         LogStyle::Pretty => layer.pretty().boxed(),
     }
-}
-
-async fn init_tracing<S>(settings: Archer) -> Result<(impl Layer<S>, Handle)>
-where
-    for<'span> S: Subscriber + LookupSpan<'span>,
-{
-    tracing_archer::builder()
-        .with_server_addr(settings.address)
-        .with_server_cert(settings.certificate)
-        .with_resource(env!("CARGO_CRATE_NAME"), env!("CARGO_PKG_VERSION"))
-        .build()
-        .await
-        .map_err(Into::into)
 }
 
 fn init_targets(settings: Levels) -> Targets {

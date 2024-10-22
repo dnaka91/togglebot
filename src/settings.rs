@@ -68,9 +68,6 @@ pub struct Tracing {
     /// Logging details for **stdout**.
     #[serde(default)]
     pub logging: Option<Logging>,
-    /// Connection details for **Archer** collectors.
-    #[serde(default)]
-    pub archer: Option<Archer>,
 }
 
 /// Configuration for different logging levels of various targets.
@@ -143,16 +140,6 @@ pub enum LogStyle {
     Compact,
     /// Verbose bug pretty variant.
     Pretty,
-}
-
-/// Details to connect and report tracing data to a **Archer** instance, using its custom protocol
-/// for communication.
-#[derive(Deserialize)]
-pub struct Archer {
-    /// Socket address of the server.
-    pub address: String,
-    /// Server certificate, to verify the connection.
-    pub certificate: String,
 }
 
 /// Load the global bot configuration.
