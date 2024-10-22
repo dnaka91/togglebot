@@ -116,9 +116,7 @@ fn default_levels_togglebot() -> LevelFilter {
 
 #[inline]
 fn default_levels_targets() -> HashMap<String, LevelFilter> {
-    [("docsearch".to_owned(), LevelFilter::TRACE)]
-        .into_iter()
-        .collect()
+    HashMap::default()
 }
 
 /// Details for logging to stdout.

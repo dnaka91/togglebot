@@ -9,8 +9,6 @@ use tracing::{info, instrument};
 use super::{AsyncCommandSettings, AsyncState};
 use crate::{CrateInfo, CrateSearch, Source, UserResponse};
 
-mod doc;
-
 #[instrument(skip_all)]
 pub fn help() -> UserResponse {
     info!("received `help` command");
@@ -78,12 +76,6 @@ pub async fn crate_(name: &str) -> UserResponse {
     };
 
     UserResponse::Crate(res.await)
-}
-
-#[instrument(skip_all)]
-pub async fn doc(path: &str) -> UserResponse {
-    info!("received `doc` command");
-    UserResponse::Doc(doc::find(path).await)
 }
 
 #[instrument(skip_all)]

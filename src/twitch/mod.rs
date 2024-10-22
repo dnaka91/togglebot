@@ -195,7 +195,6 @@ async fn handle_user_message(resp: UserResponse, msg_id: &MsgId, client: &Replie
         UserResponse::Links(links) => handle_links(msg_id, client, links).await,
         UserResponse::Ban(target) => handle_ban(msg_id, client, target).await,
         UserResponse::Crate(res) => handle_crate(msg_id, client, res).await,
-        UserResponse::Doc(res) => handle_doc(msg_id, client, res).await,
         UserResponse::Today(text)
         | UserResponse::FahrenheitToCelsius(text)
         | UserResponse::CelsiusToFahrenheit(text)
@@ -222,7 +221,7 @@ async fn handle_commands(msg_id: &MsgId, client: &Replier, res: Result<Vec<Strin
     let message = match res {
         Ok(names) => names.into_iter().fold(
             String::from(
-                "Available commands: !help (or !bot), !links, !ban, !crate(s), !doc(s), !today, \
+                "Available commands: !help (or !bot), !links, !ban, !crate(s), !today, \
                  !ftoc, !ctof",
             ),
             |mut list, name| {
@@ -286,20 +285,6 @@ async fn handle_crate(msg_id: &MsgId, client: &Replier, res: Result<CrateSearch>
         Err(e) => {
             error!(error = ?e, "failed searching for crate");
             "Sorry, something went wrong looking up the crate".to_owned()
-        }
-    };
-
-    client.send_chat_message(msg_id, message).await?;
-
-    Ok(())
-}
-
-async fn handle_doc(msg_id: &MsgId, client: &Replier, res: Result<String>) -> Result<()> {
-    let message = match res {
-        Ok(link) => link,
-        Err(e) => {
-            error!(error = ?e, "failed searching for docs");
-            "Sorry, something went wrong looking up the documentation".to_owned()
         }
     };
 

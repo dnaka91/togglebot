@@ -114,8 +114,6 @@ pub enum UserResponse {
     Ban(String),
     /// Lookup details about a single Rust crate.
     Crate(Result<CrateSearch>),
-    /// Get a direct docs link to any Rust crate or stdlib item.
-    Doc(Result<String>),
     /// Get the current date, with unneeded level of detail (in UTC).
     Today(String),
     /// Convert Fahrenheit degrees to Celsius degrees.

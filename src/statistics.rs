@@ -168,8 +168,6 @@ pub enum BuiltinCommand {
     Links,
     /// Rust crate info lookup.
     Crate,
-    /// Rust crate docs lookup.
-    Doc,
     /// Fake ban for fun.
     Ban,
     /// Get the current date (in UTC).
@@ -196,7 +194,6 @@ impl BuiltinCommand {
             Self::Commands => "commands",
             Self::Links => "links",
             Self::Crate => "crate",
-            Self::Doc => "doc",
             Self::Ban => "ban",
             Self::Today => "today",
             Self::FahrenheitToCelsius => "ftoc",

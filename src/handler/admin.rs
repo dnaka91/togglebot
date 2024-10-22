@@ -116,8 +116,6 @@ const RESERVED_COMMANDS: &[&str] = &[
     "links",
     "crate",
     "crates",
-    "doc",
-    "docs",
     "ban",
     "today",
     "ftoc",

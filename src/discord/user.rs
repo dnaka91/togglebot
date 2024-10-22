@@ -35,7 +35,6 @@ pub async fn commands(ctx: Context<'_>, res: Result<Vec<String>>) -> Result<()> 
                     `!links` gives you a list of links to sites where **{0}** is present.
                     `!ban` refuse anything with the power of Gandalf.
                     `!crate(s)` get the link for any existing crate.
-                    `!doc(s)` get the link for any element of any crate (or stdlib).
                     `!today` get details about the current day.
                     `!ftoc` convert Fahrenheit to Celsius.
                     `!ctof` convert Celsius to Fahrenheit.
@@ -155,20 +154,6 @@ pub async fn crate_(ctx: Context<'_>, res: Result<CrateSearch>) -> Result<()> {
                 .await?;
         }
     }
-
-    Ok(())
-}
-
-pub async fn doc(ctx: Context<'_>, res: Result<String>) -> Result<()> {
-    let message = match res {
-        Ok(link) => link,
-        Err(e) => {
-            error!(error = ?e, "failed searching for docs");
-            "Sorry, something went wrong looking up the documentation".to_owned()
-        }
-    };
-
-    ctx.reply(message).await?;
 
     Ok(())
 }

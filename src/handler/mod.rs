@@ -109,13 +109,6 @@ pub async fn user_message(
                 .increment_builtin(BuiltinCommand::Crate);
             user::crate_(name).await
         }
-        ("doc" | "docs", Some(path)) => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Doc);
-            user::doc(path).await
-        }
         ("ban", Some(target)) => {
             statistics
                 .write()
@@ -320,16 +313,6 @@ mod tests {
         match run_user_message("!crate anyhow").await.unwrap() {
             UserResponse::Crate(Ok(_)) => {}
             UserResponse::Crate(Err(e)) => panic!("{e:?}"),
-            res => panic!("unexpected response: {res:?}"),
-        }
-    }
-
-    #[tokio::test]
-    #[ignore]
-    async fn user_cmd_doc() {
-        match run_user_message("!doc anyhow").await.unwrap() {
-            UserResponse::Doc(Ok(_)) => {}
-            UserResponse::Doc(Err(e)) => panic!("{e:?}"),
             res => panic!("unexpected response: {res:?}"),
         }
     }

@@ -313,20 +313,6 @@ async fn crates(ctx: Context<'_>, name: String) -> Result<()> {
     .await
 }
 
-/// Get the link for any element of any crate (or stdlib).
-#[poise::command(slash_command, category = "User")]
-async fn docs(ctx: Context<'_>, path: String) -> Result<()> {
-    handle_message(
-        ctx,
-        SerenityMessage {
-            content: format!("!docs {path}"),
-            author: ctx.author().id,
-            mention: None,
-        },
-    )
-    .await
-}
-
 /// Get details about the current day.
 #[poise::command(slash_command, category = "User")]
 async fn today(ctx: Context<'_>) -> Result<()> {
@@ -397,7 +383,6 @@ pub async fn start(
                 links(),
                 ban(),
                 crates(),
-                docs(),
                 today(),
                 ftoc(),
                 ctof(),
@@ -506,7 +491,6 @@ async fn handle_user_message(resp: UserResponse, ctx: Context<'_>) -> Result<()>
         UserResponse::Links(links) => user::links(ctx, links).await,
         UserResponse::Ban(target) => user::ban(ctx, target).await,
         UserResponse::Crate(res) => user::crate_(ctx, res).await,
-        UserResponse::Doc(res) => user::doc(ctx, res).await,
         UserResponse::Today(content)
         | UserResponse::FahrenheitToCelsius(content)
         | UserResponse::CelsiusToFahrenheit(content)

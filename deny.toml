@@ -54,7 +54,6 @@ skip = [
     { name = "tungstenite", version = "0.21" },
     { name = "wasi", version = "0.11" },
     { name = "webpki-roots", version = "0.25" },
-    { name = "winnow", version = "0.5" },
 ]
 skip-tree = [
     { name = "windows-sys", version = "0.48", depth = 3 },
