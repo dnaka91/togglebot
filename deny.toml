@@ -38,16 +38,27 @@ skip = [
     { name = "bitflags", version = "1" },
     { name = "hashbrown", version = "0.14" },
     { name = "http", version = "0.2" },
+    { name = "http-body", version = "0.4" },
+    { name = "hyper", version = "0.14" },
+    { name = "hyper-rustls", version = "0.24" },
+    { name = "reqwest", version = "0.11" },
+    { name = "rustls", version = "0.21" },
     { name = "rustls", version = "0.22" },
     { name = "rustls-pemfile", version = "1" },
     { name = "rustls-webpki", version = "0.101" },
     { name = "syn", version = "1" },
+    { name = "sync_wrapper", version = "0.1" },
+    { name = "tokio-rustls", version = "0.24" },
+    { name = "tokio-rustls", version = "0.25" },
+    { name = "tokio-tungstenite", version = "0.21" },
+    { name = "tungstenite", version = "0.21" },
     { name = "wasi", version = "0.11" },
+    { name = "webpki-roots", version = "0.25" },
     { name = "winnow", version = "0.5" },
 ]
 skip-tree = [
-    { name = "twitch-irc", version = "5", depth = 2 },
     { name = "windows-sys", version = "0.48", depth = 3 },
+    { name = "windows-sys", version = "0.52", depth = 3 },
 ]
 
 [sources]

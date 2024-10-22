@@ -23,8 +23,8 @@ pub async fn help(ctx: Context<'_>) -> Result<()> {
             !custom_command(s) [add|remove] [all|discord|twitch] <name> <content>
             ```
             Add or remove a custom command that has fixed content and can be anything. \
-            The command can be modified for all sources or individually. \
-            Command names must start with a lowercase letter, only consist of lowercase \
+    The command can be modified for all sources or individually. \
+    Command names must start with a lowercase letter, only consist of lowercase \
             letters, numbers and underscores and must not start with the `!`.
 
             ```

@@ -374,7 +374,7 @@ async fn ctof(ctx: Context<'_>, celsius: f64) -> Result<()> {
 /// It pushes messages into the given queue for processing, each message accompanied by a oneshot
 /// channel, that allows to listen for the generated reply (if any). The shutdown handler is used
 /// to gracefully shut down the connection before fully quitting the application.
-pub fn start(
+pub async fn start(
     config: &DiscordSettings,
     settings: Arc<CommandSettings>,
     queue: Queue,
@@ -412,21 +412,21 @@ pub fn start(
         })
         .build();
 
+    let mut client =
+        match serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
+            .framework(framework)
+            .await
+        {
+            Ok(client) => client,
+            Err(e) => {
+                error!(?e, "failed creating discord client");
+                return Err(e.into());
+            }
+        };
+
+    info!("discord connection ready, listening for events");
+
     tokio::spawn(async move {
-        let mut client =
-            match serenity::ClientBuilder::new(token, serenity::GatewayIntents::non_privileged())
-                .framework(framework)
-                .await
-            {
-                Ok(client) => client,
-                Err(e) => {
-                    error!(?e, "failed creating discord client");
-                    return;
-                }
-            };
-
-        info!("discord connection ready, listening for events");
-
         tokio::select! {
             () = shutdown.handle() => {}
             res = client.start() => {

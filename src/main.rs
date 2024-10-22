@@ -66,13 +66,16 @@ async fn main() -> Result<()> {
         Arc::clone(&command_settings),
         queue_tx.clone(),
         shutdown.clone(),
-    )?;
+    )
+    .await?;
+
     twitch::start(
         &config.twitch,
         Arc::clone(&command_settings),
         queue_tx,
         shutdown.clone(),
-    )?;
+    )
+    .await?;
 
     loop {
         tokio::select! {

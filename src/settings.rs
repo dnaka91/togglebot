@@ -38,10 +38,14 @@ pub struct Discord {
 /// Information required to connect to Twitch and additional data.
 #[derive(Deserialize)]
 pub struct Twitch {
-    /// Username for login.
-    pub login: String,
-    /// Token for authentication.
-    pub token: String,
+    /// Identifier for the Twitch application.
+    pub client_id: String,
+    /// Secret value for the Twitch application.
+    pub client_secret: String,
+    /// Access token for authentication.
+    pub access_token: String,
+    /// Refresh token to get a new access token.
+    pub refresh_token: String,
 }
 
 /// Configuration for built-int commands.
