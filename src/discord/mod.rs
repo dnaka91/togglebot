@@ -12,9 +12,12 @@ use tokio_shutdown::Shutdown;
 use tracing::{error, info, info_span, instrument, Instrument, Span};
 
 use crate::{
+    api::{
+        request::{self, Request, StatisticsDate},
+        response::{self, Response},
+        AuthorId, Message, Queue, Source,
+    },
     settings::{Commands as CommandSettings, Discord as DiscordSettings},
-    AdminResponse, AdminsResponse, AuthorId, CustomCommandsResponse, Message, OwnerResponse, Queue,
-    Response, Source, UserResponse,
 };
 
 mod admin;
@@ -26,6 +29,20 @@ type Context<'a> = poise::ApplicationContext<'a, State, anyhow::Error>;
 // --------------------------------------------
 // OWNERS
 // --------------------------------------------
+
+/// Show information about available owner commands. **Only available if you're an owner yourself.**
+#[poise::command(slash_command, category = "Owner")]
+async fn ohelp(ctx: Context<'_>) -> Result<()> {
+    handle_message(
+        ctx,
+        SerenityMessage {
+            content: Request::Owner(request::Owner::Help),
+            author: ctx.author().id,
+            mention: None,
+        },
+    )
+    .await
+}
 
 #[allow(clippy::unused_async)]
 #[poise::command(
@@ -46,7 +63,7 @@ async fn admins_add(ctx: Context<'_>, user: UserId) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!admins add @{user}"),
+            content: Request::Owner(request::Owner::Admins(request::Admins::Add(user.into()))),
             author: ctx.author().id,
             mention: Some(user),
         },
@@ -62,7 +79,7 @@ async fn admins_remove(ctx: Context<'_>, user: UserId) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!admins remove @{user}"),
+            content: Request::Owner(request::Owner::Admins(request::Admins::Remove(user.into()))),
             author: ctx.author().id,
             mention: Some(user),
         },
@@ -76,7 +93,7 @@ async fn admins_list(ctx: Context<'_>) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: "!admins list".to_owned(),
+            content: Request::Owner(request::Owner::Admins(request::Admins::List)),
             author: ctx.author().id,
             mention: None,
         },
@@ -88,13 +105,13 @@ async fn admins_list(ctx: Context<'_>) -> Result<()> {
 // ADMINS
 // --------------------------------------------
 
-/// Show information about available owner commands. **Only available if you're an owner yourself.**
+/// Gives a list of admin commands (if you're an admin).
 #[poise::command(slash_command, category = "Admin")]
-async fn ohelp(ctx: Context<'_>) -> Result<()> {
+async fn ahelp(ctx: Context<'_>) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: "!help".to_owned(),
+            content: Request::Admin(request::Admin::Help),
             author: ctx.author().id,
             mention: None,
         },
@@ -105,7 +122,7 @@ async fn ohelp(ctx: Context<'_>) -> Result<()> {
 #[allow(clippy::unused_async)]
 #[poise::command(
     slash_command,
-    category = "Owner",
+    category = "Admin",
     subcommands(
         "custom_commands_add",
         "custom_commands_remove",
@@ -141,7 +158,7 @@ impl Display for Target {
 /// The command can be modified for all sources or individually. Command names must start with a
 /// lowercase letter, only consist of lowercase letters, numbers and underscores and must not start
 /// with the `!`.
-#[poise::command(slash_command, category = "Owner", rename = "add")]
+#[poise::command(slash_command, category = "Admin", rename = "add")]
 async fn custom_commands_add(
     ctx: Context<'_>,
     target: Target,
@@ -151,7 +168,17 @@ async fn custom_commands_add(
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!custom_commands add {target} {name} {content}"),
+            content: Request::Admin(request::Admin::CustomCommands(
+                request::CustomCommands::Add {
+                    source: match target {
+                        Target::All => None,
+                        Target::Discord => Some(Source::Discord),
+                        Target::Twitch => Some(Source::Twitch),
+                    },
+                    name,
+                    content,
+                },
+            )),
             author: ctx.author().id,
             mention: None,
         },
@@ -164,17 +191,21 @@ async fn custom_commands_add(
 /// The command can be modified for all sources or individually. Command names must start with a
 /// lowercase letter, only consist of lowercase letters, numbers and underscores and must not start
 /// with the `!`.
-#[poise::command(slash_command, category = "Owner", rename = "remove")]
-async fn custom_commands_remove(
-    ctx: Context<'_>,
-    target: Target,
-    name: String,
-    content: String,
-) -> Result<()> {
+#[poise::command(slash_command, category = "Admin", rename = "remove")]
+async fn custom_commands_remove(ctx: Context<'_>, target: Target, name: String) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!custom_commands remove {target} {name} {content}"),
+            content: Request::Admin(request::Admin::CustomCommands(
+                request::CustomCommands::Remove {
+                    source: match target {
+                        Target::All => None,
+                        Target::Discord => Some(Source::Discord),
+                        Target::Twitch => Some(Source::Twitch),
+                    },
+                    name,
+                },
+            )),
             author: ctx.author().id,
             mention: None,
         },
@@ -183,12 +214,14 @@ async fn custom_commands_remove(
 }
 
 /// List all currently available custom commands.
-#[poise::command(slash_command, category = "Owner", rename = "list")]
+#[poise::command(slash_command, category = "Admin", rename = "list")]
 async fn custom_commands_list(ctx: Context<'_>) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: "!custom_commands list".to_owned(),
+            content: Request::Admin(request::Admin::CustomCommands(
+                request::CustomCommands::List,
+            )),
             author: ctx.author().id,
             mention: None,
         },
@@ -214,12 +247,15 @@ impl Display for Time {
 /// Get statistics about command usage.
 ///
 /// Either for the **current month** or the overall counters for **all time**.
-#[poise::command(slash_command, category = "Owner")]
+#[poise::command(slash_command, category = "Admin")]
 async fn stats(ctx: Context<'_>, time: Time) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!stats {time}"),
+            content: Request::Admin(request::Admin::Statistics(match time {
+                Time::Current => StatisticsDate::Current,
+                Time::Total => StatisticsDate::Total,
+            })),
             author: ctx.author().id,
             mention: None,
         },
@@ -231,27 +267,13 @@ async fn stats(ctx: Context<'_>, time: Time) -> Result<()> {
 // USERS
 // --------------------------------------------
 
-/// Gives a list of admin commands (if you're an admin).
-#[poise::command(slash_command, category = "User")]
-async fn ahelp(ctx: Context<'_>) -> Result<()> {
-    handle_message(
-        ctx,
-        SerenityMessage {
-            content: "!ahelp".to_owned(),
-            author: ctx.author().id,
-            mention: None,
-        },
-    )
-    .await
-}
-
 /// Gives a short info about this bot.
 #[poise::command(slash_command, aliases("bot"), category = "User")]
 async fn help(ctx: Context<'_>) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: "!help".to_owned(),
+            content: Request::User(request::User::Help),
             author: ctx.author().id,
             mention: None,
         },
@@ -277,7 +299,7 @@ async fn links(ctx: Context<'_>) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: "!links".to_owned(),
+            content: Request::User(request::User::Links),
             author: ctx.author().id,
             mention: None,
         },
@@ -291,7 +313,7 @@ async fn ban(ctx: Context<'_>, target: String) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!ban {target}"),
+            content: Request::User(request::User::Ban(target)),
             author: ctx.author().id,
             mention: None,
         },
@@ -305,7 +327,7 @@ async fn crates(ctx: Context<'_>, name: String) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!crates {name}"),
+            content: Request::User(request::User::Ban(name)),
             author: ctx.author().id,
             mention: None,
         },
@@ -319,7 +341,7 @@ async fn today(ctx: Context<'_>) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: "!today".to_owned(),
+            content: Request::User(request::User::Today),
             author: ctx.author().id,
             mention: None,
         },
@@ -333,7 +355,7 @@ async fn ftoc(ctx: Context<'_>, fahrenheit: f64) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!ftoc {fahrenheit}"),
+            content: Request::User(request::User::Ftoc(fahrenheit)),
             author: ctx.author().id,
             mention: None,
         },
@@ -347,7 +369,7 @@ async fn ctof(ctx: Context<'_>, celsius: f64) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: format!("!ctof {celsius}"),
+            content: Request::User(request::User::Ftoc(celsius)),
             author: ctx.author().id,
             mention: None,
         },
@@ -371,13 +393,13 @@ pub async fn start(
         .options(poise::FrameworkOptions {
             commands: vec![
                 // owners
+                ohelp(),
                 admins(),
                 // admins
-                ohelp(),
+                ahelp(),
                 custom_commands(),
                 stats(),
                 // users
-                ahelp(),
                 help(),
                 commands(),
                 links(),
@@ -435,7 +457,7 @@ struct State {
 }
 
 struct SerenityMessage {
-    content: String,
+    content: Request,
     author: UserId,
     mention: Option<UserId>,
 }
@@ -453,7 +475,7 @@ async fn handle_message(ctx: Context<'_>, msg: SerenityMessage) -> Result<()> {
         let message = Message {
             span: Span::current(),
             source: Source::Discord,
-            content: msg.content.clone(),
+            content: msg.content,
             author: AuthorId::Discord(msg.author.into()),
             mention: msg.mention.map(Into::into),
         };
@@ -484,40 +506,38 @@ async fn handle_message(ctx: Context<'_>, msg: SerenityMessage) -> Result<()> {
     Ok(())
 }
 
-async fn handle_user_message(resp: UserResponse, ctx: Context<'_>) -> Result<()> {
+async fn handle_user_message(resp: response::User, ctx: Context<'_>) -> Result<()> {
     match resp {
-        UserResponse::Help => user::help(ctx).await,
-        UserResponse::Commands(res) => user::commands(ctx, res).await,
-        UserResponse::Links(links) => user::links(ctx, links).await,
-        UserResponse::Ban(target) => user::ban(ctx, target).await,
-        UserResponse::Crate(res) => user::crate_(ctx, res).await,
-        UserResponse::Today(content)
-        | UserResponse::FahrenheitToCelsius(content)
-        | UserResponse::CelsiusToFahrenheit(content)
-        | UserResponse::Custom(content) => user::string_reply(ctx, content).await,
-        UserResponse::Unknown => Ok(()),
+        response::User::Help => user::help(ctx).await,
+        response::User::Commands(res) => user::commands(ctx, res).await,
+        response::User::Links(links) => user::links(ctx, links).await,
+        response::User::Ban(target) => user::ban(ctx, target).await,
+        response::User::Crate(res) => user::crate_(ctx, res).await,
+        response::User::Today(content)
+        | response::User::FahrenheitToCelsius(content)
+        | response::User::CelsiusToFahrenheit(content)
+        | response::User::Custom(content) => user::string_reply(ctx, content).await,
+        response::User::Unknown => Ok(()),
     }
 }
 
-async fn handle_admin_message(resp: AdminResponse, ctx: Context<'_>) -> Result<()> {
+async fn handle_admin_message(resp: response::Admin, ctx: Context<'_>) -> Result<()> {
     match resp {
-        AdminResponse::Help => admin::help(ctx).await,
-        AdminResponse::CustomCommands(resp) => match resp {
-            CustomCommandsResponse::List(res) => admin::custom_commands_list(ctx, res).await,
-            CustomCommandsResponse::Edit(res) => admin::custom_commands_edit(ctx, res).await,
+        response::Admin::Help => admin::help(ctx).await,
+        response::Admin::CustomCommands(resp) => match resp {
+            response::CustomCommands::List(res) => admin::custom_commands_list(ctx, res).await,
+            response::CustomCommands::Edit(res) => admin::custom_commands_edit(ctx, res).await,
         },
-        AdminResponse::Statistics(res) => admin::stats(ctx, res).await,
-        AdminResponse::Unknown => Ok(()),
+        response::Admin::Statistics(res) => admin::stats(ctx, res).await,
     }
 }
 
-async fn handle_owner_message(resp: OwnerResponse, ctx: Context<'_>) -> Result<()> {
+async fn handle_owner_message(resp: response::Owner, ctx: Context<'_>) -> Result<()> {
     match resp {
-        OwnerResponse::Help => owner::help(ctx).await,
-        OwnerResponse::Admins(resp) => match resp {
-            AdminsResponse::List(res) => owner::admins_list(ctx, res).await,
-            AdminsResponse::Edit(res) => owner::admins_edit(ctx, res).await,
+        response::Owner::Help => owner::help(ctx).await,
+        response::Owner::Admins(resp) => match resp {
+            response::Admins::List(res) => owner::admins_list(ctx, res).await,
+            response::Admins::Edit(res) => owner::admins_edit(ctx, res).await,
         },
-        OwnerResponse::Unknown => Ok(()),
     }
 }

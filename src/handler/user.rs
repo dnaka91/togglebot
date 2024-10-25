@@ -7,18 +7,21 @@ use time::OffsetDateTime;
 use tracing::{info, instrument};
 
 use super::{AsyncCommandSettings, AsyncState};
-use crate::{CrateInfo, CrateSearch, Source, UserResponse};
+use crate::api::{
+    response::{self, CrateInfo, CrateSearch},
+    Source,
+};
 
 #[instrument(skip_all)]
-pub fn help() -> UserResponse {
+pub fn help() -> response::User {
     info!("received `help` command");
-    UserResponse::Help
+    response::User::Help
 }
 
 #[instrument(skip_all)]
-pub async fn commands(state: AsyncState, source: Source) -> UserResponse {
+pub async fn commands(state: AsyncState, source: Source) -> response::User {
     info!("received `commands` command");
-    UserResponse::Commands(Ok(list_command_names(state, source).await))
+    response::User::Commands(Ok(list_command_names(state, source).await))
 }
 
 async fn list_command_names(state: AsyncState, source: Source) -> Vec<String> {
@@ -38,19 +41,19 @@ async fn list_command_names(state: AsyncState, source: Source) -> Vec<String> {
 }
 
 #[instrument(skip_all)]
-pub fn links(settings: &AsyncCommandSettings) -> UserResponse {
+pub fn links(settings: &AsyncCommandSettings) -> response::User {
     info!("received `links` command");
-    UserResponse::Links(Arc::clone(&settings.links))
+    response::User::Links(Arc::clone(&settings.links))
 }
 
 #[instrument(skip_all)]
-pub fn ban(target: &str) -> UserResponse {
+pub fn ban(target: &str) -> response::User {
     info!("received `ban` command");
-    UserResponse::Ban(target.to_owned())
+    response::User::Ban(target.to_owned())
 }
 
 #[instrument(skip_all, name = "crate")]
-pub async fn crate_(name: &str) -> UserResponse {
+pub async fn crate_(name: &str) -> response::User {
     #[derive(Deserialize)]
     struct ApiResponse {
         #[serde(rename = "crate")]
@@ -75,11 +78,11 @@ pub async fn crate_(name: &str) -> UserResponse {
         })
     };
 
-    UserResponse::Crate(res.await)
+    response::User::Crate(res.await)
 }
 
 #[instrument(skip_all)]
-pub fn today() -> UserResponse {
+pub fn today() -> response::User {
     fn th(value: impl Into<u16>) -> &'static str {
         match value.into() % 10 {
             1 => "st",
@@ -102,35 +105,29 @@ pub fn today() -> UserResponse {
     let week_of_year = date.iso_week();
     let week_of_year_th = th(week_of_year);
 
-    UserResponse::Today(format!(
+    response::User::Today(format!(
         "Today is {weekday}, {month} the {day}{day_th} of {year} in the UTC time zone. Did you \
          know, this is the {day_of_year}{day_of_year_th} day of the year and we're in the \
          {week_of_year}{week_of_year_th} week of the year. Amazing, isn't it?!"
     ))
 }
 
-pub fn ftoc(fahrenheit: &str) -> UserResponse {
-    UserResponse::FahrenheitToCelsius(match fahrenheit.parse::<f64>() {
-        Ok(fahrenheit) => {
-            let celsius = (fahrenheit - 32.0) / 1.8;
-            format!("{fahrenheit:.1}°F => {celsius:.1}°C")
-        }
-        Err(_) => "that doesn't appear to be a number?!".to_owned(),
+pub fn ftoc(fahrenheit: f64) -> response::User {
+    response::User::FahrenheitToCelsius({
+        let celsius = (fahrenheit - 32.0) / 1.8;
+        format!("{fahrenheit:.1}°F => {celsius:.1}°C")
     })
 }
 
-pub fn ctof(celsius: &str) -> UserResponse {
-    UserResponse::CelsiusToFahrenheit(match celsius.parse::<f64>() {
-        Ok(celsius) => {
-            let fahrenheit = celsius * 1.8 + 32.0;
-            format!("{celsius:.1}°C => {fahrenheit:.1}°F")
-        }
-        Err(_) => "that doesn't appear to be a number?!".to_owned(),
+pub fn ctof(celsius: f64) -> response::User {
+    response::User::CelsiusToFahrenheit({
+        let fahrenheit = celsius * 1.8 + 32.0;
+        format!("{celsius:.1}°C => {fahrenheit:.1}°F")
     })
 }
 
 #[instrument(skip_all)]
-pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserResponse {
+pub async fn custom(state: AsyncState, source: Source, name: &str) -> Option<response::User> {
     state
         .read()
         .await
@@ -139,5 +136,5 @@ pub async fn custom(state: AsyncState, source: Source, name: &str) -> UserRespon
         .and_then(|content| content.get(&source))
         .inspect(|_| info!("user: received custom `{name}` command"))
         .cloned()
-        .map_or(UserResponse::Unknown, UserResponse::Custom)
+        .map(response::User::Custom)
 }

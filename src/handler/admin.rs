@@ -1,42 +1,30 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    str::FromStr,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{bail, ensure, Result};
 use tracing::{info, instrument};
 
 use super::{AsyncState, AsyncStats};
-use crate::{state, AdminResponse, CustomCommandsResponse, Source};
+use crate::{
+    api::{request::StatisticsDate, response, Source},
+    state,
+};
 
 #[instrument(skip_all)]
-pub fn help() -> AdminResponse {
+pub fn help() -> response::Admin {
     info!("received `help` command");
-    AdminResponse::Help
+    response::Admin::Help
 }
 
 #[derive(Debug)]
-enum Action {
+pub(super) enum Action {
     Add,
     Remove,
 }
 
-impl FromStr for Action {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "add" => Self::Add,
-            "remove" => Self::Remove,
-            s => bail!("unknown action `{s}`"),
-        })
-    }
-}
-
 #[instrument(skip_all)]
-pub async fn custom_commands_list(state: AsyncState) -> AdminResponse {
+pub async fn custom_commands_list(state: AsyncState) -> response::Admin {
     info!("received `custom_commands list` command");
-    AdminResponse::CustomCommands(CustomCommandsResponse::List(list_commands(state).await))
+    response::Admin::CustomCommands(response::CustomCommands::List(list_commands(state).await))
 }
 
 async fn list_commands(state: AsyncState) -> Result<BTreeMap<String, BTreeSet<Source>>> {
@@ -59,10 +47,10 @@ pub async fn custom_commands(
     state: AsyncState,
     statistics: AsyncStats,
     content: &str,
-    action: &str,
-    source: &str,
+    action: Action,
+    source: Option<Source>,
     name: &str,
-) -> AdminResponse {
+) -> response::Admin {
     info!("received `custom_commands` command");
 
     let content = content
@@ -70,38 +58,9 @@ pub async fn custom_commands(
         .filter(|c| !c.is_empty())
         .nth(4);
 
-    let res = || async {
-        update_commands(
-            state,
-            statistics,
-            action.parse()?,
-            source.parse()?,
-            name,
-            content,
-        )
-        .await
-    };
+    let res = || async { update_commands(state, statistics, action, source, name, content).await };
 
-    AdminResponse::CustomCommands(CustomCommandsResponse::Edit(res().await))
-}
-
-#[derive(Debug)]
-enum CommandSource {
-    Source(Source),
-    All,
-}
-
-impl FromStr for CommandSource {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "discord" => Self::Source(Source::Discord),
-            "twitch" => Self::Source(Source::Twitch),
-            "all" => Self::All,
-            _ => bail!("unknown source `{s}`"),
-        })
-    }
+    response::Admin::CustomCommands(response::CustomCommands::Edit(res().await))
 }
 
 /// List of all pre-defined commands that can not be defined as name for custom commands.
@@ -142,7 +101,7 @@ async fn update_commands(
     state: AsyncState,
     statistics: AsyncStats,
     action: Action,
-    source: CommandSource,
+    source: Option<Source>,
     name: &str,
     content: Option<&str>,
 ) -> Result<()> {
@@ -168,20 +127,17 @@ async fn update_commands(
     match action {
         Action::Add => {
             if let Some(content) = content {
-                match source {
-                    CommandSource::Source(source) => {
-                        state
-                            .custom_commands
-                            .entry(name.to_owned())
-                            .or_default()
-                            .insert(source, content.to_owned());
-                    }
-                    CommandSource::All => {
-                        let entry = state.custom_commands.entry(name.to_owned()).or_default();
+                if let Some(source) = source {
+                    state
+                        .custom_commands
+                        .entry(name.to_owned())
+                        .or_default()
+                        .insert(source, content.to_owned());
+                } else {
+                    let entry = state.custom_commands.entry(name.to_owned()).or_default();
 
-                        for source in &[Source::Discord, Source::Twitch] {
-                            entry.insert(*source, content.to_owned());
-                        }
+                    for source in &[Source::Discord, Source::Twitch] {
+                        entry.insert(*source, content.to_owned());
                     }
                 }
             } else {
@@ -190,12 +146,12 @@ async fn update_commands(
         }
         Action::Remove => {
             match source {
-                CommandSource::Source(source) => {
+                Some(source) => {
                     if let Some(entry) = state.custom_commands.get_mut(name) {
                         entry.remove(&source);
                     }
                 }
-                CommandSource::All => {
+                None => {
                     state.custom_commands.remove(name);
                 }
             }
@@ -210,21 +166,15 @@ async fn update_commands(
 }
 
 #[instrument(skip(stats))]
-pub async fn stats(stats: AsyncStats, date: Option<&str>) -> AdminResponse {
+pub async fn stats(stats: AsyncStats, date: StatisticsDate) -> response::Admin {
     let res = || async {
-        let total = date
-            .map(|r| {
-                Ok(match r {
-                    "total" => true,
-                    "current" => false,
-                    _ => bail!("invalid range `{r}`, possible values are `total` or `current`"),
-                })
-            })
-            .transpose()?
-            .unwrap_or_default();
+        let total = match date {
+            StatisticsDate::Total => true,
+            StatisticsDate::Current => false,
+        };
 
         Ok((total, stats.write().await.get(total).clone()))
     };
 
-    AdminResponse::Statistics(res().await)
+    response::Admin::Statistics(res().await)
 }

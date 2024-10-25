@@ -3,14 +3,15 @@
 
 use std::{sync::Arc, time::Duration};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use togglebot::{
+    api::{request::Request, response::Response, Message},
     discord,
     handler::{self, Access},
     settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging},
     state::{self, State},
     statistics::{self, Stats},
-    twitch, Message, Response,
+    twitch,
 };
 use tokio::sync::{mpsc, RwLock};
 use tokio_shutdown::Shutdown;
@@ -78,10 +79,10 @@ async fn main() -> Result<()> {
                             handle_user_message(&command_settings, &state, &statistics, message).await
                         }
                         Access::Admin => {
-                            handle_admin_message(&command_settings, &state, &statistics, message).await
+                            handle_admin_message(&state, &statistics, message).await
                         }
                         Access::Owner => {
-                            handle_owner_message(&command_settings, &state, &statistics, message).await
+                            handle_owner_message(&state, message).await
                         }
                     }
                 };
@@ -132,12 +133,16 @@ async fn handle_user_message(
     statistics: &Arc<RwLock<Stats>>,
     message: Message,
 ) -> Result<Response> {
+    let Request::User(request) = message.content else {
+        bail!("not a user request");
+    };
+
     handler::user_message(
         message.span,
         Arc::clone(settings),
         Arc::clone(state),
         Arc::clone(statistics),
-        &message.content,
+        request,
         message.source,
     )
     .await
@@ -145,74 +150,30 @@ async fn handle_user_message(
 }
 
 async fn handle_admin_message(
-    settings: &Arc<CommandSettings>,
     state: &Arc<RwLock<State>>,
     statistics: &Arc<RwLock<Stats>>,
     message: Message,
 ) -> Result<Response> {
-    if is_admin_command(&message.content) {
-        handler::admin_message(
-            message.span,
-            Arc::clone(state),
-            Arc::clone(statistics),
-            &message.content,
-        )
-        .await
-        .map(Response::Admin)
-    } else {
-        handle_user_message(settings, state, statistics, message).await
-    }
+    let Request::Admin(request) = message.content else {
+        bail!("not an admin request");
+    };
+
+    handler::admin_message(
+        message.span,
+        Arc::clone(state),
+        Arc::clone(statistics),
+        request,
+    )
+    .await
+    .map(Response::Admin)
 }
 
-async fn handle_owner_message(
-    settings: &Arc<CommandSettings>,
-    state: &Arc<RwLock<State>>,
-    statistics: &Arc<RwLock<Stats>>,
-    message: Message,
-) -> Result<Response> {
-    if is_owner_command(&message.content) {
-        handler::owner_message(
-            message.span,
-            Arc::clone(state),
-            &message.content,
-            message.mention,
-        )
+async fn handle_owner_message(state: &Arc<RwLock<State>>, message: Message) -> Result<Response> {
+    let Request::Owner(request) = message.content else {
+        bail!("not an owner request");
+    };
+
+    handler::owner_message(message.span, Arc::clone(state), request)
         .await
         .map(Response::Owner)
-    } else {
-        handle_admin_message(settings, state, statistics, message).await
-    }
-}
-
-fn is_admin_command(content: &str) -> bool {
-    get_command(content).map_or(false, |cmd| {
-        matches!(
-            cmd.as_ref(),
-            "admin_help"
-                | "admin-help"
-                | "adminhelp"
-                | "ahelp"
-                | "custom_commands"
-                | "custom_command"
-                | "stats"
-        )
-    })
-}
-
-fn is_owner_command(content: &str) -> bool {
-    get_command(content).map_or(false, |cmd| {
-        matches!(
-            cmd.as_ref(),
-            "owner_help" | "owner-help" | "ownerhelp" | "ohelp" | "admins" | "admin"
-        )
-    })
-}
-
-fn get_command(content: &str) -> Option<String> {
-    content
-        .split(char::is_whitespace)
-        .next()
-        .unwrap_or(content)
-        .strip_prefix('!')
-        .map(str::to_lowercase)
 }

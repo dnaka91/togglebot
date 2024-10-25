@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 
-use crate::{dirs::DIRS, Source};
+use crate::{api::Source, dirs::DIRS};
 
 #[cfg(not(test))]
 type HashSet<T> = std::collections::HashSet<T>;
@@ -67,8 +67,8 @@ pub async fn save(state: &State) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
     use serde_json::json;
+    use similar_asserts::assert_eq;
 
     use super::*;
 

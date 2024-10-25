@@ -1,21 +1,24 @@
-use std::{num::NonZeroU64, str::FromStr};
+use std::num::NonZeroU64;
 
-use anyhow::{bail, Context, Result};
+use anyhow::Result;
 use tracing::{info, instrument};
 
 use super::AsyncState;
-use crate::{state, AdminAction, AdminsResponse, OwnerResponse};
+use crate::{
+    api::response::{self, AdminAction},
+    state,
+};
 
 #[instrument(skip_all)]
-pub fn help() -> OwnerResponse {
+pub fn help() -> response::Owner {
     info!("received `help` command");
-    OwnerResponse::Help
+    response::Owner::Help
 }
 
 #[instrument(skip_all)]
-pub async fn admins_list(state: AsyncState) -> OwnerResponse {
+pub async fn admins_list(state: AsyncState) -> response::Owner {
     info!("received `admins list` command");
-    OwnerResponse::Admins(AdminsResponse::List(
+    response::Owner::Admins(response::Admins::List(
         state.read().await.admins.iter().copied().collect(),
     ))
 }
@@ -23,38 +26,23 @@ pub async fn admins_list(state: AsyncState) -> OwnerResponse {
 #[instrument(skip_all)]
 pub async fn admins_edit(
     state: AsyncState,
-    action: &str,
-    user_id: Option<NonZeroU64>,
-) -> OwnerResponse {
+    action: Action,
+    user_id: NonZeroU64,
+) -> response::Owner {
     info!("received `admins` command");
 
     let res = || async {
-        let action = action.parse()?;
-        let user_id = user_id.context("no user ID, is the user in the channel?")?;
         update_admins(state, action, user_id).await?;
-
         Ok(action.into())
     };
 
-    OwnerResponse::Admins(AdminsResponse::Edit(res().await))
+    response::Owner::Admins(response::Admins::Edit(res().await))
 }
 
 #[derive(Clone, Copy, Debug)]
-enum Action {
+pub(super) enum Action {
     Add,
     Remove,
-}
-
-impl FromStr for Action {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "add" => Self::Add,
-            "remove" => Self::Remove,
-            s => bail!("unknown action `{s}`"),
-        })
-    }
 }
 
 #[instrument(skip(state))]

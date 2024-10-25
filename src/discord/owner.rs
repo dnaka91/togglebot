@@ -5,7 +5,7 @@ use indoc::indoc;
 use poise::{serenity_prelude::CreateAllowedMentions, CreateReply};
 
 use super::Context;
-use crate::{emojis, AdminAction};
+use crate::{api::response::AdminAction, emojis};
 
 pub async fn help(ctx: Context<'_>) -> Result<()> {
     ctx.reply(indoc! {"

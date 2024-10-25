@@ -7,7 +7,7 @@ use anyhow::Result;
 use indoc::indoc;
 
 use super::Context;
-use crate::{emojis, statistics::Statistics, Source};
+use crate::{api::Source, emojis, statistics::Statistics};
 
 pub async fn help(ctx: Context<'_>) -> Result<()> {
     ctx.reply(indoc! {"

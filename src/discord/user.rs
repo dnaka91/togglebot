@@ -7,7 +7,7 @@ use time::{format_description::FormatItem, macros::format_description, UtcOffset
 use tracing::error;
 
 use super::Context;
-use crate::CrateSearch;
+use crate::api::response::CrateSearch;
 
 /// Gandalf's famous "You shall not pass!" scene.
 const GANDALF_GIF: &str =

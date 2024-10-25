@@ -20,8 +20,12 @@ use twitch_api::{
 
 use self::eventsub::{EventSubClient, Replier};
 use crate::{
+    api::{
+        response::{self, CrateSearch, Response},
+        AuthorId, Message, Queue, Source,
+    },
     settings::{Commands as CommandSettings, Twitch as TwitchSettings},
-    AuthorId, CrateSearch, Message, Queue, Response, Source, UserResponse,
+    textparse,
 };
 
 mod eventsub;
@@ -157,7 +161,9 @@ async fn handle_message(
         let message = Message {
             span: Span::current(),
             source: Source::Twitch,
-            content: msg.message.text.clone(),
+            content: textparse::parse(&msg.message.text, Source::Twitch, None)
+                .unwrap()
+                .unwrap(),
             author: AuthorId::Twitch(msg.message_id.as_str().to_owned()),
             mention: None,
         };
@@ -188,18 +194,18 @@ async fn handle_message(
     Ok(())
 }
 
-async fn handle_user_message(resp: UserResponse, msg_id: &MsgId, client: &Replier) -> Result<()> {
+async fn handle_user_message(resp: response::User, msg_id: &MsgId, client: &Replier) -> Result<()> {
     match resp {
-        UserResponse::Help => handle_help(msg_id, client).await,
-        UserResponse::Commands(res) => handle_commands(msg_id, client, res).await,
-        UserResponse::Links(links) => handle_links(msg_id, client, links).await,
-        UserResponse::Ban(target) => handle_ban(msg_id, client, target).await,
-        UserResponse::Crate(res) => handle_crate(msg_id, client, res).await,
-        UserResponse::Today(text)
-        | UserResponse::FahrenheitToCelsius(text)
-        | UserResponse::CelsiusToFahrenheit(text)
-        | UserResponse::Custom(text) => handle_string_reply(msg_id, client, text).await,
-        UserResponse::Unknown => Ok(()),
+        response::User::Help => handle_help(msg_id, client).await,
+        response::User::Commands(res) => handle_commands(msg_id, client, res).await,
+        response::User::Links(links) => handle_links(msg_id, client, links).await,
+        response::User::Ban(target) => handle_ban(msg_id, client, target).await,
+        response::User::Crate(res) => handle_crate(msg_id, client, res).await,
+        response::User::Today(text)
+        | response::User::FahrenheitToCelsius(text)
+        | response::User::CelsiusToFahrenheit(text)
+        | response::User::Custom(text) => handle_string_reply(msg_id, client, text).await,
+        response::User::Unknown => Ok(()),
     }
 }
 
@@ -221,8 +227,8 @@ async fn handle_commands(msg_id: &MsgId, client: &Replier, res: Result<Vec<Strin
     let message = match res {
         Ok(names) => names.into_iter().fold(
             String::from(
-                "Available commands: !help (or !bot), !links, !ban, !crate(s), !today, \
-                 !ftoc, !ctof",
+                "Available commands: !help (or !bot), !links, !ban, !crate(s), !today, !ftoc, \
+                 !ctof",
             ),
             |mut list, name| {
                 list.push_str(", !");
