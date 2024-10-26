@@ -183,7 +183,6 @@ impl EventSubClient {
                 message: twitch_api::eventsub::Message::Notification(message),
                 ..
             }) => {
-                trace!("got channel.chat.message event");
                 if message.chatter_user_id != self.user_id {
                     tx.send(message).await.ok();
                 }
