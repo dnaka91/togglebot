@@ -11,12 +11,12 @@ use tokio_tungstenite::{
     tungstenite::{self, error::ProtocolError, http::Uri, protocol::WebSocketConfig},
     MaybeTlsStream,
 };
-use tracing::{debug, error, trace, warn};
+use tracing::{error, info, warn};
 use twitch_api::{
     eventsub::{
         channel::{ChannelChatMessageV1, ChannelChatMessageV1Payload},
         stream::{StreamOfflineV1, StreamOnlineV1},
-        Event, EventsubWebsocketData, Payload, ReconnectPayload, SessionData, Transport,
+        Event, EventsubWebsocketData, Message, Payload, ReconnectPayload, SessionData, Transport,
         WelcomePayload,
     },
     helix::chat::{SendChatMessageBody, SendChatMessageRequest},
@@ -24,6 +24,8 @@ use twitch_api::{
     types::{MsgId, UserId},
     HelixClient,
 };
+
+use crate::twitch::StreamInfo;
 
 type WebSocketStream = tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -173,14 +175,46 @@ impl EventSubClient {
         tx: mpsc::Sender<ChannelChatMessageV1Payload>,
     ) -> Result<()> {
         match event {
-            Event::StreamOnlineV1(Payload { message, .. }) => {
-                debug!(?message, "got stream.online event");
+            Event::StreamOnlineV1(Payload {
+                message: Message::Notification(message),
+                ..
+            }) => {
+                let get_info = || async {
+                    let token = self.token.get(&self.client).await.ok()?;
+                    let stream = self
+                        .client
+                        .get_streams_from_ids(&[&message.broadcaster_user_id][..].into(), &*token)
+                        .next()
+                        .await?
+                        .ok()?;
+
+                    StreamInfo::try_from(stream).ok()
+                };
+
+                if let Some(info) = get_info().await {
+                    info!(
+                        info.id,
+                        %info.started_at,
+                        info.title,
+                        info.category,
+                        "streamer started streaming",
+                    );
+                } else {
+                    info!(
+                        info.id = message.id,
+                        info.started_at = %message.started_at,
+                        "streamer started streaming",
+                    );
+                }
             }
-            Event::StreamOfflineV1(Payload { message, .. }) => {
-                debug!(?message, "got stream.offline event");
+            Event::StreamOfflineV1(Payload {
+                message: Message::Notification(_),
+                ..
+            }) => {
+                info!("streamer stopped streaming");
             }
             Event::ChannelChatMessageV1(Payload {
-                message: twitch_api::eventsub::Message::Notification(message),
+                message: Message::Notification(message),
                 ..
             }) => {
                 if message.chatter_user_id != self.user_id {

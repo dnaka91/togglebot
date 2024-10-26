@@ -30,7 +30,6 @@ use crate::{
 
 mod eventsub;
 
-#[expect(dead_code)]
 #[derive(Debug)]
 struct StreamInfo {
     id: String,
