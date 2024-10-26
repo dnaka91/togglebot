@@ -157,13 +157,15 @@ async fn handle_message(
     msg: ChannelChatMessageV1Payload,
     client: &Replier,
 ) -> Result<()> {
+    let Ok(Some(content)) = textparse::parse(&msg.message.text, Source::Twitch, None) else {
+        return Ok(());
+    };
+
     let response = async {
         let message = Message {
             span: Span::current(),
             source: Source::Twitch,
-            content: textparse::parse(&msg.message.text, Source::Twitch, None)
-                .unwrap()
-                .unwrap(),
+            content,
             author: AuthorId::Twitch(msg.message_id.as_str().to_owned()),
             mention: None,
         };
