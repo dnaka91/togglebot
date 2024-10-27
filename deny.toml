@@ -1,27 +1,15 @@
-[advisories]
-version = 2
-
 [licenses]
-version = 2
 allow = [
     "Apache-2.0",
     "BSD-3-Clause",
     "ISC",
     "MIT",
     "MPL-2.0",
-    "OpenSSL",
 ]
 exceptions = [
-    { allow = ["AGPL-3.0"], name = "togglebot", version = "*" },
-    { allow = ["Unicode-DFS-2016"], name = "unicode-ident", version = "*" },
-]
-
-[[licenses.clarify]]
-name = "encoding_rs"
-version = "*"
-expression = "(Apache-2.0 OR MIT) AND BSD-3-Clause"
-license-files = [
-    { path = "COPYRIGHT", hash = 0x39f8ad31 },
+    { crate = "ring", allow = ["OpenSSL"] },
+    { crate = "togglebot", allow = ["AGPL-3.0"] },
+    { crate = "unicode-ident", allow = ["Unicode-DFS-2016"] },
 ]
 
 [[licenses.clarify]]
@@ -34,28 +22,28 @@ license-files = [
 
 [bans]
 skip = [
-    { name = "base64", version = "0.21" },
-    { name = "bitflags", version = "1" },
-    { name = "hashbrown", version = "0.14" },
-    { name = "http", version = "0.2" },
-    { name = "http-body", version = "0.4" },
-    { name = "hyper", version = "0.14" },
-    { name = "hyper-rustls", version = "0.24" },
-    { name = "reqwest", version = "0.11" },
-    { name = "rustls", version = "0.21" },
-    { name = "rustls", version = "0.22" },
-    { name = "rustls-pemfile", version = "1" },
-    { name = "rustls-webpki", version = "0.101" },
-    { name = "syn", version = "1" },
-    { name = "sync_wrapper", version = "0.1" },
-    { name = "tokio-rustls", version = "0.24" },
-    { name = "tokio-rustls", version = "0.25" },
-    { name = "tokio-tungstenite", version = "0.21" },
-    { name = "tungstenite", version = "0.21" },
-    { name = "wasi", version = "0.11" },
-    { name = "webpki-roots", version = "0.25" },
+    "base64@0.21",
+    "bitflags@1",
+    "hashbrown@0.14",
+    "http@0.2",
+    "http-body@0.4",
+    "hyper@0.14",
+    "hyper-rustls@0.24",
+    "reqwest@0.11",
+    "rustls@0.21",
+    "rustls@0.22",
+    "rustls-pemfile@1",
+    "rustls-webpki@0.101",
+    "syn@1",
+    "sync_wrapper@0.1",
+    "tokio-rustls@0.24",
+    "tokio-rustls@0.25",
+    "tokio-tungstenite@0.21",
+    "tungstenite@0.21",
+    "wasi@0.11",
+    "webpki-roots@0.25",
 ]
 skip-tree = [
-    { name = "windows-sys", version = "0.48", depth = 3 },
-    { name = "windows-sys", version = "0.52", depth = 3 },
+    { crate = "windows-sys@0.48", depth = 3 },
+    { crate = "windows-sys@0.52", depth = 3 },
 ]
