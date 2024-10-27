@@ -3,7 +3,7 @@
 
 use std::{sync::Arc, time::Duration};
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use togglebot::{
     api::{request::Request, response::Response, Message},
     discord,
@@ -15,7 +15,7 @@ use togglebot::{
 };
 use tokio::sync::{mpsc, RwLock};
 use tokio_shutdown::Shutdown;
-use tracing::{error, Subscriber};
+use tracing::{error, trace, Subscriber};
 use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
 
 #[tokio::main]
@@ -73,21 +73,13 @@ async fn main() -> Result<()> {
             () = shutdown.handle() => break,
             item = queue_rx.recv() => {
                 let Some((message, reply)) = item else { break };
-                let res = async {
-                    match handler::access(&config.discord, Arc::clone(&state), &message.author).await {
-                        Access::Standard => {
-                            handle_user_message(&command_settings, &state, &statistics, message).await
-                        }
-                        Access::Admin => {
-                            handle_admin_message(&state, &statistics, message).await
-                        }
-                        Access::Owner => {
-                            handle_owner_message(&state, message).await
-                        }
-                    }
-                };
 
-                match res.await {
+                let access = handler::access(&config.discord, Arc::clone(&state), &message.author).await;
+                let res = handle_message(&command_settings, &state, &statistics, access, message).await;
+
+                let Some(res) = res else { continue };
+
+                match res {
                     Ok(resp) => {
                         reply.send(resp).ok();
                     }
@@ -127,53 +119,44 @@ fn init_targets(settings: Levels) -> Targets {
         .with_targets(settings.targets)
 }
 
-async fn handle_user_message(
+async fn handle_message(
     settings: &Arc<CommandSettings>,
     state: &Arc<RwLock<State>>,
     statistics: &Arc<RwLock<Stats>>,
+    access: Access,
     message: Message,
-) -> Result<Response> {
-    let Request::User(request) = message.content else {
-        bail!("not a user request");
-    };
-
-    handler::user_message(
-        message.span,
-        Arc::clone(settings),
-        Arc::clone(state),
-        Arc::clone(statistics),
-        request,
-        message.source,
-    )
-    .await
-    .map(Response::User)
-}
-
-async fn handle_admin_message(
-    state: &Arc<RwLock<State>>,
-    statistics: &Arc<RwLock<Stats>>,
-    message: Message,
-) -> Result<Response> {
-    let Request::Admin(request) = message.content else {
-        bail!("not an admin request");
-    };
-
-    handler::admin_message(
-        message.span,
-        Arc::clone(state),
-        Arc::clone(statistics),
-        request,
-    )
-    .await
-    .map(Response::Admin)
-}
-
-async fn handle_owner_message(state: &Arc<RwLock<State>>, message: Message) -> Result<Response> {
-    let Request::Owner(request) = message.content else {
-        bail!("not an owner request");
-    };
-
-    handler::owner_message(message.span, Arc::clone(state), request)
+) -> Option<Result<Response>> {
+    Some(match (access, message.content) {
+        (Access::Owner, Request::Owner(request)) => {
+            handler::owner_message(message.span, Arc::clone(state), request)
+                .await
+                .map(Response::Owner)
+        }
+        (_, Request::Owner(_)) => {
+            trace!("non-owner tried using a owner-only request");
+            return None;
+        }
+        (Access::Owner | Access::Admin, Request::Admin(request)) => handler::admin_message(
+            message.span,
+            Arc::clone(state),
+            Arc::clone(statistics),
+            request,
+        )
         .await
-        .map(Response::Owner)
+        .map(Response::Admin),
+        (_, Request::Admin(_)) => {
+            trace!("non-admin tried using a admin-only request");
+            return None;
+        }
+        (_, Request::User(request)) => handler::user_message(
+            message.span,
+            Arc::clone(settings),
+            Arc::clone(state),
+            Arc::clone(statistics),
+            request,
+            message.source,
+        )
+        .await
+        .map(Response::User),
+    })
 }
