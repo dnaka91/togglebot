@@ -8,3 +8,6 @@ trim_trailing_whitespace = true
 
 [*.{yaml,yml}]
 indent_size = 2
+
+[[jJ]ustfile]
+indent_size = 2
