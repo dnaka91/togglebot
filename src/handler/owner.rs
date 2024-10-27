@@ -1,12 +1,12 @@
-use std::num::NonZeroU64;
-
 use anyhow::Result;
 use tracing::{info, instrument};
 
-use super::AsyncState;
 use crate::{
-    api::response::{self, AdminAction},
-    state,
+    api::{
+        response::{self, AdminAction},
+        AdminId,
+    },
+    state::State,
 };
 
 #[instrument(skip_all)]
@@ -16,27 +16,20 @@ pub fn help() -> response::Owner {
 }
 
 #[instrument(skip_all)]
-pub async fn admins_list(state: AsyncState) -> response::Owner {
+pub fn admins_list(state: &State) -> Result<response::Owner> {
     info!("received `admins list` command");
-    response::Owner::Admins(response::Admins::List(
-        state.read().await.admins.iter().copied().collect(),
-    ))
+    let list = state.list_admins()?;
+
+    Ok(response::Owner::Admins(response::Admins::List(list)))
 }
 
 #[instrument(skip_all)]
-pub async fn admins_edit(
-    state: AsyncState,
-    action: Action,
-    user_id: NonZeroU64,
-) -> response::Owner {
+pub fn admins_edit(state: &State, action: Action, id: AdminId) -> Result<response::Owner> {
     info!("received `admins` command");
 
-    let res = || async {
-        update_admins(state, action, user_id).await?;
-        Ok(action.into())
-    };
-
-    response::Owner::Admins(response::Admins::Edit(res().await))
+    Ok(response::Owner::Admins(response::Admins::Edit(
+        update_admins(state, action, id),
+    )))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -46,21 +39,17 @@ pub(super) enum Action {
 }
 
 #[instrument(skip(state))]
-async fn update_admins(state: AsyncState, action: Action, user_id: NonZeroU64) -> Result<()> {
-    let mut state = state.write().await;
-
+fn update_admins(state: &State, action: Action, id: AdminId) -> Result<AdminAction> {
     match action {
         Action::Add => {
-            state.admins.insert(user_id);
+            state.add_admin(id)?;
         }
         Action::Remove => {
-            state.admins.remove(&user_id);
+            state.remove_admin(id)?;
         }
     }
 
-    state::save(&state).await?;
-
-    Ok(())
+    Ok(action.into())
 }
 
 impl From<Action> for AdminAction {

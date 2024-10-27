@@ -1,6 +1,4 @@
-use std::num::NonZeroU64;
-
-use super::Source;
+use super::{AdminId, Source};
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -65,6 +63,6 @@ pub enum Owner {
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Admins {
     List,
-    Add(NonZeroU64),
-    Remove(NonZeroU64),
+    Add(AdminId),
+    Remove(AdminId),
 }

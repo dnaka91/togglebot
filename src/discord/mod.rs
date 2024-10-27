@@ -515,8 +515,8 @@ async fn handle_user_message(resp: response::User, ctx: Context<'_>) -> Result<(
         response::User::Crate(res) => user::crate_(ctx, res).await,
         response::User::Today(content)
         | response::User::FahrenheitToCelsius(content)
-        | response::User::CelsiusToFahrenheit(content)
-        | response::User::Custom(content) => user::string_reply(ctx, content).await,
+        | response::User::CelsiusToFahrenheit(content) => user::string_reply(ctx, content).await,
+        response::User::Custom(content) => user::custom_reply(ctx, content).await,
         response::User::Unknown => Ok(()),
     }
 }

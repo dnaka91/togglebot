@@ -5,6 +5,7 @@
 #![allow(clippy::missing_errors_doc, missing_docs)]
 
 pub mod api;
+pub mod db;
 mod dirs;
 pub mod discord;
 pub mod emojis;

@@ -120,8 +120,8 @@ fn owner_message(content: &str, mention: Option<NonZeroU64>) -> Option<Result<re
                 request::Owner::Admins(request::Admins::List)
             }
             ("admins" | "admin", Some(action), _) => request::Owner::Admins(match action {
-                "add" => request::Admins::Add(mention?),
-                "remove" => request::Admins::Remove(mention?),
+                "add" => request::Admins::Add(mention?.into()),
+                "remove" => request::Admins::Remove(mention?.into()),
                 s => bail!("unknown action `{s}`"),
             }),
             _ => return None,
@@ -168,7 +168,7 @@ mod tests {
         let req = parse_ok(format!("!{name} add x"));
         assert_eq!(
             Request::Owner(request::Owner::Admins(request::Admins::Add(
-                NonZeroU64::new(1).unwrap()
+                NonZeroU64::new(1).unwrap().into()
             ))),
             req
         );
@@ -179,7 +179,7 @@ mod tests {
         let req = parse_ok(format!("!{name} remove x"));
         assert_eq!(
             Request::Owner(request::Owner::Admins(request::Admins::Remove(
-                NonZeroU64::new(1).unwrap()
+                NonZeroU64::new(1).unwrap().into()
             ))),
             req
         );

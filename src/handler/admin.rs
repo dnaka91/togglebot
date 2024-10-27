@@ -3,10 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{bail, ensure, Result};
 use tracing::{info, instrument};
 
-use super::{AsyncState, AsyncStats};
+use super::AsyncStats;
 use crate::{
     api::{request::StatisticsDate, response, Source},
-    state,
+    state::State,
 };
 
 #[instrument(skip_all)]
@@ -22,29 +22,25 @@ pub(super) enum Action {
 }
 
 #[instrument(skip_all)]
-pub async fn custom_commands_list(state: AsyncState) -> response::Admin {
+pub fn custom_commands_list(state: &State) -> response::Admin {
     info!("received `custom_commands list` command");
-    response::Admin::CustomCommands(response::CustomCommands::List(list_commands(state).await))
+
+    response::Admin::CustomCommands(response::CustomCommands::List(list_commands(state)))
 }
 
-async fn list_commands(state: AsyncState) -> Result<BTreeMap<String, BTreeSet<Source>>> {
-    Ok(state
-        .read()
-        .await
-        .custom_commands
-        .iter()
-        .map(|(name, sources)| {
-            (
-                name.clone(),
-                sources.iter().map(|(source, _)| *source).collect(),
-            )
-        })
-        .collect())
+fn list_commands(state: &State) -> Result<BTreeMap<String, BTreeSet<Source>>> {
+    Ok(state.list_custom_commands()?.into_iter().fold(
+        BTreeMap::new(),
+        |mut acc, (name, source)| {
+            acc.entry(name).or_default().insert(source);
+            acc
+        },
+    ))
 }
 
 #[instrument(skip_all)]
 pub async fn custom_commands(
-    state: AsyncState,
+    state: &State,
     statistics: AsyncStats,
     content: &str,
     action: Action,
@@ -58,9 +54,9 @@ pub async fn custom_commands(
         .filter(|c| !c.is_empty())
         .nth(4);
 
-    let res = || async { update_commands(state, statistics, action, source, name, content).await };
-
-    response::Admin::CustomCommands(response::CustomCommands::Edit(res().await))
+    response::Admin::CustomCommands(response::CustomCommands::Edit(
+        update_commands(state, statistics, action, source, name, content).await,
+    ))
 }
 
 /// List of all pre-defined commands that can not be defined as name for custom commands.
@@ -98,7 +94,7 @@ const RESERVED_COMMANDS: &[&str] = &[
 
 #[instrument(skip(state, statistics))]
 async fn update_commands(
-    state: AsyncState,
+    state: &State,
     statistics: AsyncStats,
     action: Action,
     source: Option<Source>,
@@ -123,21 +119,14 @@ async fn update_commands(
         "the command name `{name}` is reserved",
     );
 
-    let mut state = state.write().await;
     match action {
         Action::Add => {
             if let Some(content) = content {
                 if let Some(source) = source {
-                    state
-                        .custom_commands
-                        .entry(name.to_owned())
-                        .or_default()
-                        .insert(source, content.to_owned());
+                    state.add_custom_command(source, name, content)?;
                 } else {
-                    let entry = state.custom_commands.entry(name.to_owned()).or_default();
-
-                    for source in &[Source::Discord, Source::Twitch] {
-                        entry.insert(*source, content.to_owned());
+                    for source in [Source::Discord, Source::Twitch] {
+                        state.add_custom_command(source, name, content)?;
                     }
                 }
             } else {
@@ -147,20 +136,16 @@ async fn update_commands(
         Action::Remove => {
             match source {
                 Some(source) => {
-                    if let Some(entry) = state.custom_commands.get_mut(name) {
-                        entry.remove(&source);
-                    }
+                    state.remove_custom_command(source, name)?;
                 }
                 None => {
-                    state.custom_commands.remove(name);
+                    state.remove_custom_command_by_name(name)?;
                 }
             }
 
             statistics.write().await.erase_custom(name);
         }
     }
-
-    state::save(&state).await?;
 
     Ok(())
 }

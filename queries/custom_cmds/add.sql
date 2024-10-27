@@ -1,0 +1,1 @@
+INSERT INTO custom_commands (source, name, content) VALUES (?, ?, ?);

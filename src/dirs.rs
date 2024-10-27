@@ -7,9 +7,9 @@ use unidirs::{Directories, UnifiedDirs, Utf8Path, Utf8PathBuf};
 pub static DIRS: Lazy<Dirs> = Lazy::new(|| Dirs::new().unwrap());
 
 pub struct Dirs {
+    database_file: Utf8PathBuf,
     settings_file: Utf8PathBuf,
     state_file: Utf8PathBuf,
-    state_temp_file: Utf8PathBuf,
     statistics_file: Utf8PathBuf,
     statistics_temp_file: Utf8PathBuf,
     base: UnifiedDirs,
@@ -22,13 +22,17 @@ impl Dirs {
             .context("failed finding project directories")?;
 
         Ok(Self {
+            database_file: base.data_dir().join("togglebot.db"),
             settings_file: base.config_dir().join("config.toml"),
             state_file: base.data_dir().join("state.json"),
-            state_temp_file: base.data_dir().join("~temp-state.json"),
             statistics_file: base.data_dir().join("statistics.json"),
             statistics_temp_file: base.data_dir().join("~temp-statistics.json"),
             base,
         })
+    }
+
+    pub fn database_file(&self) -> &Utf8Path {
+        &self.database_file
     }
 
     pub fn config_file(&self) -> &Utf8Path {
@@ -41,10 +45,6 @@ impl Dirs {
 
     pub fn state_file(&self) -> &Utf8Path {
         &self.state_file
-    }
-
-    pub fn state_temp_file(&self) -> &Utf8Path {
-        &self.state_temp_file
     }
 
     pub fn statistics_file(&self) -> &Utf8Path {

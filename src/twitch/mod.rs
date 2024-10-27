@@ -204,8 +204,10 @@ async fn handle_user_message(resp: response::User, msg_id: &MsgId, client: &Repl
         response::User::Crate(res) => handle_crate(msg_id, client, res).await,
         response::User::Today(text)
         | response::User::FahrenheitToCelsius(text)
-        | response::User::CelsiusToFahrenheit(text)
-        | response::User::Custom(text) => handle_string_reply(msg_id, client, text).await,
+        | response::User::CelsiusToFahrenheit(text) => {
+            handle_string_reply(msg_id, client, text).await
+        }
+        response::User::Custom(res) => handle_custom_reply(msg_id, client, res).await,
         response::User::Unknown => Ok(()),
     }
 }
@@ -304,4 +306,14 @@ async fn handle_string_reply(msg_id: &MsgId, client: &Replier, content: String) 
     client.send_chat_message(msg_id, content).await?;
 
     Ok(())
+}
+
+async fn handle_custom_reply(msg_id: &MsgId, client: &Replier, res: Result<String>) -> Result<()> {
+    match res {
+        Ok(content) => handle_string_reply(msg_id, client, content).await,
+        Err(e) => {
+            error!(error = ?e, "failed finding custom command");
+            Ok(())
+        }
+    }
 }

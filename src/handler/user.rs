@@ -6,10 +6,13 @@ use serde::Deserialize;
 use time::OffsetDateTime;
 use tracing::{info, instrument};
 
-use super::{AsyncCommandSettings, AsyncState};
-use crate::api::{
-    response::{self, CrateInfo, CrateSearch},
-    Source,
+use super::AsyncCommandSettings;
+use crate::{
+    api::{
+        response::{self, CrateInfo, CrateSearch},
+        Source,
+    },
+    state::State,
 };
 
 #[instrument(skip_all)]
@@ -19,25 +22,9 @@ pub fn help() -> response::User {
 }
 
 #[instrument(skip_all)]
-pub async fn commands(state: AsyncState, source: Source) -> response::User {
+pub fn commands(state: &State, source: Source) -> response::User {
     info!("received `commands` command");
-    response::User::Commands(Ok(list_command_names(state, source).await))
-}
-
-async fn list_command_names(state: AsyncState, source: Source) -> Vec<String> {
-    state
-        .read()
-        .await
-        .custom_commands
-        .iter()
-        .filter_map(|(name, sources)| {
-            if sources.contains_key(&source) {
-                Some(name.clone())
-            } else {
-                None
-            }
-        })
-        .collect()
+    response::User::Commands(state.list_custom_command_names(source))
 }
 
 #[instrument(skip_all)]
@@ -151,14 +138,14 @@ pub fn ctof(celsius: f64) -> response::User {
 }
 
 #[instrument(skip_all)]
-pub async fn custom(state: AsyncState, source: Source, name: &str) -> Option<response::User> {
+pub fn custom(state: &State, source: Source, name: &str) -> Option<response::User> {
     state
-        .read()
-        .await
-        .custom_commands
-        .get(name)
-        .and_then(|content| content.get(&source))
-        .inspect(|_| info!("user: received custom `{name}` command"))
-        .cloned()
-        .map(response::User::Custom)
+        .get_custom_command(source, name)
+        .transpose()
+        .map(|res| {
+            if let Ok(name) = &res {
+                info!("user: received custom `{name}` command");
+            }
+            response::User::Custom(res)
+        })
 }

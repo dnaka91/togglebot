@@ -1,0 +1,1 @@
+SELECT name, source FROM custom_commands;

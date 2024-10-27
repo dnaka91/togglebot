@@ -17,8 +17,6 @@ mod admin;
 mod owner;
 mod user;
 
-/// Convenience type alias for a [`State`] wrapped in an [`Arc`] and a [`RwLock`].
-pub type AsyncState = Arc<RwLock<State>>;
 /// Convenience type alias for [`Stats`] wrapped in an [`Arc`] and a [`RwLock`].
 pub type AsyncStats = Arc<RwLock<Stats>>;
 /// Convenience type alias for [`CommandSettings`] wrapped in an [`Arc`].
@@ -45,12 +43,13 @@ pub enum Access {
 /// - In **Discord** all possible access levels exist, owners defined in a pre-defined static list
 ///   and admins defined in a dynamic list controlled by owners at runtime.
 /// - In **Twitch** only standard users exist, regardless of any settings.
-pub async fn access(settings: &DiscordSettings, state: AsyncState, author: &AuthorId) -> Access {
+#[must_use]
+pub fn access(settings: &DiscordSettings, state: &State, author: &AuthorId) -> Access {
     match author {
         AuthorId::Discord(id) => {
             if settings.owners.contains(id) {
                 Access::Owner
-            } else if state.read().await.admins.contains(id) {
+            } else if state.is_admin((*id).into()).unwrap_or(false) {
                 Access::Admin
             } else {
                 Access::Standard
@@ -65,7 +64,7 @@ pub async fn access(settings: &DiscordSettings, state: AsyncState, author: &Auth
 pub async fn user_message(
     span: Span,
     settings: AsyncCommandSettings,
-    state: AsyncState,
+    state: &State,
     statistics: AsyncStats,
     content: request::User,
     source: Source,
@@ -83,7 +82,7 @@ pub async fn user_message(
                 .write()
                 .await
                 .increment_builtin(BuiltinCommand::Commands);
-            user::commands(state, source).await
+            user::commands(state, source)
         }
         request::User::Links => {
             statistics
@@ -128,7 +127,7 @@ pub async fn user_message(
             user::ctof(celsius)
         }
         request::User::Custom(name) => {
-            let response = user::custom(state, source, &name).await;
+            let response = user::custom(state, source, &name);
 
             let name = match response {
                 Some(_) => Command::Custom(&name),
@@ -145,14 +144,14 @@ pub async fn user_message(
 #[tracing::instrument(parent = span, skip_all, name = "admin")]
 pub async fn admin_message(
     span: Span,
-    state: AsyncState,
+    state: &State,
     statistics: AsyncStats,
     content: request::Admin,
 ) -> Result<response::Admin> {
     Ok(match content {
         request::Admin::Help => admin::help(),
         request::Admin::CustomCommands(request::CustomCommands::List) => {
-            admin::custom_commands_list(state).await
+            admin::custom_commands_list(state)
         }
         request::Admin::CustomCommands(request::CustomCommands::Add {
             source,
@@ -181,35 +180,33 @@ pub async fn admin_message(
 #[tracing::instrument(parent = span, skip_all, name = "owner")]
 pub async fn owner_message(
     span: Span,
-    state: AsyncState,
+    state: &State,
     content: request::Owner,
 ) -> Result<response::Owner> {
     Ok(match content {
         request::Owner::Help => owner::help(),
-        request::Owner::Admins(request::Admins::List) => owner::admins_list(state).await,
+        request::Owner::Admins(request::Admins::List) => owner::admins_list(state)?,
         request::Owner::Admins(request::Admins::Add(id)) => {
-            owner::admins_edit(state, owner::Action::Add, id).await
+            owner::admins_edit(state, owner::Action::Add, id)?
         }
         request::Owner::Admins(request::Admins::Remove(id)) => {
-            owner::admins_edit(state, owner::Action::Remove, id).await
+            owner::admins_edit(state, owner::Action::Remove, id)?
         }
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU64;
-
     use similar_asserts::assert_eq;
 
     use self::response::AdminAction;
     use super::*;
-    use crate::api::request::StatisticsDate;
+    use crate::api::{request::StatisticsDate, AdminId};
 
-    fn defaults() -> (AsyncCommandSettings, AsyncState, AsyncStats, Source) {
+    fn defaults() -> (AsyncCommandSettings, State, AsyncStats, Source) {
         (
             Arc::new(CommandSettings::default()),
-            Arc::new(RwLock::new(State::default())),
+            State::in_memory().unwrap(),
             Arc::new(RwLock::new(Stats::default())),
             Source::Discord,
         )
@@ -221,7 +218,7 @@ mod tests {
         user_message(
             Span::current(),
             settings,
-            state,
+            &state,
             statistics,
             content,
             source,
@@ -232,13 +229,13 @@ mod tests {
     async fn run_admin_message(content: request::Admin) -> Result<response::Admin> {
         tracing_subscriber::fmt::try_init().ok();
         let (_, state, statistics, _) = defaults();
-        admin_message(Span::current(), state, statistics, content).await
+        admin_message(Span::current(), &state, statistics, content).await
     }
 
     async fn run_owner_message(content: request::Owner) -> Result<response::Owner> {
         tracing_subscriber::fmt::try_init().ok();
         let (_, state, _, _) = defaults();
-        owner_message(Span::current(), state, content).await
+        owner_message(Span::current(), &state, content).await
     }
 
     // #[tokio::test]
@@ -341,17 +338,14 @@ mod tests {
         tracing_subscriber::fmt::try_init().ok();
 
         let (settings, state, statistics, source) = defaults();
-        state.write().await.custom_commands.insert(
-            "hi".to_owned(),
-            [(Source::Discord, "hello".to_owned())]
-                .into_iter()
-                .collect(),
-        );
+        state
+            .add_custom_command(Source::Discord, "hi", "hello")
+            .unwrap();
 
         match user_message(
             Span::current(),
             settings,
-            state,
+            &state,
             statistics,
             request::User::Custom("hi".to_owned()),
             source,
@@ -359,7 +353,7 @@ mod tests {
         .await
         .unwrap()
         {
-            response::User::Custom(message) => assert_eq!("hello", message),
+            response::User::Custom(message) => assert_eq!("hello", message.unwrap()),
             res => panic!("unexpected response: {res:?}"),
         }
     }
@@ -428,7 +422,7 @@ mod tests {
     #[tokio::test]
     async fn owner_cmd_admins_add() {
         match run_owner_message(request::Owner::Admins(request::Admins::Add(
-            NonZeroU64::new(1).unwrap(),
+            AdminId::new(1).unwrap(),
         )))
         .await
         .unwrap()

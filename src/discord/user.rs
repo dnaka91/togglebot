@@ -162,3 +162,13 @@ pub async fn string_reply(ctx: Context<'_>, content: String) -> Result<()> {
     ctx.reply(content).await?;
     Ok(())
 }
+
+pub async fn custom_reply(ctx: Context<'_>, res: Result<String>) -> Result<()> {
+    match res {
+        Ok(content) => string_reply(ctx, content).await,
+        Err(e) => {
+            error!(error = ?e, "failed finding custom command");
+            Ok(())
+        }
+    }
+}

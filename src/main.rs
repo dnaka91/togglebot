@@ -6,6 +6,7 @@ use std::{sync::Arc, time::Duration};
 use anyhow::Result;
 use togglebot::{
     api::{request::Request, response::Response, Message},
+    db::connection::Connection,
     discord,
     handler::{self, Access},
     settings::{self, Commands as CommandSettings, Levels, LogStyle, Logging},
@@ -28,8 +29,11 @@ async fn main() -> Result<()> {
         .init();
 
     let command_settings = Arc::new(config.commands);
-    let state = state::load()?;
-    let state = Arc::new(RwLock::new(state));
+    let state = {
+        let mut conn = Connection::new()?;
+        state::migrate(&mut conn)?;
+        State::new(conn)
+    };
 
     let statistics = statistics::load()?;
     let statistics = Arc::new(RwLock::new(statistics));
@@ -74,7 +78,7 @@ async fn main() -> Result<()> {
             item = queue_rx.recv() => {
                 let Some((message, reply)) = item else { break };
 
-                let access = handler::access(&config.discord, Arc::clone(&state), &message.author).await;
+                let access = handler::access(&config.discord, &state, &message.author);
                 let res = handle_message(&command_settings, &state, &statistics, access, message).await;
 
                 let Some(res) = res else { continue };
@@ -121,14 +125,14 @@ fn init_targets(settings: Levels) -> Targets {
 
 async fn handle_message(
     settings: &Arc<CommandSettings>,
-    state: &Arc<RwLock<State>>,
+    state: &State,
     statistics: &Arc<RwLock<Stats>>,
     access: Access,
     message: Message,
 ) -> Option<Result<Response>> {
     Some(match (access, message.content) {
         (Access::Owner, Request::Owner(request)) => {
-            handler::owner_message(message.span, Arc::clone(state), request)
+            handler::owner_message(message.span, state, request)
                 .await
                 .map(Response::Owner)
         }
@@ -136,14 +140,11 @@ async fn handle_message(
             trace!("non-owner tried using a owner-only request");
             return None;
         }
-        (Access::Owner | Access::Admin, Request::Admin(request)) => handler::admin_message(
-            message.span,
-            Arc::clone(state),
-            Arc::clone(statistics),
-            request,
-        )
-        .await
-        .map(Response::Admin),
+        (Access::Owner | Access::Admin, Request::Admin(request)) => {
+            handler::admin_message(message.span, state, Arc::clone(statistics), request)
+                .await
+                .map(Response::Admin)
+        }
         (_, Request::Admin(_)) => {
             trace!("non-admin tried using a admin-only request");
             return None;
@@ -151,7 +152,7 @@ async fn handle_message(
         (_, Request::User(request)) => handler::user_message(
             message.span,
             Arc::clone(settings),
-            Arc::clone(state),
+            state,
             Arc::clone(statistics),
             request,
             message.source,

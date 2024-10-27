@@ -34,6 +34,7 @@ pub struct Message {
 
 /// Possible sources that a message came from.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
 pub enum Source {
     /// Discord source <https://discord.com>.
     Discord,
@@ -66,5 +67,44 @@ impl AsRef<str> for Source {
             Self::Discord => "Discord",
             Self::Twitch => "Twitch",
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(transparent)]
+pub struct AdminId(NonZeroU64);
+
+impl AdminId {
+    pub fn new(value: u64) -> Option<Self> {
+        NonZeroU64::new(value).map(Self)
+    }
+
+    #[must_use]
+    pub fn get(&self) -> u64 {
+        self.0.get()
+    }
+
+    #[must_use]
+    pub fn from_author(id: &AuthorId) -> Option<Self> {
+        match id {
+            AuthorId::Discord(id) => Some(Self(*id)),
+            AuthorId::Twitch(_) => None,
+        }
+    }
+}
+
+impl Display for AdminId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T> From<T> for AdminId
+where
+    T: Into<NonZeroU64>,
+{
+    fn from(value: T) -> Self {
+        Self(value.into())
     }
 }

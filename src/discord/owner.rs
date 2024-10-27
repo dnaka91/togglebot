@@ -1,11 +1,14 @@
-use std::{fmt::Write, num::NonZeroU64};
+use std::fmt::Write;
 
 use anyhow::Result;
 use indoc::indoc;
 use poise::{serenity_prelude::CreateAllowedMentions, CreateReply};
 
 use super::Context;
-use crate::{api::response::AdminAction, emojis};
+use crate::{
+    api::{response::AdminAction, AdminId},
+    emojis,
+};
 
 pub async fn help(ctx: Context<'_>) -> Result<()> {
     ctx.reply(indoc! {"
@@ -26,7 +29,7 @@ pub async fn help(ctx: Context<'_>) -> Result<()> {
     Ok(())
 }
 
-pub async fn admins_list(ctx: Context<'_>, user_ids: Vec<NonZeroU64>) -> Result<()> {
+pub async fn admins_list(ctx: Context<'_>, user_ids: Vec<AdminId>) -> Result<()> {
     let message = user_ids
         .into_iter()
         .fold(String::from("current admins are:"), |mut buf, id| {

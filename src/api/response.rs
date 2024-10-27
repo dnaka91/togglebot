@@ -1,6 +1,5 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
-    num::NonZeroU64,
     sync::Arc,
 };
 
@@ -8,7 +7,7 @@ use anyhow::Result;
 use serde::Deserialize;
 use time::OffsetDateTime;
 
-use super::Source;
+use super::{AdminId, Source};
 use crate::statistics::Statistics;
 
 /// The response for a command sent by a user.
@@ -43,7 +42,7 @@ pub enum User {
     /// Convert Celsius degrees to Fahrenheit degrees.
     CelsiusToFahrenheit(String),
     /// Execute a custom command.
-    Custom(String),
+    Custom(Result<String>),
 }
 
 /// Result of a crate search, either it was found, providing the details, or it wasn't giving some
@@ -110,7 +109,7 @@ pub enum Owner {
 #[cfg_attr(test, derive(Debug))]
 pub enum Admins {
     /// List the current admins.
-    List(Vec<NonZeroU64>),
+    List(Vec<AdminId>),
     /// Edit the current admin list.
     Edit(Result<AdminAction>),
 }

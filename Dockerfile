@@ -11,6 +11,8 @@ COPY Cargo.lock Cargo.toml ./
 
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
+COPY migrations/ migrations/
+COPY queries/ queries/
 COPY src/ src/
 
 RUN touch src/main.rs && cargo build --release --target x86_64-unknown-linux-musl
