@@ -1,7 +1,7 @@
 #![deny(rust_2018_idioms, clippy::all, clippy::pedantic)]
 #![allow(clippy::map_err_ignore)]
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Result;
 use togglebot::{
@@ -14,7 +14,7 @@ use togglebot::{
     statistics::{self, Stats},
     twitch,
 };
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc;
 use tokio_shutdown::Shutdown;
 use tracing::{error, trace, Subscriber};
 use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
@@ -29,28 +29,18 @@ async fn main() -> Result<()> {
         .init();
 
     let command_settings = Arc::new(config.commands);
+
     let state = {
         let mut conn = Connection::new()?;
         state::migrate(&mut conn)?;
         State::new(conn)
     };
 
-    let statistics = statistics::load()?;
-    let statistics = Arc::new(RwLock::new(statistics));
-    let statistics2 = Arc::clone(&statistics);
-
-    // Sync statistics to the file system once a day
-    tokio::spawn(async move {
-        const ONE_DAY: Duration = Duration::from_secs(60 * 60 * 24);
-
-        // We directly save once at startup. This allows some automatic cleanups by going through
-        // the deserializer -> serialize cycle once.
-        if let Err(e) = statistics::save(&*statistics2.read().await).await {
-            error!(error = ?e, "periodic statistics saving failed");
-        }
-
-        tokio::time::sleep(ONE_DAY).await;
-    });
+    let statistics = {
+        let mut conn = Connection::new()?;
+        statistics::migrate(&mut conn)?;
+        Stats::new(conn)
+    };
 
     let shutdown = Shutdown::new()?;
 
@@ -95,10 +85,6 @@ async fn main() -> Result<()> {
         }
     }
 
-    if let Err(e) = statistics::save(&*statistics.read().await).await {
-        error!(error = ?e, "failed saving statistics to file system");
-    }
-
     Ok(())
 }
 
@@ -126,7 +112,7 @@ fn init_targets(settings: Levels) -> Targets {
 async fn handle_message(
     settings: &Arc<CommandSettings>,
     state: &State,
-    statistics: &Arc<RwLock<Stats>>,
+    statistics: &Stats,
     access: Access,
     message: Message,
 ) -> Option<Result<Response>> {
@@ -141,7 +127,7 @@ async fn handle_message(
             return None;
         }
         (Access::Owner | Access::Admin, Request::Admin(request)) => {
-            handler::admin_message(message.span, state, Arc::clone(statistics), request)
+            handler::admin_message(message.span, state, statistics, request)
                 .await
                 .map(Response::Admin)
         }
@@ -153,7 +139,7 @@ async fn handle_message(
             message.span,
             Arc::clone(settings),
             state,
-            Arc::clone(statistics),
+            statistics,
             request,
             message.source,
         )

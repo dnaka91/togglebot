@@ -3,10 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{bail, ensure, Result};
 use tracing::{info, instrument};
 
-use super::AsyncStats;
 use crate::{
     api::{request::StatisticsDate, response, Source},
     state::State,
+    statistics::Stats,
 };
 
 #[instrument(skip_all)]
@@ -41,7 +41,7 @@ fn list_commands(state: &State) -> Result<BTreeMap<String, BTreeSet<Source>>> {
 #[instrument(skip_all)]
 pub async fn custom_commands(
     state: &State,
-    statistics: AsyncStats,
+    statistics: &Stats,
     content: &str,
     action: Action,
     source: Option<Source>,
@@ -95,7 +95,7 @@ const RESERVED_COMMANDS: &[&str] = &[
 #[instrument(skip(state, statistics))]
 async fn update_commands(
     state: &State,
-    statistics: AsyncStats,
+    statistics: &Stats,
     action: Action,
     source: Option<Source>,
     name: &str,
@@ -143,7 +143,7 @@ async fn update_commands(
                 }
             }
 
-            statistics.write().await.erase_custom(name);
+            statistics.erase_custom(name)?;
         }
     }
 
@@ -151,14 +151,14 @@ async fn update_commands(
 }
 
 #[instrument(skip(stats))]
-pub async fn stats(stats: AsyncStats, date: StatisticsDate) -> response::Admin {
+pub async fn stats(stats: &Stats, date: StatisticsDate) -> response::Admin {
     let res = || async {
         let total = match date {
             StatisticsDate::Total => true,
             StatisticsDate::Current => false,
         };
 
-        Ok((total, stats.write().await.get(total).clone()))
+        Ok((total, stats.get(total)?))
     };
 
     response::Admin::Statistics(res().await)

@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use tokio::sync::RwLock;
 use tracing::Span;
 
 use crate::{
@@ -17,8 +16,6 @@ mod admin;
 mod owner;
 mod user;
 
-/// Convenience type alias for [`Stats`] wrapped in an [`Arc`] and a [`RwLock`].
-pub type AsyncStats = Arc<RwLock<Stats>>;
 /// Convenience type alias for [`CommandSettings`] wrapped in an [`Arc`].
 pub type AsyncCommandSettings = Arc<CommandSettings>;
 
@@ -65,65 +62,41 @@ pub async fn user_message(
     span: Span,
     settings: AsyncCommandSettings,
     state: &State,
-    statistics: AsyncStats,
+    statistics: &Stats,
     content: request::User,
     source: Source,
 ) -> Result<response::User> {
     Ok(match content {
         request::User::Help => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Help);
+            statistics.try_increment(BuiltinCommand::Help.into());
             user::help()
         }
         request::User::Commands(source) => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Commands);
+            statistics.try_increment(BuiltinCommand::Commands.into());
             user::commands(state, source)
         }
         request::User::Links => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Links);
+            statistics.try_increment(BuiltinCommand::Links.into());
             user::links(&settings)
         }
         request::User::Crate(name) => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Crate);
+            statistics.try_increment(BuiltinCommand::Crate.into());
             user::crate_(&name).await
         }
         request::User::Ban(target) => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Ban);
+            statistics.try_increment(BuiltinCommand::Ban.into());
             user::ban(&target)
         }
         request::User::Today => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::Today);
+            statistics.try_increment(BuiltinCommand::Today.into());
             user::today()
         }
         request::User::Ftoc(fahrenheit) => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::FahrenheitToCelsius);
+            statistics.try_increment(BuiltinCommand::FahrenheitToCelsius.into());
             user::ftoc(fahrenheit)
         }
         request::User::Ctof(celsius) => {
-            statistics
-                .write()
-                .await
-                .increment_builtin(BuiltinCommand::CelsiusToFahrenheit);
+            statistics.try_increment(BuiltinCommand::CelsiusToFahrenheit.into());
             user::ctof(celsius)
         }
         request::User::Custom(name) => {
@@ -133,7 +106,7 @@ pub async fn user_message(
                 Some(_) => Command::Custom(&name),
                 None => Command::Unknown(&name),
             };
-            statistics.write().await.increment(name);
+            statistics.try_increment(name);
 
             response.unwrap_or(response::User::Unknown)
         }
@@ -145,7 +118,7 @@ pub async fn user_message(
 pub async fn admin_message(
     span: Span,
     state: &State,
-    statistics: AsyncStats,
+    statistics: &Stats,
     content: request::Admin,
 ) -> Result<response::Admin> {
     Ok(match content {
@@ -203,11 +176,11 @@ mod tests {
     use super::*;
     use crate::api::{request::StatisticsDate, AdminId};
 
-    fn defaults() -> (AsyncCommandSettings, State, AsyncStats, Source) {
+    fn defaults() -> (AsyncCommandSettings, State, Stats, Source) {
         (
             Arc::new(CommandSettings::default()),
             State::in_memory().unwrap(),
-            Arc::new(RwLock::new(Stats::default())),
+            Stats::in_memory().unwrap(),
             Source::Discord,
         )
     }
@@ -219,7 +192,7 @@ mod tests {
             Span::current(),
             settings,
             &state,
-            statistics,
+            &statistics,
             content,
             source,
         )
@@ -229,7 +202,7 @@ mod tests {
     async fn run_admin_message(content: request::Admin) -> Result<response::Admin> {
         tracing_subscriber::fmt::try_init().ok();
         let (_, state, statistics, _) = defaults();
-        admin_message(Span::current(), &state, statistics, content).await
+        admin_message(Span::current(), &state, &statistics, content).await
     }
 
     async fn run_owner_message(content: request::Owner) -> Result<response::Owner> {
@@ -346,7 +319,7 @@ mod tests {
             Span::current(),
             settings,
             &state,
-            statistics,
+            &statistics,
             request::User::Custom("hi".to_owned()),
             source,
         )

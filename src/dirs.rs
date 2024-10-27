@@ -6,13 +6,12 @@ use unidirs::{Directories, UnifiedDirs, Utf8Path, Utf8PathBuf};
 // no good recovery case other than throwing an error and shutting down.
 pub static DIRS: Lazy<Dirs> = Lazy::new(|| Dirs::new().unwrap());
 
+#[expect(clippy::struct_field_names)]
 pub struct Dirs {
     database_file: Utf8PathBuf,
     settings_file: Utf8PathBuf,
     state_file: Utf8PathBuf,
     statistics_file: Utf8PathBuf,
-    statistics_temp_file: Utf8PathBuf,
-    base: UnifiedDirs,
 }
 
 impl Dirs {
@@ -26,8 +25,6 @@ impl Dirs {
             settings_file: base.config_dir().join("config.toml"),
             state_file: base.data_dir().join("state.json"),
             statistics_file: base.data_dir().join("statistics.json"),
-            statistics_temp_file: base.data_dir().join("~temp-statistics.json"),
-            base,
         })
     }
 
@@ -39,19 +36,11 @@ impl Dirs {
         &self.settings_file
     }
 
-    pub fn data_dir(&self) -> &Utf8Path {
-        self.base.data_dir()
-    }
-
     pub fn state_file(&self) -> &Utf8Path {
         &self.state_file
     }
 
     pub fn statistics_file(&self) -> &Utf8Path {
         &self.statistics_file
-    }
-
-    pub fn statistics_temp_file(&self) -> &Utf8Path {
-        &self.statistics_temp_file
     }
 }
