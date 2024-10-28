@@ -25,6 +25,7 @@ twitch_api = { version = "0.7.0-rc.8", features = ["eventsub", "helix", "reqwest
 unidirs = "0.1.1"
 
 [dev-dependencies]
+http = "1.1.0"
 similar-asserts = "1.6.0"
 test-case = "3.3.1"
 

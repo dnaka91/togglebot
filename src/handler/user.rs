@@ -63,13 +63,18 @@ pub async fn crate_(name: &str) -> response::User {
     info!("received `crate` command");
 
     let res = async {
-        let link = format!("https://crates.io/api/v1/crates/{name}");
-        let resp = reqwest::Client::builder()
-            .user_agent("ToggleBot (https://github.com/dnaka91/togglebot)")
-            .build()?
-            .get(&link)
-            .send()
-            .await?;
+        #[cfg(test)]
+        let resp = crate_test_response();
+        #[cfg(not(test))]
+        let resp = {
+            let link = format!("https://crates.io/api/v1/crates/{name}");
+            reqwest::Client::builder()
+                .user_agent("ToggleBot (https://github.com/dnaka91/togglebot)")
+                .build()?
+                .get(&link)
+                .send()
+                .await?
+        };
 
         Ok(match resp.status() {
             StatusCode::OK => CrateSearch::Found(resp.json::<ApiResponse>().await?.crate_),
@@ -79,6 +84,25 @@ pub async fn crate_(name: &str) -> response::User {
     };
 
     response::User::Crate(res.await)
+}
+
+#[cfg(test)]
+fn crate_test_response() -> reqwest::Response {
+    http::Response::new(
+        serde_json::json! {{
+            "crate": {
+                "name": "anyhow",
+                "updated_at": "2024-10-22T17:51:36.413602+00:00",
+                "downloads": 237_256_036,
+                "newest_version": "1.0.91",
+                "description": "Flexible concrete Error type built on std::error::Error",
+                "documentation": "https://docs.rs/anyhow",
+                "repository": "https://github.com/dtolnay/anyhow",
+            }
+        }}
+        .to_string(),
+    )
+    .into()
 }
 
 #[instrument(skip_all)]
