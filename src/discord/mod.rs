@@ -450,7 +450,6 @@ pub async fn start(
     Ok(())
 }
 
-#[derive(Clone)]
 struct State {
     settings: Arc<CommandSettings>,
     queue: Queue,

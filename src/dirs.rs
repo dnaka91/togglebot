@@ -36,10 +36,12 @@ impl Dirs {
         &self.settings_file
     }
 
+    #[must_use]
     pub fn state_file(&self) -> &Utf8Path {
         &self.state_file
     }
 
+    #[must_use]
     pub fn statistics_file(&self) -> &Utf8Path {
         &self.statistics_file
     }

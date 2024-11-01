@@ -106,14 +106,14 @@ impl Stats {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Statistic {
     kind: CommandKind,
     name: String,
     count: u64,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum CommandKind {
     Builtin,
@@ -122,17 +122,16 @@ enum CommandKind {
 }
 
 /// Statistics for various details about `togglebot` (well, currently only command usage counters).
-#[derive(Clone, Default, Serialize)]
+#[derive(Default)]
 #[cfg_attr(test, derive(Debug))]
 pub struct Statistics {
     /// Usage counters for commands.
-    #[serde(default)]
     pub command_usage: CommandUsage,
 }
 
 /// Counters for all available **user** commands. These are split between builtin, custom and
 /// unknown to allow better visualization and categorization.
-#[derive(Clone, Default, Serialize)]
+#[derive(Default)]
 #[cfg_attr(test, derive(Debug))]
 pub struct CommandUsage {
     /// Standard, built-in commands. Helps to find out which built in commands might be removed
@@ -172,7 +171,7 @@ impl From<BuiltinCommand> for Command<'_> {
 }
 
 /// One of the few pre-defined commands that are always available.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
 pub enum BuiltinCommand {
     /// Info about the bots.
     Help,
@@ -263,7 +262,7 @@ mod migrate {
         unknown: IndexMap<String, u64>,
     }
 
-    #[derive(Clone, Copy, Eq, Hash, PartialEq, Deserialize)]
+    #[derive(Eq, Hash, PartialEq, Deserialize)]
     pub enum BuiltinCommand {
         Help,
         Commands,

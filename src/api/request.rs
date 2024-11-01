@@ -1,6 +1,5 @@
 use super::{AdminId, Source};
 
-#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Request {
     User(User),
@@ -8,7 +7,6 @@ pub enum Request {
     Owner(Owner),
 }
 
-#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum User {
     Help,
@@ -22,7 +20,6 @@ pub enum User {
     Custom(String),
 }
 
-#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Admin {
     Help,
@@ -30,7 +27,6 @@ pub enum Admin {
     Statistics(StatisticsDate),
 }
 
-#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum CustomCommands {
     List,
@@ -52,14 +48,12 @@ pub enum StatisticsDate {
     Current,
 }
 
-#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Owner {
     Help,
     Admins(Admins),
 }
 
-#[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Admins {
     List,

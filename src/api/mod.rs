@@ -18,7 +18,6 @@ pub type Queue = mpsc::Sender<(Message, oneshot::Sender<Response>)>;
 
 /// A message that was received by a service connector. It contains all information needed by the
 /// handler to parse and act upon the message.
-#[derive(Debug)]
 pub struct Message {
     /// Tracing span to keep track of the origin of the message.
     pub span: Span,
@@ -33,7 +32,7 @@ pub struct Message {
 }
 
 /// Possible sources that a message came from.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Source {
     /// Discord source <https://discord.com>.
@@ -53,7 +52,6 @@ impl Display for Source {
 
 /// Unique identifier of the message author, one variant for each service the message might come
 /// from.
-#[derive(Debug)]
 pub enum AuthorId {
     /// Discord author ID.
     Discord(NonZero<u64>),

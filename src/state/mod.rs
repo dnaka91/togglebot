@@ -115,7 +115,7 @@ mod migrate {
         admins: HashSet<NonZeroU64>,
     }
 
-    #[derive(Clone, Copy, Eq, Hash, PartialEq, Deserialize)]
+    #[derive(Eq, Hash, PartialEq, Deserialize)]
     enum Source {
         Discord,
         Twitch,
