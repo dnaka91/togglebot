@@ -24,22 +24,22 @@ impl State {
     }
 
     pub fn add_admin(&self, id: AdminId) -> Result<()> {
-        db::exec(&self.0, include_str!("../../queries/admins/add.sql"), id)
+        db::exec(&self.0, include_str!("../queries/admins/add.sql"), id)
     }
 
     pub fn remove_admin(&self, id: AdminId) -> Result<()> {
-        db::exec(&self.0, include_str!("../../queries/admins/remove.sql"), id)
+        db::exec(&self.0, include_str!("../queries/admins/remove.sql"), id)
     }
 
     pub fn is_admin(&self, id: AdminId) -> Result<bool> {
-        db::query_one(&self.0, include_str!("../../queries/admins/exists.sql"), id)
+        db::query_one(&self.0, include_str!("../queries/admins/exists.sql"), id)
             .map(|exists| exists.unwrap_or(false))
     }
 
     pub fn list_admins(&self) -> Result<Vec<AdminId>> {
         db::query_vec(
             &self.0,
-            include_str!("../../queries/admins/list.sql"),
+            include_str!("../queries/admins/list.sql"),
             db::NO_PARAMS,
         )
     }
@@ -47,7 +47,7 @@ impl State {
     pub fn add_custom_command(&self, source: Source, name: &str, content: &str) -> Result<()> {
         db::exec(
             &self.0,
-            include_str!("../../queries/custom_cmds/add.sql"),
+            include_str!("../queries/custom_cmds/add.sql"),
             (source, name, content),
         )
     }
@@ -55,7 +55,7 @@ impl State {
     pub fn remove_custom_command(&self, source: Source, name: &str) -> Result<()> {
         db::exec(
             &self.0,
-            include_str!("../../queries/custom_cmds/remove.sql"),
+            include_str!("../queries/custom_cmds/remove.sql"),
             (source, name),
         )
     }
@@ -63,7 +63,7 @@ impl State {
     pub fn remove_custom_command_by_name(&self, name: &str) -> Result<()> {
         db::exec(
             &self.0,
-            include_str!("../../queries/custom_cmds/remove_name.sql"),
+            include_str!("../queries/custom_cmds/remove_name.sql"),
             name,
         )
     }
@@ -71,7 +71,7 @@ impl State {
     pub fn get_custom_command(&self, source: Source, name: &str) -> Result<Option<String>> {
         db::query_one(
             &self.0,
-            include_str!("../../queries/custom_cmds/get.sql"),
+            include_str!("../queries/custom_cmds/get.sql"),
             (source, name),
         )
     }
@@ -79,7 +79,7 @@ impl State {
     pub fn list_custom_commands(&self) -> Result<Vec<(String, Source)>> {
         db::query_vec(
             &self.0,
-            include_str!("../../queries/custom_cmds/list.sql"),
+            include_str!("../queries/custom_cmds/list.sql"),
             db::NO_PARAMS,
         )
     }
@@ -87,7 +87,7 @@ impl State {
     pub fn list_custom_command_names(&self, source: Source) -> Result<Vec<String>> {
         db::query_vec(
             &self.0,
-            include_str!("../../queries/custom_cmds/list_names.sql"),
+            include_str!("../queries/custom_cmds/list_names.sql"),
             source,
         )
     }
@@ -137,14 +137,14 @@ mod migrate {
         let Some(state) = load()? else { return Ok(()) };
 
         let tx = conn.transaction()?;
-        let mut stmt = tx.prepare(include_str!("../../queries/admins/add.sql"))?;
+        let mut stmt = tx.prepare(include_str!("../queries/admins/add.sql"))?;
 
         for admin in state.admins {
             stmt.execute(serde_rusqlite::to_params(admin)?)?;
         }
 
         drop(stmt);
-        let mut stmt = tx.prepare(include_str!("../../queries/custom_cmds/add.sql"))?;
+        let mut stmt = tx.prepare(include_str!("../queries/custom_cmds/add.sql"))?;
 
         for (name, contents) in state.custom_commands {
             for (source, content) in contents {
