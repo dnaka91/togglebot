@@ -2,7 +2,7 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    num::NonZeroU64,
+    num::NonZero,
     sync::Arc,
 };
 
@@ -32,7 +32,7 @@ pub struct Discord {
     /// Bot authentication token.
     pub token: String,
     /// List of owner IDs.
-    pub owners: HashSet<NonZeroU64>,
+    pub owners: HashSet<NonZero<u64>>,
 }
 
 /// Information required to connect to Twitch and additional data.

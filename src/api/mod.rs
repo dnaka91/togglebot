@@ -1,6 +1,6 @@
 use std::{
     fmt::{self, Display},
-    num::NonZeroU64,
+    num::NonZero,
 };
 
 use serde::{Deserialize, Serialize};
@@ -29,7 +29,7 @@ pub struct Message {
     /// Whether this message is considered an admin command.
     pub author: AuthorId,
     /// ID of a mentioned user contained in the content. Currently specific to **Discord**.
-    pub mention: Option<NonZeroU64>,
+    pub mention: Option<NonZero<u64>>,
 }
 
 /// Possible sources that a message came from.
@@ -56,7 +56,7 @@ impl Display for Source {
 #[derive(Debug)]
 pub enum AuthorId {
     /// Discord author ID.
-    Discord(NonZeroU64),
+    Discord(NonZero<u64>),
     /// Twitch author ID.
     Twitch(String),
 }
@@ -73,11 +73,11 @@ impl AsRef<str> for Source {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(transparent)]
-pub struct AdminId(NonZeroU64);
+pub struct AdminId(NonZero<u64>);
 
 impl AdminId {
     pub fn new(value: u64) -> Option<Self> {
-        NonZeroU64::new(value).map(Self)
+        NonZero::new(value).map(Self)
     }
 
     #[must_use]
@@ -102,7 +102,7 @@ impl Display for AdminId {
 
 impl<T> From<T> for AdminId
 where
-    T: Into<NonZeroU64>,
+    T: Into<NonZero<u64>>,
 {
     fn from(value: T) -> Self {
         Self(value.into())

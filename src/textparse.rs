@@ -1,4 +1,4 @@
-use std::num::NonZeroU64;
+use std::num::NonZero;
 
 use anyhow::Result;
 
@@ -22,7 +22,7 @@ macro_rules! err {
     };
 }
 
-pub fn parse(text: &str, source: Source, mention: Option<NonZeroU64>) -> Result<Option<Request>> {
+pub fn parse(text: &str, source: Source, mention: Option<NonZero<u64>>) -> Result<Option<Request>> {
     owner_message(text, mention)
         .map(|r| r.map(Request::Owner))
         .or_else(|| admin_message(text).map(|r| r.map(Request::Admin)))
@@ -107,7 +107,7 @@ fn admin_message(content: &str) -> Option<Result<request::Admin>> {
 }
 
 /// Handle messages only accessible to owners defined in the settings and prepare a response.
-fn owner_message(content: &str, mention: Option<NonZeroU64>) -> Option<Result<request::Owner>> {
+fn owner_message(content: &str, mention: Option<NonZero<u64>>) -> Option<Result<request::Owner>> {
     let mut parts = content.splitn(3, char::is_whitespace);
     let command = parts.next()?.strip_prefix('!')?;
 
@@ -144,7 +144,7 @@ mod tests {
         parse(
             value.as_ref(),
             Source::Discord,
-            Some(NonZeroU64::new(1).unwrap()),
+            Some(NonZero::new(1).unwrap()),
         )
     }
 
@@ -168,7 +168,7 @@ mod tests {
         let req = parse_ok(format!("!{name} add x"));
         assert_eq!(
             Request::Owner(request::Owner::Admins(request::Admins::Add(
-                NonZeroU64::new(1).unwrap().into()
+                NonZero::new(1u64).unwrap().into()
             ))),
             req
         );
@@ -179,7 +179,7 @@ mod tests {
         let req = parse_ok(format!("!{name} remove x"));
         assert_eq!(
             Request::Owner(request::Owner::Admins(request::Admins::Remove(
-                NonZeroU64::new(1).unwrap().into()
+                NonZero::new(1u64).unwrap().into()
             ))),
             req
         );
