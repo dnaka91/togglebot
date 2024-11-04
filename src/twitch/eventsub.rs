@@ -134,7 +134,13 @@ impl EventSubClient {
                 .send(tungstenite::Message::Pong(msg))
                 .await
                 .map_err(Into::into),
-            tungstenite::Message::Close(_) => todo!(),
+            tungstenite::Message::Close(_) => {
+                self.connection = Self::reconnect(&Uri::from_static(
+                    twitch_api::TWITCH_EVENTSUB_WEBSOCKET_URL.as_str(),
+                ))
+                .await?;
+                Ok(())
+            }
             _ => Ok(()),
         }
     }
