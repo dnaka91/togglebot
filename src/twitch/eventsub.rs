@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{bail, ensure, Context, Result};
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{SinkExt, StreamExt, TryStreamExt};
 use tokio::{
     net::TcpStream,
     sync::{mpsc, Mutex, MutexGuard},
@@ -11,13 +11,13 @@ use tokio_tungstenite::{
     tungstenite::{self, error::ProtocolError, http::Uri, protocol::WebSocketConfig},
     MaybeTlsStream,
 };
-use tracing::{error, info, warn};
+use tracing::{error, info, trace, warn};
 use twitch_api::{
     eventsub::{
         channel::{ChannelChatMessageV1, ChannelChatMessageV1Payload},
         stream::{StreamOfflineV1, StreamOnlineV1},
-        Event, EventsubWebsocketData, Message, Payload, ReconnectPayload, SessionData, Transport,
-        WelcomePayload,
+        Event, EventType, EventsubWebsocketData, Message, Payload, ReconnectPayload, SessionData,
+        Transport, WelcomePayload,
     },
     helix::chat::{SendChatMessageBody, SendChatMessageRequest},
     twitch_oauth2::{client::Client as Oauth2Client, TwitchToken, UserToken},
@@ -239,32 +239,59 @@ impl EventSubClient {
             self.connect_url = url.parse()?;
         }
 
-        let transport = Transport::websocket(data.id);
+        let transport = Transport::websocket(&data.id);
         let token = self.token.get(&self.client).await?;
 
-        self.client
-            .create_eventsub_subscription(
-                StreamOnlineV1::broadcaster_user_id(self.streamer_id.clone()),
-                transport.clone(),
-                &*token,
-            )
+        let subs = self
+            .client
+            .get_eventsub_subscriptions(None, None, None, &*token)
+            .try_collect::<Vec<_>>()
             .await?;
 
-        self.client
-            .create_eventsub_subscription(
-                StreamOfflineV1::broadcaster_user_id(self.streamer_id.clone()),
-                transport.clone(),
-                &*token,
-            )
-            .await?;
+        // Find any active subs for this specific session, so we don't fail on
+        // re-creating the event subs that are already in place.
+        let subs = subs
+            .into_iter()
+            .flat_map(|subs| subs.subscriptions)
+            .filter_map(|sub| {
+                sub.transport
+                    .as_websocket()
+                    .is_some_and(|ws| ws.session_id == data.id)
+                    .then_some(sub.type_)
+            })
+            .collect::<Vec<_>>();
 
-        self.client
-            .create_eventsub_subscription(
-                ChannelChatMessageV1::new(self.streamer_id.clone(), self.user_id.clone()),
-                transport,
-                &*token,
-            )
-            .await?;
+        trace!(?subs, "loaded active subscriptions");
+
+        if !subs.contains(&EventType::StreamOnline) {
+            self.client
+                .create_eventsub_subscription(
+                    StreamOnlineV1::broadcaster_user_id(self.streamer_id.clone()),
+                    transport.clone(),
+                    &*token,
+                )
+                .await?;
+        }
+
+        if !subs.contains(&EventType::StreamOffline) {
+            self.client
+                .create_eventsub_subscription(
+                    StreamOfflineV1::broadcaster_user_id(self.streamer_id.clone()),
+                    transport.clone(),
+                    &*token,
+                )
+                .await?;
+        }
+
+        if !subs.contains(&EventType::ChannelChatMessage) {
+            self.client
+                .create_eventsub_subscription(
+                    ChannelChatMessageV1::new(self.streamer_id.clone(), self.user_id.clone()),
+                    transport,
+                    &*token,
+                )
+                .await?;
+        }
 
         Ok(())
     }
