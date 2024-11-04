@@ -223,4 +223,19 @@ mod tests {
 
         assert!(state.list_custom_commands().unwrap().is_empty());
     }
+
+    #[test]
+    fn overwrite_command() {
+        let state = State::in_memory().unwrap();
+
+        state
+            .add_custom_command(Source::Discord, "test", "one")
+            .unwrap();
+        state
+            .add_custom_command(Source::Discord, "test", "two")
+            .unwrap();
+
+        let cmd = state.get_custom_command(Source::Discord, "test").unwrap();
+        assert_eq!(Some("two"), cmd.as_deref());
+    }
 }
