@@ -348,7 +348,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn admin_cmd_custom_commands() {
+    async fn admin_cmd_custom_commands_list() {
         match run_admin_message(request::Admin::CustomCommands(
             request::CustomCommands::List,
         ))
@@ -359,6 +359,26 @@ mod tests {
                 assert!(list.is_empty());
             }
             response::Admin::CustomCommands(response::CustomCommands::List(Err(e))) => {
+                panic!("{e:?}")
+            }
+            res => panic!("unexpected response: {res:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn admin_cmd_custom_commands_add() {
+        match run_admin_message(request::Admin::CustomCommands(
+            request::CustomCommands::Add {
+                source: None,
+                name: "test".to_owned(),
+                content: "hi".to_owned(),
+            },
+        ))
+        .await
+        .unwrap()
+        {
+            response::Admin::CustomCommands(response::CustomCommands::Edit(Ok(()))) => {}
+            response::Admin::CustomCommands(response::CustomCommands::Edit(Err(e))) => {
                 panic!("{e:?}")
             }
             res => panic!("unexpected response: {res:?}"),

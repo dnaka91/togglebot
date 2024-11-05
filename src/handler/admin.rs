@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use anyhow::{bail, ensure, Result};
+use anyhow::{ensure, Result};
 use tracing::{info, instrument};
 
 use crate::{
@@ -49,11 +49,6 @@ pub async fn custom_commands(
 ) -> response::Admin {
     info!("received `custom_commands` command");
 
-    let content = content
-        .splitn(5, char::is_whitespace)
-        .filter(|c| !c.is_empty())
-        .nth(4);
-
     response::Admin::CustomCommands(response::CustomCommands::Edit(
         update_commands(state, statistics, action, source, name, content).await,
     ))
@@ -99,7 +94,7 @@ async fn update_commands(
     action: Action,
     source: Option<Source>,
     name: &str,
-    content: Option<&str>,
+    content: &str,
 ) -> Result<()> {
     ensure!(
         !name.starts_with('!'),
@@ -121,16 +116,14 @@ async fn update_commands(
 
     match action {
         Action::Add => {
-            if let Some(content) = content {
-                if let Some(source) = source {
-                    state.add_custom_command(source, name, content)?;
-                } else {
-                    for source in [Source::Discord, Source::Twitch] {
-                        state.add_custom_command(source, name, content)?;
-                    }
-                }
+            ensure!(!content.is_empty(), "no content for the command provided");
+
+            if let Some(source) = source {
+                state.add_custom_command(source, name, content)?;
             } else {
-                bail!("no content for the command provided");
+                for source in [Source::Discord, Source::Twitch] {
+                    state.add_custom_command(source, name, content)?;
+                }
             }
         }
         Action::Remove => {
