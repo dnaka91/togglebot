@@ -1,3 +1,6 @@
+[advisories]
+ignore = ["RUSTSEC-2024-0388"]
+
 [licenses]
 allow = [
     "Apache-2.0",
@@ -5,11 +8,11 @@ allow = [
     "ISC",
     "MIT",
     "MPL-2.0",
+    "Unicode-3.0",
 ]
 exceptions = [
     { crate = "ring", allow = ["OpenSSL"] },
     { crate = "togglebot", allow = ["AGPL-3.0"] },
-    { crate = "unicode-ident", allow = ["Unicode-DFS-2016"] },
 ]
 
 [[licenses.clarify]]
@@ -39,11 +42,12 @@ skip = [
     "tokio-rustls@0.24",
     "tokio-rustls@0.25",
     "tokio-tungstenite@0.21",
+    "tower@0.4",
     "tungstenite@0.21",
-    "wasi@0.11",
     "webpki-roots@0.25",
 ]
 skip-tree = [
+    { crate = "thiserror@1", depth = 2 },
     { crate = "windows-sys@0.48", depth = 3 },
     { crate = "windows-sys@0.52", depth = 3 },
 ]

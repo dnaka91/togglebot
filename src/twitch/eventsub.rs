@@ -71,12 +71,12 @@ impl EventSubClient {
     async fn connect(url: &Uri) -> Result<WebSocketStream> {
         let (stream, _) = tokio_tungstenite::connect_async_with_config(
             url,
-            Some(WebSocketConfig {
-                max_message_size: Some(64 << 20), // 64 MiB
-                max_frame_size: Some(16 << 20),   // 16 MiB
-                accept_unmasked_frames: false,
-                ..Default::default()
-            }),
+            Some(
+                WebSocketConfig::default()
+                    .max_message_size(Some(64 << 20)) // 64 MiB
+                    .max_frame_size(Some(16 << 20)) // 16 MiB
+                    .accept_unmasked_frames(false),
+            ),
             false,
         )
         .await?;

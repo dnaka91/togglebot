@@ -154,7 +154,7 @@ pub enum Command<'a> {
     Unknown(&'a str),
 }
 
-impl<'a> Command<'a> {
+impl Command<'_> {
     /// Get the string length of the command.
     fn str_len(&self) -> usize {
         match self {

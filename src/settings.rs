@@ -161,7 +161,7 @@ mod de {
 
     struct LevelFilterVisitor;
 
-    impl<'de> Visitor<'de> for LevelFilterVisitor {
+    impl Visitor<'_> for LevelFilterVisitor {
         type Value = LevelFilter;
 
         fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
