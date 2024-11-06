@@ -143,7 +143,7 @@ pub fn custom(state: &State, source: Source, name: &str) -> Option<response::Use
         .get_custom_command(source, name)
         .transpose()
         .map(|res| {
-            if let Ok(name) = &res {
+            if res.is_ok() {
                 info!("user: received custom `{name}` command");
             }
             response::User::Custom(res)
