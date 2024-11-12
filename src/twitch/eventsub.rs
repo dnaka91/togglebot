@@ -107,7 +107,14 @@ impl EventSubClient {
                     self.connection = Self::reconnect(&self.connect_url).await?;
                     continue;
                 }
-                Err(err) => return Err(err).context("failed receiving message"),
+                Err(e) => {
+                    warn!(error = ?e, "failed receiving message");
+                    self.connection = Self::reconnect(&Uri::from_static(
+                        twitch_api::TWITCH_EVENTSUB_WEBSOCKET_URL.as_str(),
+                    ))
+                    .await?;
+                    continue;
+                }
                 Ok(message) => message,
             };
 
