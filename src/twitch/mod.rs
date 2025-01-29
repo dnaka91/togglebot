@@ -139,7 +139,11 @@ async fn create_token(client: &impl Oauth2Client, config: &TwitchSettings) -> Re
             // Token expired, use refresh token and try again
             let client_secret = config.client_secret.clone().into();
             let (access_token, _, refresh_token) = RefreshToken::from(config.refresh_token.clone())
-                .refresh_token(client, &config.client_id.clone().into(), &client_secret)
+                .refresh_token(
+                    client,
+                    &config.client_id.clone().into(),
+                    Some(&client_secret),
+                )
                 .await?;
 
             UserToken::from_existing(client, access_token, refresh_token, Some(client_secret))
