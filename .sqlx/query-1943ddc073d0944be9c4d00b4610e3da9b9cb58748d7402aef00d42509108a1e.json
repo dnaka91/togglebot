@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO admins (id)\nVALUES (?);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "1943ddc073d0944be9c4d00b4610e3da9b9cb58748d7402aef00d42509108a1e"
+}

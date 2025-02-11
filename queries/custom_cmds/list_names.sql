@@ -1,1 +1,3 @@
-SELECT name from custom_commands WHERE source = ? ORDER BY name;
+SELECT name
+FROM custom_commands
+WHERE source = ? ORDER BY name;

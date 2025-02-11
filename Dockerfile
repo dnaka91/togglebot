@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7-labs
 FROM rust:1.85 AS builder
 
 WORKDIR /volume
@@ -11,9 +12,7 @@ COPY Cargo.lock Cargo.toml ./
 
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
-COPY migrations/ migrations/
-COPY queries/ queries/
-COPY src/ src/
+COPY --parents .sqlx/ migrations/ queries/ src/ ./
 
 RUN touch src/main.rs && cargo build --release --target x86_64-unknown-linux-musl
 

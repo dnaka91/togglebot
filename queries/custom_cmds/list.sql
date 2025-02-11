@@ -1,1 +1,2 @@
-SELECT name, source FROM custom_commands;
+SELECT name, source AS "source: Source"
+FROM custom_commands;

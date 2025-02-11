@@ -41,12 +41,12 @@ pub enum Access {
 ///   and admins defined in a dynamic list controlled by owners at runtime.
 /// - In **Twitch** only standard users exist, regardless of any settings.
 #[must_use]
-pub fn access(settings: &DiscordSettings, state: &State, author: &AuthorId) -> Access {
+pub async fn access(settings: &DiscordSettings, state: &State, author: &AuthorId) -> Access {
     match author {
         AuthorId::Discord(id) => {
             if settings.owners.contains(id) {
                 Access::Owner
-            } else if state.is_admin((*id).into()).unwrap_or(false) {
+            } else if state.is_admin((*id).into()).await.unwrap_or(false) {
                 Access::Admin
             } else {
                 Access::Standard
@@ -68,45 +68,51 @@ pub async fn user_message(
 ) -> Result<response::User> {
     Ok(match content {
         request::User::Help => {
-            statistics.try_increment(BuiltinCommand::Help.into());
+            statistics.try_increment(BuiltinCommand::Help.into()).await;
             user::help()
         }
         request::User::Commands(source) => {
-            statistics.try_increment(BuiltinCommand::Commands.into());
-            user::commands(state, source)
+            statistics
+                .try_increment(BuiltinCommand::Commands.into())
+                .await;
+            user::commands(state, source).await
         }
         request::User::Links => {
-            statistics.try_increment(BuiltinCommand::Links.into());
+            statistics.try_increment(BuiltinCommand::Links.into()).await;
             user::links(&settings)
         }
         request::User::Crate(name) => {
-            statistics.try_increment(BuiltinCommand::Crate.into());
+            statistics.try_increment(BuiltinCommand::Crate.into()).await;
             user::crate_(&name).await
         }
         request::User::Ban(target) => {
-            statistics.try_increment(BuiltinCommand::Ban.into());
+            statistics.try_increment(BuiltinCommand::Ban.into()).await;
             user::ban(&target)
         }
         request::User::Today => {
-            statistics.try_increment(BuiltinCommand::Today.into());
+            statistics.try_increment(BuiltinCommand::Today.into()).await;
             user::today()
         }
         request::User::Ftoc(fahrenheit) => {
-            statistics.try_increment(BuiltinCommand::FahrenheitToCelsius.into());
+            statistics
+                .try_increment(BuiltinCommand::FahrenheitToCelsius.into())
+                .await;
             user::ftoc(fahrenheit)
         }
         request::User::Ctof(celsius) => {
-            statistics.try_increment(BuiltinCommand::CelsiusToFahrenheit.into());
+            statistics
+                .try_increment(BuiltinCommand::CelsiusToFahrenheit.into())
+                .await;
             user::ctof(celsius)
         }
         request::User::Custom(name) => {
-            let response = user::custom(state, source, &name);
+            let response = user::custom(state, source, &name).await;
 
             let name = match response {
                 Some(_) => Command::Custom(&name),
                 None => Command::Unknown(&name),
             };
-            statistics.try_increment(name);
+            statistics.try_increment(name).await;
 
             response.unwrap_or(response::User::Unknown)
         }
@@ -124,7 +130,7 @@ pub async fn admin_message(
     Ok(match content {
         request::Admin::Help => admin::help(),
         request::Admin::CustomCommands(request::CustomCommands::List) => {
-            admin::custom_commands_list(state)
+            admin::custom_commands_list(state).await
         }
         request::Admin::CustomCommands(request::CustomCommands::Add {
             source,
@@ -158,12 +164,12 @@ pub async fn owner_message(
 ) -> Result<response::Owner> {
     Ok(match content {
         request::Owner::Help => owner::help(),
-        request::Owner::Admins(request::Admins::List) => owner::admins_list(state)?,
+        request::Owner::Admins(request::Admins::List) => owner::admins_list(state).await?,
         request::Owner::Admins(request::Admins::Add(id)) => {
-            owner::admins_edit(state, owner::Action::Add, id)?
+            owner::admins_edit(state, owner::Action::Add, id).await?
         }
         request::Owner::Admins(request::Admins::Remove(id)) => {
-            owner::admins_edit(state, owner::Action::Remove, id)?
+            owner::admins_edit(state, owner::Action::Remove, id).await?
         }
     })
 }
@@ -174,20 +180,24 @@ mod tests {
 
     use self::response::AdminAction;
     use super::*;
-    use crate::api::{AdminId, request::StatisticsDate};
+    use crate::{
+        api::{AdminId, request::StatisticsDate},
+        db::connection::Connection,
+    };
 
-    fn defaults() -> (AsyncCommandSettings, State, Stats, Source) {
+    async fn defaults() -> (AsyncCommandSettings, State, Stats, Source) {
+        let conn = Connection::in_memory().await.unwrap();
         (
             Arc::new(CommandSettings::default()),
-            State::in_memory().unwrap(),
-            Stats::in_memory().unwrap(),
+            State::from(conn.clone()),
+            Stats::from(conn),
             Source::Discord,
         )
     }
 
     async fn run_user_message(content: request::User) -> Result<response::User> {
         tracing_subscriber::fmt::try_init().ok();
-        let (settings, state, statistics, source) = defaults();
+        let (settings, state, statistics, source) = defaults().await;
         user_message(
             Span::current(),
             settings,
@@ -201,13 +211,13 @@ mod tests {
 
     async fn run_admin_message(content: request::Admin) -> Result<response::Admin> {
         tracing_subscriber::fmt::try_init().ok();
-        let (_, state, statistics, _) = defaults();
+        let (_, state, statistics, _) = defaults().await;
         admin_message(Span::current(), &state, &statistics, content).await
     }
 
     async fn run_owner_message(content: request::Owner) -> Result<response::Owner> {
         tracing_subscriber::fmt::try_init().ok();
-        let (_, state, _, _) = defaults();
+        let (_, state, _, _) = defaults().await;
         owner_message(Span::current(), &state, content).await
     }
 
@@ -310,9 +320,10 @@ mod tests {
     async fn user_cmd_custom() {
         tracing_subscriber::fmt::try_init().ok();
 
-        let (settings, state, statistics, source) = defaults();
+        let (settings, state, statistics, source) = defaults().await;
         state
             .add_custom_command(Source::Discord, "hi", "hello")
+            .await
             .unwrap();
 
         match user_message(

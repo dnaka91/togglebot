@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM command_usage\nWHERE kind = \"custom\" AND name = ?;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "a582ec6e6fd9cf5c4f6490cede3d2635e333512bc1541ff26aded64ba4929101"
+}

@@ -1,6 +1,6 @@
 //! Statistics management for the bot.
 
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 use anyhow::Result;
 use indexmap::IndexMap;
@@ -9,23 +9,24 @@ use time::OffsetDateTime;
 use tracing::error;
 
 pub use self::migrate::run as migrate;
-use crate::db::{self, connection::Connection};
+use crate::db::connection::Connection;
 
 /// Main structure that hold the statistics for different time frames.
-pub struct Stats(Arc<Connection>);
+pub struct Stats(Connection);
 
 impl Stats {
+    #[must_use]
     pub fn new(conn: Connection) -> Self {
-        Self(conn.into())
+        Self(conn)
     }
 
     #[cfg(test)]
-    pub fn in_memory() -> Result<Self> {
-        Connection::in_memory().map(Arc::new).map(Self)
+    pub async fn in_memory() -> Result<Self> {
+        Connection::in_memory().await.map(Self)
     }
 
     /// Increment the usage counter for the given command by one.
-    pub fn increment(&self, cmd: Command<'_>) -> Result<()> {
+    pub async fn increment(&self, cmd: Command<'_>) -> Result<()> {
         // Don't track commands that are too long.
         if cmd.str_len() > 50 {
             return Ok(());
@@ -39,38 +40,37 @@ impl Stats {
             Command::Unknown(cmd) => (CommandKind::Unknown, cmd),
         };
 
-        db::exec(
-            &self.0,
-            include_str!("../queries/cmd_usage/increment.sql"),
-            (now.year(), u8::from(now.month()), kind, name),
-        )?;
+        let year = now.year();
+        let month = u8::from(now.month());
+
+        sqlx::query_file!("queries/cmd_usage/increment.sql", year, month, kind, name)
+            .execute(&*self.0)
+            .await?;
 
         Ok(())
     }
 
     /// Shorthand to increment the usage count, but log an error instead of returning it.
-    pub fn try_increment(&self, cmd: Command<'_>) {
-        if let Err(e) = self.increment(cmd) {
+    pub async fn try_increment(&self, cmd: Command<'_>) {
+        if let Err(e) = self.increment(cmd).await {
             error!(error = ?e, ?cmd, "failed incrementing statistics");
         }
     }
 
     /// Get the current or total statistics.
-    pub fn get(&self, total: bool) -> Result<Statistics> {
+    pub async fn get(&self, total: bool) -> Result<Statistics> {
         let now = OffsetDateTime::now_utc();
 
         let stats = if total {
-            db::query_vec::<_, Statistic>(
-                &self.0,
-                include_str!("../queries/cmd_usage/list_total.sql"),
-                db::NO_PARAMS,
-            )
+            sqlx::query_file_as!(Statistic, "queries/cmd_usage/list_total.sql")
+                .fetch_all(&*self.0)
+                .await
         } else {
-            db::query_vec::<_, Statistic>(
-                &self.0,
-                include_str!("../queries/cmd_usage/list_current.sql"),
-                (now.year(), u8::from(now.month())),
-            )
+            let year = now.year();
+            let month = u8::from(now.month());
+            sqlx::query_file_as!(Statistic, "queries/cmd_usage/list_current.sql", year, month)
+                .fetch_all(&*self.0)
+                .await
         }?;
 
         Ok(stats
@@ -95,14 +95,18 @@ impl Stats {
 
     /// Erase the usage counter for a custom command. This is usually done when a custom command
     /// is deleted.
-    pub fn erase_custom(&self, name: &str) -> Result<()> {
-        db::exec(
-            &self.0,
-            include_str!("../queries/cmd_usage/delete.sql"),
-            name,
-        )?;
-
+    pub async fn erase_custom(&self, name: &str) -> Result<()> {
+        sqlx::query_file!("queries/cmd_usage/delete.sql", name)
+            .execute(&*self.0)
+            .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+impl From<Connection> for Stats {
+    fn from(value: Connection) -> Self {
+        Self(value)
     }
 }
 
@@ -110,11 +114,12 @@ impl Stats {
 struct Statistic {
     kind: CommandKind,
     name: String,
-    count: u64,
+    count: u32,
 }
 
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Serialize, sqlx::Type)]
 #[serde(rename_all = "snake_case")]
+#[sqlx(rename_all = "snake_case")]
 enum CommandKind {
     Builtin,
     Custom,
@@ -136,11 +141,11 @@ pub struct Statistics {
 pub struct CommandUsage {
     /// Standard, built-in commands. Helps to find out which built in commands might be removed
     /// in the future due to low usage.
-    pub builtin: IndexMap<BuiltinCommand, u64>,
+    pub builtin: IndexMap<BuiltinCommand, u32>,
     /// Custom defined commands. Allows admins to see what commands might be retired.
-    pub custom: IndexMap<String, u64>,
+    pub custom: IndexMap<String, u32>,
     /// Unrecognized commands. Can give insight about common misspells or wished-for commands.
-    pub unknown: IndexMap<String, u64>,
+    pub unknown: IndexMap<String, u32>,
 }
 
 /// A command that belongs in one of the defined categories.
@@ -233,12 +238,13 @@ impl BuiltinCommand {
 }
 
 mod migrate {
-    use std::{fs, io::ErrorKind};
+    use std::io::ErrorKind;
 
     use anyhow::{Context, Result};
     use indexmap::IndexMap;
     use serde::Deserialize;
     use time::{Month, OffsetDateTime};
+    use tokio::fs;
 
     use super::Connection;
     use crate::dirs::DIRS;
@@ -257,9 +263,9 @@ mod migrate {
 
     #[derive(Default, Deserialize)]
     struct CommandUsage {
-        builtin: IndexMap<BuiltinCommand, u64>,
-        custom: IndexMap<String, u64>,
-        unknown: IndexMap<String, u64>,
+        builtin: IndexMap<BuiltinCommand, u32>,
+        custom: IndexMap<String, u32>,
+        unknown: IndexMap<String, u32>,
     }
 
     #[derive(Eq, Hash, PartialEq, Deserialize)]
@@ -292,8 +298,8 @@ mod migrate {
         }
     }
 
-    fn load() -> Result<Option<Stats>> {
-        let state = match fs::read(DIRS.statistics_file()) {
+    async fn load() -> Result<Option<Stats>> {
+        let state = match fs::read(DIRS.statistics_file()).await {
             Ok(buf) => buf,
             Err(e) if e.kind() == ErrorKind::NotFound => return Ok(None),
             Err(e) => return Err(e).context("failed reading statistics file"),
@@ -306,16 +312,17 @@ mod migrate {
 
     fn transform_map<'a, T: AsRef<str> + 'a>(
         kind: super::CommandKind,
-        map: impl IntoIterator<Item = (&'a T, &'a u64)>,
-    ) -> impl Iterator<Item = (super::CommandKind, &'a str, u64)> {
+        map: impl IntoIterator<Item = (&'a T, &'a u32)>,
+    ) -> impl Iterator<Item = (super::CommandKind, &'a str, u32)> {
         map.into_iter().map(move |(k, &v)| (kind, k.as_ref(), v))
     }
 
-    pub fn run(conn: &mut Connection) -> Result<()> {
-        let Some(stats) = load()? else { return Ok(()) };
+    pub async fn run(conn: &Connection) -> Result<()> {
+        let Some(stats) = load().await? else {
+            return Ok(());
+        };
 
-        let tx = conn.transaction()?;
-        let mut stmt = tx.prepare(include_str!("../queries/cmd_usage/add.sql"))?;
+        let mut tx = conn.begin().await?;
 
         let stats = [
             (
@@ -338,20 +345,17 @@ mod migrate {
                 ));
 
             for (kind, name, count) in usages {
-                stmt.execute(serde_rusqlite::to_params((
-                    year,
-                    u8::from(month),
-                    kind,
-                    name,
-                    count,
-                ))?)?;
+                let month = u8::from(month);
+                sqlx::query_file!("queries/cmd_usage/add.sql", year, month, kind, name, count)
+                    .execute(&mut *tx)
+                    .await?;
             }
         }
 
-        drop(stmt);
-        tx.commit()?;
+        tx.commit().await?;
 
         fs::remove_file(DIRS.statistics_file())
+            .await
             .context("failed deleting obsolete statistics file")?;
 
         Ok(())
@@ -364,35 +368,35 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn increment() {
-        let stats = Stats::in_memory().unwrap();
+    #[tokio::test]
+    async fn increment() {
+        let stats = Stats::in_memory().await.unwrap();
         for _ in 0..2 {
-            stats.increment(BuiltinCommand::Help.into()).unwrap();
+            stats.increment(BuiltinCommand::Help.into()).await.unwrap();
         }
 
         for _ in 0..3 {
-            stats.increment(Command::Custom("me")).unwrap();
+            stats.increment(Command::Custom("me")).await.unwrap();
         }
 
         for _ in 0..4 {
-            stats.increment(Command::Unknown("who")).unwrap();
+            stats.increment(Command::Unknown("who")).await.unwrap();
         }
 
-        let usage = &stats.get(false).unwrap().command_usage;
+        let usage = &stats.get(false).await.unwrap().command_usage;
         assert_eq!(2, usage.builtin[&BuiltinCommand::Help]);
         assert_eq!(3, usage.custom["me"]);
         assert_eq!(4, usage.unknown["who"]);
     }
 
-    #[test]
-    fn erase_custom() {
-        let stats = Stats::in_memory().unwrap();
-        stats.increment(Command::Custom("me")).unwrap();
-        stats.increment(Command::Custom("you")).unwrap();
-        stats.erase_custom("you").unwrap();
+    #[tokio::test]
+    async fn erase_custom() {
+        let stats = Stats::in_memory().await.unwrap();
+        stats.increment(Command::Custom("me")).await.unwrap();
+        stats.increment(Command::Custom("you")).await.unwrap();
+        stats.erase_custom("you").await.unwrap();
 
-        let usage = &stats.get(false).unwrap().command_usage;
+        let usage = &stats.get(false).await.unwrap().command_usage;
         assert_eq!(1, usage.custom["me"]);
         assert!(usage.custom.get("you").is_none());
     }

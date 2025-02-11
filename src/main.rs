@@ -29,16 +29,15 @@ async fn main() -> Result<()> {
         .init();
 
     let command_settings = Arc::new(config.commands);
+    let conn = Connection::new().await?;
 
     let state = {
-        let mut conn = Connection::new()?;
-        state::migrate(&mut conn)?;
-        State::new(conn)
+        state::migrate(&conn).await?;
+        State::new(conn.clone())
     };
 
     let statistics = {
-        let mut conn = Connection::new()?;
-        statistics::migrate(&mut conn)?;
+        statistics::migrate(&conn).await?;
         Stats::new(conn)
     };
 
@@ -68,7 +67,7 @@ async fn main() -> Result<()> {
             item = queue_rx.recv() => {
                 let Some((message, reply)) = item else { break };
 
-                let access = handler::access(&config.discord, &state, &message.author);
+                let access = handler::access(&config.discord, &state, &message.author).await;
                 let res = handle_message(&command_settings, &state, &statistics, access, message).await;
 
                 let Some(res) = res else { continue };

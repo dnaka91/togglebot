@@ -16,19 +16,19 @@ pub fn help() -> response::Owner {
 }
 
 #[instrument(skip_all)]
-pub fn admins_list(state: &State) -> Result<response::Owner> {
+pub async fn admins_list(state: &State) -> Result<response::Owner> {
     info!("received `admins list` command");
-    let list = state.list_admins()?;
+    let list = state.list_admins().await?;
 
     Ok(response::Owner::Admins(response::Admins::List(list)))
 }
 
 #[instrument(skip_all)]
-pub fn admins_edit(state: &State, action: Action, id: AdminId) -> Result<response::Owner> {
+pub async fn admins_edit(state: &State, action: Action, id: AdminId) -> Result<response::Owner> {
     info!("received `admins` command");
 
     Ok(response::Owner::Admins(response::Admins::Edit(
-        update_admins(state, action, id),
+        update_admins(state, action, id).await,
     )))
 }
 
@@ -39,13 +39,13 @@ pub(super) enum Action {
 }
 
 #[instrument(skip(state))]
-fn update_admins(state: &State, action: Action, id: AdminId) -> Result<AdminAction> {
+async fn update_admins(state: &State, action: Action, id: AdminId) -> Result<AdminAction> {
     match action {
         Action::Add => {
-            state.add_admin(id)?;
+            state.add_admin(id).await?;
         }
         Action::Remove => {
-            state.remove_admin(id)?;
+            state.remove_admin(id).await?;
         }
     }
 

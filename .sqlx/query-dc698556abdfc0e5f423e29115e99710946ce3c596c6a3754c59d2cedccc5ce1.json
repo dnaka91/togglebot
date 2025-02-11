@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id: NonZero<u64>\"\nFROM admins;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: NonZero<u64>",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dc698556abdfc0e5f423e29115e99710946ce3c596c6a3754c59d2cedccc5ce1"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT content\nFROM custom_commands\nWHERE source = ? AND name = ?;",
+  "describe": {
+    "columns": [
+      {
+        "name": "content",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "db8d5f28ff9e130c80ce9c2ff186aa8d4725a19ac7492b58196b4715a03509d2"
+}

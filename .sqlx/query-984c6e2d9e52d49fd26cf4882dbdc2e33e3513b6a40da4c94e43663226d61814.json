@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT kind AS \"kind: CommandKind\", name, count AS \"count: u32\"\nFROM command_usage\nWHERE year = ? AND month = ?\nORDER BY count DESC;",
+  "describe": {
+    "columns": [
+      {
+        "name": "kind: CommandKind",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "count: u32",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "984c6e2d9e52d49fd26cf4882dbdc2e33e3513b6a40da4c94e43663226d61814"
+}

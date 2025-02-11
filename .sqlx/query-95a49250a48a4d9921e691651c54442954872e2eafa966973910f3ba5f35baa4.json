@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT name\nFROM custom_commands\nWHERE source = ? ORDER BY name;",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "95a49250a48a4d9921e691651c54442954872e2eafa966973910f3ba5f35baa4"
+}

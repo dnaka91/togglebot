@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO command_usage (year, month, kind, name, count)\nVALUES (?, ?, ?, ?, 1)\nON CONFLICT (year, month, kind, name)\nDO UPDATE SET count = count + 1;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "0a78f5eb5e1450081f9f65dc600c5a2fe85b4952595ddad01525023e617c2641"
+}

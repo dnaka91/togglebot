@@ -1,1 +1,2 @@
-DELETE FROM admins WHERE id = ?;
+DELETE FROM admins
+WHERE id = ?;

@@ -1,50 +1,65 @@
-use std::{
-    ops::{Deref, DerefMut},
-    sync::LazyLock,
-};
+use std::ops::{Deref, DerefMut};
 
 use anyhow::{Context, Result};
-use include_dir::{Dir, include_dir};
-use rusqlite_migration::Migrations;
+use sqlx::{
+    SqlitePool,
+    migrate::Migrator,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
+};
 
 use crate::dirs::DIRS;
 
-static MIGRATIONS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/migrations");
-static MIGRATIONS: LazyLock<Migrations<'_>> =
-    LazyLock::new(|| Migrations::from_directory(&MIGRATIONS_DIR).unwrap());
+static MIGRATOR: Migrator = sqlx::migrate!();
 
-pub struct Connection(rusqlite::Connection);
+#[derive(Clone)]
+pub struct Connection(SqlitePool);
 
 impl Connection {
-    pub fn new() -> Result<Self> {
-        let mut conn = rusqlite::Connection::open(DIRS.database_file())
+    pub async fn new() -> Result<Self> {
+        let options = SqliteConnectOptions::new()
+            .filename(DIRS.database_file())
+            .create_if_missing(true)
+            .journal_mode(SqliteJournalMode::Wal)
+            .synchronous(SqliteSynchronous::Normal)
+            .foreign_keys(true);
+
+        let pool = SqlitePoolOptions::new()
+            .min_connections(1)
+            .connect_with(options)
+            .await
             .with_context(|| format!("failed opening database at {:?}", DIRS.database_file()))?;
 
-        MIGRATIONS
-            .to_latest(&mut conn)
+        MIGRATOR
+            .run(&pool)
+            .await
             .context("failed running migrations")?;
 
-        conn.pragma_update(None, "journal_mode", "WAL")?;
-        conn.pragma_update(None, "synchronous", "NORMAL")?;
-        conn.pragma_update(None, "foreign_keys", "ON")?;
-
-        Ok(Self(conn))
+        Ok(Self(pool))
     }
 
     #[cfg(test)]
-    pub fn in_memory() -> Result<Self> {
-        let mut conn = rusqlite::Connection::open_in_memory()?;
+    pub async fn in_memory() -> Result<Self> {
+        use sqlx::ConnectOptions;
+        use tracing::log::LevelFilter;
 
-        MIGRATIONS.to_latest(&mut conn)?;
+        let pool = SqlitePoolOptions::new()
+            .min_connections(1)
+            .max_connections(1)
+            .connect_with(
+                SqliteConnectOptions::new()
+                    .foreign_keys(true)
+                    .log_statements(LevelFilter::Info),
+            )
+            .await?;
 
-        conn.pragma_update(None, "foreign_keys", "ON")?;
+        MIGRATOR.run(&pool).await?;
 
-        Ok(Self(conn))
+        Ok(Self(pool))
     }
 }
 
 impl Deref for Connection {
-    type Target = rusqlite::Connection;
+    type Target = SqlitePool;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -59,12 +74,14 @@ impl DerefMut for Connection {
 
 #[cfg(test)]
 mod tests {
-    use super::MIGRATIONS;
+    use sqlx::SqlitePool;
 
-    #[test]
-    fn run_migrations() {
-        let mut conn = rusqlite::Connection::open_in_memory().unwrap();
-        MIGRATIONS.to_latest(&mut conn).unwrap();
-        MIGRATIONS.to_version(&mut conn, 0).unwrap();
+    use super::MIGRATOR;
+
+    #[tokio::test]
+    async fn run_migrations() {
+        let conn = SqlitePool::connect(":memory:").await.unwrap();
+        MIGRATOR.run(&conn).await.unwrap();
+        MIGRATOR.undo(&conn, 0).await.unwrap();
     }
 }

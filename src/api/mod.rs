@@ -32,7 +32,9 @@ pub struct Message {
 }
 
 /// Possible sources that a message came from.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Deserialize, Serialize, sqlx::Type,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum Source {
     /// Discord source <https://discord.com>.
@@ -68,7 +70,7 @@ impl AsRef<str> for Source {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, sqlx::Type)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(transparent)]
 pub struct AdminId(NonZero<u64>);

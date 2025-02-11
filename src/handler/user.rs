@@ -22,9 +22,9 @@ pub fn help() -> response::User {
 }
 
 #[instrument(skip_all)]
-pub fn commands(state: &State, source: Source) -> response::User {
+pub async fn commands(state: &State, source: Source) -> response::User {
     info!("received `commands` command");
-    response::User::Commands(state.list_custom_command_names(source))
+    response::User::Commands(state.list_custom_command_names(source).await)
 }
 
 #[instrument(skip_all)]
@@ -138,9 +138,10 @@ pub fn ctof(celsius: f64) -> response::User {
 }
 
 #[instrument(skip_all)]
-pub fn custom(state: &State, source: Source, name: &str) -> Option<response::User> {
+pub async fn custom(state: &State, source: Source, name: &str) -> Option<response::User> {
     state
         .get_custom_command(source, name)
+        .await
         .transpose()
         .map(|res| {
             if res.is_ok() {

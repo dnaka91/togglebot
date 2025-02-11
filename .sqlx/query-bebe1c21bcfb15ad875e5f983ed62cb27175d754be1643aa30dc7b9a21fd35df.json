@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO custom_commands (source, name, content)\nVALUES (?, ?, ?)\nON CONFLICT (source, name)\nDO UPDATE SET content = excluded.content;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "bebe1c21bcfb15ad875e5f983ed62cb27175d754be1643aa30dc7b9a21fd35df"
+}

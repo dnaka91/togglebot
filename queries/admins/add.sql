@@ -1,1 +1,2 @@
-INSERT INTO admins (id) VALUES (?);
+INSERT INTO admins (id)
+VALUES (?);

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM admins\nWHERE id = ?;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "0acbddb168d467995d4eb35016d22f91d534bbe11ec3d78197cc70ce84301987"
+}

@@ -1,1 +1,3 @@
-SELECT COUNT(*) FROM admins WHERE id = ?;
+SELECT COUNT(*) AS count
+FROM admins
+WHERE id = ?;

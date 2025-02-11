@@ -22,14 +22,14 @@ pub(super) enum Action {
 }
 
 #[instrument(skip_all)]
-pub fn custom_commands_list(state: &State) -> response::Admin {
+pub async fn custom_commands_list(state: &State) -> response::Admin {
     info!("received `custom_commands list` command");
 
-    response::Admin::CustomCommands(response::CustomCommands::List(list_commands(state)))
+    response::Admin::CustomCommands(response::CustomCommands::List(list_commands(state).await))
 }
 
-fn list_commands(state: &State) -> Result<BTreeMap<String, BTreeSet<Source>>> {
-    Ok(state.list_custom_commands()?.into_iter().fold(
+async fn list_commands(state: &State) -> Result<BTreeMap<String, BTreeSet<Source>>> {
+    Ok(state.list_custom_commands().await?.into_iter().fold(
         BTreeMap::new(),
         |mut acc, (name, source)| {
             acc.entry(name).or_default().insert(source);
@@ -119,24 +119,24 @@ async fn update_commands(
             ensure!(!content.is_empty(), "no content for the command provided");
 
             if let Some(source) = source {
-                state.add_custom_command(source, name, content)?;
+                state.add_custom_command(source, name, content).await?;
             } else {
                 for source in [Source::Discord, Source::Twitch] {
-                    state.add_custom_command(source, name, content)?;
+                    state.add_custom_command(source, name, content).await?;
                 }
             }
         }
         Action::Remove => {
             match source {
                 Some(source) => {
-                    state.remove_custom_command(source, name)?;
+                    state.remove_custom_command(source, name).await?;
                 }
                 None => {
-                    state.remove_custom_command_by_name(name)?;
+                    state.remove_custom_command_by_name(name).await?;
                 }
             }
 
-            statistics.erase_custom(name)?;
+            statistics.erase_custom(name).await?;
         }
     }
 
@@ -151,7 +151,7 @@ pub async fn stats(stats: &Stats, date: StatisticsDate) -> response::Admin {
             StatisticsDate::Current => false,
         };
 
-        Ok((total, stats.get(total)?))
+        Ok((total, stats.get(total).await?))
     };
 
     response::Admin::Statistics(res().await)

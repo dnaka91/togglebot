@@ -1,1 +1,2 @@
-SELECT id FROM admins;
+SELECT id AS "id: NonZero<u64>"
+FROM admins;

@@ -1,1 +1,2 @@
-DELETE FROM custom_commands WHERE name = ?;
+DELETE FROM custom_commands
+WHERE name = ?;
