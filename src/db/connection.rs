@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use rusqlite_migration::Migrations;
 
 use crate::dirs::DIRS;

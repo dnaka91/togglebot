@@ -1,28 +1,28 @@
 use std::{sync::Arc, time::Duration};
 
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{Context, Result, bail, ensure};
 use futures_util::{SinkExt, StreamExt, TryStreamExt};
 use tokio::{
     net::TcpStream,
-    sync::{mpsc, Mutex, MutexGuard},
+    sync::{Mutex, MutexGuard, mpsc},
     time,
 };
 use tokio_tungstenite::{
-    tungstenite::{self, error::ProtocolError, http::Uri, protocol::WebSocketConfig},
     MaybeTlsStream,
+    tungstenite::{self, error::ProtocolError, http::Uri, protocol::WebSocketConfig},
 };
 use tracing::{error, info, trace, warn};
 use twitch_api::{
+    HelixClient,
     eventsub::{
-        channel::{ChannelChatMessageV1, ChannelChatMessageV1Payload},
-        stream::{StreamOfflineV1, StreamOnlineV1},
         Event, EventType, EventsubWebsocketData, Message, Payload, ReconnectPayload, SessionData,
         Transport, WelcomePayload,
+        channel::{ChannelChatMessageV1, ChannelChatMessageV1Payload},
+        stream::{StreamOfflineV1, StreamOnlineV1},
     },
     helix::chat::{SendChatMessageBody, SendChatMessageRequest},
-    twitch_oauth2::{client::Client as Oauth2Client, TwitchToken, UserToken},
+    twitch_oauth2::{TwitchToken, UserToken, client::Client as Oauth2Client},
     types::{MsgId, UserId},
-    HelixClient,
 };
 
 use crate::twitch::StreamInfo;
@@ -132,10 +132,10 @@ impl EventSubClient {
         tx: mpsc::Sender<ChannelChatMessageV1Payload>,
     ) -> Result<()> {
         match msg {
-            tungstenite::Message::Text(text) => self
-                .process_eventsub_message(Event::parse_websocket(&text)?, tx)
-                .await
-                .map_err(Into::into),
+            tungstenite::Message::Text(text) => {
+                self.process_eventsub_message(Event::parse_websocket(&text)?, tx)
+                    .await
+            }
             tungstenite::Message::Ping(msg) => self
                 .connection
                 .send(tungstenite::Message::Pong(msg))
@@ -165,14 +165,10 @@ impl EventSubClient {
             | EventsubWebsocketData::Reconnect {
                 payload: ReconnectPayload { session },
                 ..
-            } => self
-                .process_welcome_message(session)
-                .await
-                .map_err(Into::into),
-            EventsubWebsocketData::Notification { payload, .. } => self
-                .process_notification_message(payload, tx)
-                .await
-                .map_err(Into::into),
+            } => self.process_welcome_message(session).await,
+            EventsubWebsocketData::Notification { payload, .. } => {
+                self.process_notification_message(payload, tx).await
+            }
             EventsubWebsocketData::Revocation { metadata, payload } => {
                 warn!(?metadata, ?payload, "received revocation");
                 Ok(())
@@ -192,7 +188,7 @@ impl EventSubClient {
                 message: Message::Notification(message),
                 ..
             }) => {
-                let get_info = || async {
+                let get_info = async || {
                     let token = self.token.get(&self.client).await.ok()?;
                     let stream = self
                         .client

@@ -2,11 +2,11 @@ use std::fmt::Write;
 
 use anyhow::Result;
 use indoc::indoc;
-use poise::{serenity_prelude::CreateAllowedMentions, CreateReply};
+use poise::{CreateReply, serenity_prelude::CreateAllowedMentions};
 
 use super::Context;
 use crate::{
-    api::{response::AdminAction, AdminId},
+    api::{AdminId, response::AdminAction},
     emojis,
 };
 

@@ -9,13 +9,13 @@ use anyhow::Result;
 use poise::serenity_prelude::{self as serenity, UserId};
 use tokio::sync::oneshot;
 use tokio_shutdown::Shutdown;
-use tracing::{error, info, info_span, instrument, Instrument, Span};
+use tracing::{Instrument, Span, error, info, info_span, instrument};
 
 use crate::{
     api::{
+        AuthorId, Message, Queue, Source,
         request::{self, Request, StatisticsDate},
         response::{self, Response},
-        AuthorId, Message, Queue, Source,
     },
     settings::{Commands as CommandSettings, Discord as DiscordSettings},
 };

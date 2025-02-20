@@ -9,8 +9,8 @@ use tracing::{info, instrument};
 use super::AsyncCommandSettings;
 use crate::{
     api::{
-        response::{self, CrateInfo, CrateSearch},
         Source,
+        response::{self, CrateInfo, CrateSearch},
     },
     state::State,
 };

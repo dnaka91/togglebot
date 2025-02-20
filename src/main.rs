@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use togglebot::{
-    api::{request::Request, response::Response, Message},
+    api::{Message, request::Request, response::Response},
     db::connection::Connection,
     discord,
     handler::{self, Access},
@@ -16,8 +16,8 @@ use togglebot::{
 };
 use tokio::sync::mpsc;
 use tokio_shutdown::Shutdown;
-use tracing::{error, trace, Subscriber};
-use tracing_subscriber::{filter::Targets, prelude::*, registry::LookupSpan, Layer};
+use tracing::{Subscriber, error, trace};
+use tracing_subscriber::{Layer, filter::Targets, prelude::*, registry::LookupSpan};
 
 #[tokio::main]
 async fn main() -> Result<()> {

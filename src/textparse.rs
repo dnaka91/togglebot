@@ -3,8 +3,8 @@ use std::num::NonZero;
 use anyhow::Result;
 
 use crate::api::{
-    request::{self, Request, StatisticsDate},
     Source,
+    request::{self, Request, StatisticsDate},
 };
 
 macro_rules! bail {

@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use tracing::{info, instrument};
 
 use crate::{
-    api::{request::StatisticsDate, response, Source},
+    api::{Source, request::StatisticsDate, response},
     state::State,
     statistics::Stats,
 };
@@ -145,7 +145,7 @@ async fn update_commands(
 
 #[instrument(skip(stats))]
 pub async fn stats(stats: &Stats, date: StatisticsDate) -> response::Admin {
-    let res = || async {
+    let res = async || {
         let total = match date {
             StatisticsDate::Total => true,
             StatisticsDate::Current => false,

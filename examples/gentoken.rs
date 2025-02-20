@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use reqwest::Url;
 use togglebot::settings;
 use twitch_api::{

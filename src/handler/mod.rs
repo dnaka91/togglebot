@@ -6,7 +6,7 @@ use anyhow::Result;
 use tracing::Span;
 
 use crate::{
-    api::{request, response, AuthorId, Source},
+    api::{AuthorId, Source, request, response},
     settings::{Commands as CommandSettings, Discord as DiscordSettings},
     state::State,
     statistics::{BuiltinCommand, Command, Stats},
@@ -174,7 +174,7 @@ mod tests {
 
     use self::response::AdminAction;
     use super::*;
-    use crate::api::{request::StatisticsDate, AdminId};
+    use crate::api::{AdminId, request::StatisticsDate};
 
     fn defaults() -> (AsyncCommandSettings, State, Stats, Source) {
         (

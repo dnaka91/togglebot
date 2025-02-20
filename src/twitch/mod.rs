@@ -4,25 +4,25 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::{Context, Result};
 use futures_util::StreamExt;
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use tokio::{select, sync::oneshot};
 use tokio_shutdown::Shutdown;
-use tracing::{error, info, info_span, instrument, Instrument, Span};
+use tracing::{Instrument, Span, error, info, info_span, instrument};
 use twitch_api::{
+    HelixClient,
     eventsub::channel::ChannelChatMessageV1Payload,
     helix,
     twitch_oauth2::{
-        client::Client as Oauth2Client, tokens::errors::ValidationError, RefreshToken, UserToken,
+        RefreshToken, UserToken, client::Client as Oauth2Client, tokens::errors::ValidationError,
     },
     types::MsgId,
-    HelixClient,
 };
 
 use self::eventsub::{EventSubClient, Replier};
 use crate::{
     api::{
-        response::{self, CrateSearch, Response},
         AuthorId, Message, Queue, Source,
+        response::{self, CrateSearch, Response},
     },
     settings::{Commands as CommandSettings, Twitch as TwitchSettings},
     textparse,
