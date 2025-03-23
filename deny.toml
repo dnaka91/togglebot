@@ -9,19 +9,10 @@ allow = [
     "MIT",
     "MPL-2.0",
     "Unicode-3.0",
+    "Zlib",
 ]
 exceptions = [
-    { crate = "foldhash", allow = ["Zlib"] },
-    { crate = "ring", allow = ["OpenSSL"] },
     { crate = "togglebot", allow = ["AGPL-3.0"] },
-]
-
-[[licenses.clarify]]
-name = "ring"
-version = "*"
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [
-    { path = "LICENSE", hash = 0xbd0eed23 },
 ]
 
 [bans]
@@ -39,6 +30,7 @@ skip = [
     "rustls@0.22",
     "rustls-pemfile@1",
     "rustls-webpki@0.101",
+    "rustls-webpki@0.102",
     "syn@1",
     "sync_wrapper@0.1",
     "tokio-rustls@0.24",
@@ -50,6 +42,7 @@ skip = [
     "webpki-roots@0.25",
 ]
 skip-tree = [
+    { crate = "rand@0.8", depth = 2 },
     { crate = "thiserror@1", depth = 2 },
     { crate = "windows-sys@0.48", depth = 3 },
     { crate = "windows-sys@0.52", depth = 3 },
