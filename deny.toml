@@ -1,3 +1,9 @@
+[graph]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+]
+
 [advisories]
 ignore = ["RUSTSEC-2024-0388"]
 
@@ -11,14 +17,13 @@ allow = [
     "Unicode-3.0",
     "Zlib",
 ]
-exceptions = [
-    { crate = "togglebot", allow = ["AGPL-3.0"] },
-]
+
+[licenses.private]
+ignore = true
 
 [bans]
 skip = [
     "base64@0.21",
-    "bitflags@1",
     "getrandom@0.2",
     "hashbrown@0.14",
     "http@0.2",
@@ -38,12 +43,9 @@ skip = [
     "tokio-tungstenite@0.21",
     "tower@0.4",
     "tungstenite@0.21",
-    "wasi@0.11",
     "webpki-roots@0.25",
 ]
 skip-tree = [
     { crate = "rand@0.8", depth = 2 },
     { crate = "thiserror@1", depth = 2 },
-    { crate = "windows-sys@0.48", depth = 3 },
-    { crate = "windows-sys@0.52", depth = 3 },
 ]

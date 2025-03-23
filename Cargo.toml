@@ -3,6 +3,7 @@ name = "togglebot"
 version = "0.2.0"
 authors = ["Dominik Nakamura <dnaka91@gmail.com>"]
 edition = "2024"
+publish = false
 
 [dependencies]
 anyhow = "1.0.97"
