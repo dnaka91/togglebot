@@ -19,6 +19,10 @@ use tokio_shutdown::Shutdown;
 use tracing::{Subscriber, error, trace};
 use tracing_subscriber::{Layer, filter::Targets, prelude::*, registry::LookupSpan};
 
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let config = settings::load()?;
