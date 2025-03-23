@@ -21,7 +21,8 @@ impl Connection {
             .create_if_missing(true)
             .journal_mode(SqliteJournalMode::Wal)
             .synchronous(SqliteSynchronous::Normal)
-            .foreign_keys(true);
+            .foreign_keys(true)
+            .optimize_on_close(true, 400);
 
         let pool = SqlitePoolOptions::new()
             .min_connections(1)
