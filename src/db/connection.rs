@@ -56,6 +56,10 @@ impl Connection {
 
         Ok(Self(pool))
     }
+
+    pub async fn close(self) {
+        self.0.close().await;
+    }
 }
 
 impl Deref for Connection {

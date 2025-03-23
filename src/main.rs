@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
 
     let statistics = {
         statistics::migrate(&conn).await?;
-        Stats::new(conn)
+        Stats::new(conn.clone())
     };
 
     let shutdown = Shutdown::new()?;
@@ -87,6 +87,8 @@ async fn main() -> Result<()> {
             }
         }
     }
+
+    conn.close().await;
 
     Ok(())
 }
