@@ -1,10 +1,11 @@
+use std::sync::LazyLock;
+
 use anyhow::{Context, Result};
-use once_cell::sync::Lazy;
 use unidirs::{Directories, UnifiedDirs, Utf8Path, Utf8PathBuf};
 
 // Unwrap: We can't run the server without knowning where to place files, so panic here as there is
 // no good recovery case other than throwing an error and shutting down.
-pub static DIRS: Lazy<Dirs> = Lazy::new(|| Dirs::new().unwrap());
+pub static DIRS: LazyLock<Dirs> = LazyLock::new(|| Dirs::new().unwrap());
 
 #[expect(clippy::struct_field_names)]
 pub struct Dirs {

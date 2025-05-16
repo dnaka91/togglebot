@@ -88,7 +88,7 @@ impl Stats {
                     CommandKind::Unknown => {
                         acc.command_usage.unknown.insert(stat.name, stat.count);
                     }
-                };
+                }
                 acc
             }))
     }

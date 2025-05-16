@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7-labs
-FROM rust:1.85 AS builder
+FROM rust:1.87-slim AS builder
 
 WORKDIR /volume
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends musl-tools && \
+    apt-get install -y --no-install-recommends build-essential musl-tools && \
     rustup target add x86_64-unknown-linux-musl && \
     cargo init --bin
 
