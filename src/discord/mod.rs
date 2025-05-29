@@ -327,7 +327,7 @@ async fn crates(ctx: Context<'_>, name: String) -> Result<()> {
     handle_message(
         ctx,
         SerenityMessage {
-            content: Request::User(request::User::Ban(name)),
+            content: Request::User(request::User::Crate(name)),
             author: ctx.author().id,
             mention: None,
         },
