@@ -72,10 +72,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          labels: |
+            org.opencontainers.image.source=https://forge.dnaka91.rocks/${{ github.repository }}
+            org.opencontainers.image.url=https://forge.dnaka91.rocks/${{ github.repository }}
           images: |
             docker.io/${{ github.repository }}
             ghcr.io/${{ github.repository }}
-            quay.io/${{ github.repository }}
+            forge.dnaka91.rocks/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
@@ -95,12 +98,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Login to Red Hat Quay.io
+      - name: Login to Forge
         uses: docker/login-action@v3
         with:
-          registry: quay.io
+          registry: forge.dnaka91.rocks
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.QUAY_PASSWORD }}
+          password: ${{ secrets.FORGE_TOKEN }}
       - name: Build & push Docker image
         uses: docker/build-push-action@v6
         env:
