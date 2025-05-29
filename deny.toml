@@ -11,6 +11,7 @@ ignore = ["RUSTSEC-2024-0388"]
 allow = [
     "Apache-2.0",
     "BSD-3-Clause",
+    "CDLA-Permissive-2.0",
     "ISC",
     "MIT",
     "MPL-2.0",
@@ -33,7 +34,6 @@ skip = [
     "reqwest@0.11",
     "rustls@0.21",
     "rustls@0.22",
-    "rustls-pemfile@1",
     "rustls-webpki@0.101",
     "rustls-webpki@0.102",
     "syn@1",
@@ -44,6 +44,7 @@ skip = [
     "tower@0.4",
     "tungstenite@0.21",
     "webpki-roots@0.25",
+    "webpki-roots@0.26",
 ]
 skip-tree = [
     { crate = "rand@0.8", depth = 2 },
