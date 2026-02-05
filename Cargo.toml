@@ -15,7 +15,7 @@ reqwest = { version = "0.12.23", default-features = false, features = ["gzip", "
 serde = { version = "1.0.219", features = ["derive", "rc"] }
 serde_json = "1.0.143"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite"] }
-time = { version = "0.3.41", features = ["formatting", "macros", "parsing", "serde-human-readable", "serde-well-known"] }
+time = { version = "0.3.47", features = ["formatting", "macros", "parsing", "serde-human-readable", "serde-well-known"] }
 tokio = { version = "1.47.1", features = ["fs", "macros", "rt-multi-thread", "sync"] }
 tokio-shutdown = "0.1.5"
 tokio-tungstenite = { version = "0.27.0", features = ["rustls-tls-webpki-roots"] }
