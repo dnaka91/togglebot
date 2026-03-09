@@ -105,7 +105,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.FORGE_TOKEN }}
       - name: Build & push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILDKIT: 1
         with:
